@@ -4,11 +4,11 @@
 [![TDD](https://img.shields.io/badge/methodology-100%25%20Pure%20TDD-brightgreen.svg)](https://en.wikipedia.org/wiki/Test-driven_development)
 [![Tests](https://img.shields.io/badge/tests-79%2F79%20passing-success.svg)](tests/)
 [![Architecture](https://img.shields.io/badge/architecture-Hexagonal%20%28Ports%20%26%20Adapters%29-blue.svg)](#-architecture-hexagonale)
-[![UI](https://img.shields.io/badge/UI-Bioxus%20Ready-6f42c1.svg)](#-endpoints-api-bioxus)
+[![UI](https://img.shields.io/badge/UI-Biorcrux%20Ready-6f42c1.svg)](#-endpoints-api-biorcrux)
 
 **Servai** est un orchestrateur universel en Rust conçu pour l'administration intégrale de serveurs. Il unifie l'ensemble de la chaîne de valeur système et cloud : **noms de domaine (Registrars)**, **zones et enregistrements DNS**, **délivrance de certificats TLS/SSL Let's Encrypt**, **tunnels VPN WireGuard**, moteurs d'automatisation déclarative (**OpenTofu**, **Ansible**, **Crossplane**), et **réutilisation maximale de dépôts d'administration existants** (Ansible Galaxy, LinuxServer.io, collections GitHub Sysadmin & Homelab).
 
-Le projet expose une API REST réactive conçue pour alimenter directement l'interface utilisateur **Bioxus**, et est développé selon une méthodologie **100% pure TDD (Test-Driven Development)** dans le respect strict des principes de l'**Architecture Hexagonale**.
+Le projet expose une API REST réactive conçue pour alimenter directement l'interface utilisateur **Biorcrux**, et est développé selon une méthodologie **100% pure TDD (Test-Driven Development)** dans le respect strict des principes de l'**Architecture Hexagonale**.
 
 ---
 
@@ -16,7 +16,7 @@ Le projet expose une API REST réactive conçue pour alimenter directement l'int
 
 ```text
                                +----------------------------+
-                               |         UI Bioxus          |
+                               |         UI Biorcrux          |
                                +--------------+-------------+
                                               |
                                               v (REST JSON)
@@ -109,13 +109,13 @@ cargo test
 | [`tests/dns_and_registrar_tests.rs`](tests/dns_and_registrar_tests.rs) | **7** | Enregistrement de domaines, nameservers, zones DNS, types d'enregistrements (A, AAAA, MX, TXT, etc.), TTL, DNSSEC, propagation, certificats TLS et liaison serveur-domaine (`bind_server_domain`). |
 | [`tests/complete_orchestration_tests.rs`](tests/complete_orchestration_tests.rs) | **5** | Pipelines de workflows personnalisés, déploiements de flotte (stratégies Parallel / Rolling), automations planifiées (schedules), logs d'exécution détaillés et réconciliation d'état désiré (auto-healing). |
 | [`tests/application_tests.rs`](tests/application_tests.rs) | **22** | Cas d'usage applicatifs complets : administration, healthchecks, services systemd, rollback, catalogue, registry, stacks, OpenTofu, Ansible, Crossplane, WireGuard. |
-| [`tests/api_bioxus_tests.rs`](tests/api_bioxus_tests.rs) | **15** | Contrats REST complets pour l'UI Bioxus (codes HTTP 200, 201, 204, 400, 404, 409, 422, endpoints serveurs, domaines, DNS, TLS, moteurs, workflows, flottes, schedules et réconciliation). |
+| [`tests/api_bioxus_tests.rs`](tests/api_bioxus_tests.rs) | **15** | Contrats REST complets pour l'UI Biorcrux (codes HTTP 200, 201, 204, 400, 404, 409, 422, endpoints serveurs, domaines, DNS, TLS, moteurs, workflows, flottes, schedules et réconciliation). |
 
 ---
 
-## 🌐 Endpoints API Bioxus
+## 🌐 Endpoints API Biorcrux
 
-L'API REST expose tous les services nécessaires à l'interface d'administration **Bioxus** :
+L'API REST expose tous les services nécessaires à l'interface d'administration **Biorcrux** :
 
 ### 🖥️ Administration du Serveur & Liaison de Domaine
 | Méthode | Route | Description |
@@ -233,7 +233,7 @@ L'API REST expose tous les services nécessaires à l'interface d'administration
 cargo run
 ```
 
-Par défaut, Servai écoute sur `http://0.0.0.0:8080` avec les en-têtes CORS permissifs configurés pour les connexions depuis l'UI **Bioxus**.
+Par défaut, Servai écoute sur `http://0.0.0.0:8080` avec les en-têtes CORS permissifs configurés pour les connexions depuis l'UI **Biorcrux**.
 
 ### Exemples d'appels cURL
 
@@ -252,7 +252,7 @@ curl -X POST http://localhost:8080/api/v1/domains \
     "domain": "mon-domaine.org",
     "provider": "Cloudflare",
     "contact_name": "DevOps Lead",
-    "contact_email": "ops@bioxus.org",
+    "contact_email": "ops@biorcrux.org",
     "contact_phone": "+33123456789",
     "contact_city": "Paris",
     "contact_country": "France",

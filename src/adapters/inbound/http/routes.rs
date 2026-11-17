@@ -88,7 +88,7 @@ pub fn create_router_full(
 
     Router::new()
         .route("/api/v1/health", get(health_check))
-        // Server administration routes (for Bioxus UI)
+        // Server administration routes (for Biorcrux UI)
         .route("/api/v1/servers", post(register_server).get(list_servers))
         .route("/api/v1/servers/{id}", get(get_server))
         .route("/api/v1/servers/{id}/health", post(health_check_server))
@@ -136,20 +136,20 @@ pub fn create_router_full(
         .route("/api/v1/orchestrations/drift", post(detect_drift_handler))
         .route("/api/v1/orchestrations/fleet", post(execute_fleet_rollout_handler))
         .route("/api/v1/orchestrations/reconcile", post(reconcile_server_state_handler))
-        // Custom Workflow Pipelines (for Bioxus)
+        // Custom Workflow Pipelines (for Biorcrux)
         .route("/api/v1/workflows", post(create_workflow_handler).get(list_workflows_handler))
         .route("/api/v1/workflows/{id}", get(get_workflow_handler))
         .route("/api/v1/workflows/{id}/execute", post(execute_workflow_handler))
-        // Scheduled Automations (for Bioxus)
+        // Scheduled Automations (for Biorcrux)
         .route("/api/v1/schedules", post(create_schedule_handler).get(list_schedules_handler))
         .route("/api/v1/schedules/{id}", get(get_schedule_handler).delete(delete_schedule_handler))
         .route("/api/v1/schedules/{id}/run", post(run_schedule_handler))
-        // OpenTofu orchestration routes (for Bioxus)
+        // OpenTofu orchestration routes (for Biorcrux)
         .route("/api/v1/tofu/plan", post(plan_tofu_handler))
         .route("/api/v1/tofu/apply", post(apply_tofu_handler))
         .route("/api/v1/tofu/destroy", post(destroy_tofu_handler))
         .route("/api/v1/tofu/state/{repo_id}", get(get_tofu_state_handler))
-        // Ansible execution routes (for Bioxus)
+        // Ansible execution routes (for Biorcrux)
         .route(
             "/api/v1/servers/{id}/ansible/playbook",
             post(run_ansible_playbook_handler),
@@ -162,7 +162,7 @@ pub fn create_router_full(
             "/api/v1/servers/{id}/ansible/facts",
             get(gather_ansible_facts_handler),
         )
-        // Crossplane Control Plane orchestration routes (for Bioxus)
+        // Crossplane Control Plane orchestration routes (for Biorcrux)
         .route("/api/v1/crossplane/claims", post(apply_crossplane_claim_handler))
         .route(
             "/api/v1/crossplane/claims/{namespace}/{name}",
@@ -176,7 +176,7 @@ pub fn create_router_full(
             "/api/v1/crossplane/providers",
             get(list_crossplane_providers_handler),
         )
-        // WireGuard VPN administration routes (for Bioxus)
+        // WireGuard VPN administration routes (for Biorcrux)
         .route(
             "/api/v1/servers/{id}/wireguard",
             post(configure_wireguard_handler),
@@ -197,13 +197,13 @@ pub fn create_router_full(
             "/api/v1/wireguard/keypair",
             post(generate_wireguard_keypair_handler),
         )
-        // Domain Registrar orchestration routes (for Bioxus)
+        // Domain Registrar orchestration routes (for Biorcrux)
         .route("/api/v1/domains/check", get(check_availability_handler))
         .route("/api/v1/domains", post(register_domain_handler).get(list_domains_handler))
         .route("/api/v1/domains/{domain}", get(get_domain_handler))
         .route("/api/v1/domains/{domain}/nameservers", put(update_nameservers_handler))
         .route("/api/v1/domains/{domain}/auto-renew", put(set_auto_renew_handler))
-        // DNS Zone and Record management routes (for Bioxus)
+        // DNS Zone and Record management routes (for Biorcrux)
         .route("/api/v1/dns/zones", post(create_dns_zone_handler).get(list_dns_zones_handler))
         .route("/api/v1/dns/zones/{domain}", get(get_dns_zone_handler))
         .route("/api/v1/dns/zones/{domain}/records", post(upsert_dns_record_handler))
@@ -215,7 +215,7 @@ pub fn create_router_full(
             "/api/v1/dns/zones/{domain}/propagate",
             get(verify_dns_propagation_handler),
         )
-        // Domain binding & TLS orchestration for Servers (for Bioxus)
+        // Domain binding & TLS orchestration for Servers (for Biorcrux)
         .route(
             "/api/v1/servers/{id}/bind-domain",
             post(bind_server_domain_handler),
