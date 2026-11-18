@@ -3,12 +3,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::adapters::outbound::{
-    ansible::MockAnsibleEngine,
-    catalog::StandardServerAdminCatalog,
-    crossplane::MockCrossplaneEngine,
-    memory::stack_store::InMemoryStackStore,
-    opentofu::MockOpenTofuEngine,
-    registry::MultiSourceAdminRegistry,
+    ansible::MockAnsibleEngine, catalog::StandardServerAdminCatalog,
+    crossplane::MockCrossplaneEngine, memory::stack_store::InMemoryStackStore,
+    opentofu::MockOpenTofuEngine, registry::MultiSourceAdminRegistry,
 };
 use crate::domain::{
     catalog::{AdminCategory, CatalogItem},
@@ -27,24 +24,19 @@ use crate::domain::{
     server::{ServerId, ServerStatus},
     stack::{MultiRepoStack, StackId, StackRepoEntry},
     workflow::{
-        DesiredServerState, FleetJobResult, FleetRolloutCommand,
-        JobExecutionLogs, ReconciliationResult, ScheduledJob, ScheduledJobCommand, ScheduleId,
-        StepLogEntry, WorkflowAction, WorkflowDefinition, WorkflowId, WorkflowStep,
+        DesiredServerState, FleetJobResult, FleetRolloutCommand, JobExecutionLogs,
+        ReconciliationResult, ScheduleId, ScheduledJob, ScheduledJobCommand, StepLogEntry,
+        WorkflowAction, WorkflowDefinition, WorkflowId, WorkflowStep,
     },
 };
 use crate::ports::{
     inbound::repo_orchestrator::{RegisterRepoCommand, RepoOrchestratorPort},
     outbound::{
-        admin_registry::AdminRegistryPort,
-        ansible_engine::AnsibleEnginePort,
-        crossplane_engine::CrossplaneEnginePort,
-        git_provider::GitProviderPort,
-        job_store::JobStorePort,
-        opentofu_engine::OpenTofuEnginePort,
-        repo_catalog::RepoCatalogPort,
-        repo_store::RepoStorePort,
-        server_executor::ServerExecutorPort,
-        server_store::ServerStorePort,
+        admin_registry::AdminRegistryPort, ansible_engine::AnsibleEnginePort,
+        crossplane_engine::CrossplaneEnginePort, git_provider::GitProviderPort,
+        job_store::JobStorePort, opentofu_engine::OpenTofuEnginePort,
+        repo_catalog::RepoCatalogPort, repo_store::RepoStorePort,
+        server_executor::ServerExecutorPort, server_store::ServerStorePort,
         stack_store::StackStorePort,
     },
 };
@@ -178,14 +170,12 @@ impl OrchestrationService {
 
 #[async_trait]
 impl RepoOrchestratorPort for OrchestrationService {
-    async fn register_repo(&self, cmd: RegisterRepoCommand) -> Result<ManagedRepository, DomainError> {
-        let repo = ManagedRepository::new(
-            RepoId::new(),
-            cmd.name,
-            cmd.url,
-            cmd.target_ref,
-            cmd.kind,
-        )?;
+    async fn register_repo(
+        &self,
+        cmd: RegisterRepoCommand,
+    ) -> Result<ManagedRepository, DomainError> {
+        let repo =
+            ManagedRepository::new(RepoId::new(), cmd.name, cmd.url, cmd.target_ref, cmd.kind)?;
         self.repo_store.save(repo.clone()).await?;
         Ok(repo)
     }
@@ -354,12 +344,14 @@ impl RepoOrchestratorPort for OrchestrationService {
         server_id: &ServerId,
         repo_id: &RepoId,
     ) -> Result<DriftReport, DomainError> {
-        let _server = self.server_store.find_by_id(server_id).await?.ok_or_else(|| {
-            DomainError::NotFound {
+        let _server = self
+            .server_store
+            .find_by_id(server_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
                 entity: "Server",
                 id: server_id.to_string(),
-            }
-        })?;
+            })?;
         let repo = self.get_repo(repo_id).await?;
 
         self.git_provider.detect_drift(server_id, &repo).await
@@ -428,22 +420,26 @@ impl RepoOrchestratorPort for OrchestrationService {
                 id: catalog_id.to_string(),
             })?;
 
-        if let Some(spec) = server.spec() {
-            if !item.is_compatible_with(spec) {
-                return Err(DomainError::ValidationError(format!(
-                    "Recipe '{}' is not compatible with server OS '{}'",
-                    item.name(),
-                    spec.os
-                )));
-            }
+        if let Some(spec) = server.spec()
+            && !item.is_compatible_with(spec)
+        {
+            return Err(DomainError::ValidationError(format!(
+                "Recipe '{}' is not compatible with server OS '{}'",
+                item.name(),
+                spec.os
+            )));
         }
 
         let repo = self
             .import_from_catalog(catalog_id, Some(format!("{}-applied", item.id())))
             .await?;
 
-        self.trigger_orchestration_with_options(server_id, &repo.id(), RollbackPolicy::RollbackOnFailure)
-            .await
+        self.trigger_orchestration_with_options(
+            server_id,
+            &repo.id(),
+            RollbackPolicy::RollbackOnFailure,
+        )
+        .await
     }
 
     async fn create_stack(
@@ -626,7 +622,10 @@ impl RepoOrchestratorPort for OrchestrationService {
                 order: (idx + 1) as u32,
                 step_name: format!("install-{}", pkg.id()),
                 command: format!("ansible-playbook -i inventory deploy-{}.yml", pkg.id()),
-                rollback_command: Some(format!("ansible-playbook -i inventory rollback-{}.yml", pkg.id())),
+                rollback_command: Some(format!(
+                    "ansible-playbook -i inventory rollback-{}.yml",
+                    pkg.id()
+                )),
                 overrides: HashMap::new(),
             });
         }
@@ -658,14 +657,14 @@ impl RepoOrchestratorPort for OrchestrationService {
 
         let mut entries = Vec::new();
         for (idx, pkg_id) in preset.package_ids().iter().enumerate() {
-            let pkg = self
-                .registry
-                .get_package(pkg_id)
-                .await?
-                .ok_or_else(|| DomainError::NotFound {
-                    entity: "AdminPackage",
-                    id: pkg_id.clone(),
-                })?;
+            let pkg =
+                self.registry
+                    .get_package(pkg_id)
+                    .await?
+                    .ok_or_else(|| DomainError::NotFound {
+                        entity: "AdminPackage",
+                        id: pkg_id.clone(),
+                    })?;
 
             let repo = ManagedRepository::new(
                 RepoId::new(),
@@ -756,7 +755,9 @@ impl RepoOrchestratorPort for OrchestrationService {
                 server_id
             )));
         }
-        self.ansible_engine.run_playbook(&server, playbook, vars).await
+        self.ansible_engine
+            .run_playbook(&server, playbook, vars)
+            .await
     }
 
     async fn apply_crossplane_claim(
@@ -771,7 +772,9 @@ impl RepoOrchestratorPort for OrchestrationService {
         namespace: &str,
         name: &str,
     ) -> Result<CrossplaneReconcileResult, DomainError> {
-        self.crossplane_engine.get_claim_status(namespace, name).await
+        self.crossplane_engine
+            .get_claim_status(namespace, name)
+            .await
     }
 
     async fn delete_crossplane_claim(
@@ -806,15 +809,15 @@ impl RepoOrchestratorPort for OrchestrationService {
         let filtered = all
             .into_iter()
             .filter(|j| {
-                if let Some(sid) = server_id {
-                    if j.server_id() != *sid {
-                        return false;
-                    }
+                if let Some(sid) = server_id
+                    && j.server_id() != *sid
+                {
+                    return false;
                 }
-                if let Some(st) = status {
-                    if j.status() != st {
-                        return false;
-                    }
+                if let Some(st) = status
+                    && j.status() != st
+                {
+                    return false;
                 }
                 true
             })
@@ -934,15 +937,25 @@ impl RepoOrchestratorPort for OrchestrationService {
                 WorkflowAction::ShellCommand { command } => {
                     self.executor.execute_command(&server, command).await
                 }
-                WorkflowAction::DnsRecordUpsert { domain, record_type, value } => {
+                WorkflowAction::DnsRecordUpsert {
+                    domain,
+                    record_type,
+                    value,
+                } => {
                     self.executor
                         .execute_command(
                             &server,
-                            &format!("actserve-dns-record-upsert {} {} {}", domain, record_type, value),
+                            &format!(
+                                "actserve-dns-record-upsert {} {} {}",
+                                domain, record_type, value
+                            ),
                         )
                         .await
                 }
-                WorkflowAction::HttpHealthCheck { url, expected_status: _ } => {
+                WorkflowAction::HttpHealthCheck {
+                    url,
+                    expected_status: _,
+                } => {
                     self.executor
                         .execute_command(
                             &server,
@@ -957,7 +970,10 @@ impl RepoOrchestratorPort for OrchestrationService {
                 }
                 WorkflowAction::PackageInstall { package_id } => {
                     self.executor
-                        .execute_command(&server, &format!("actserve-package-install {}", package_id))
+                        .execute_command(
+                            &server,
+                            &format!("actserve-package-install {}", package_id),
+                        )
                         .await
                 }
             };
@@ -967,7 +983,10 @@ impl RepoOrchestratorPort for OrchestrationService {
                     let _ = job.record_step_success(idx, cmd_res.stdout);
                 }
                 Ok(cmd_res) => {
-                    let err = format!("Step {} failed with exit code {}", step.name, cmd_res.exit_code);
+                    let err = format!(
+                        "Step {} failed with exit code {}",
+                        step.name, cmd_res.exit_code
+                    );
                     let _ = job.record_step_failure(idx, &err, "Step execution non-zero exit");
                     self.job_store.save(job.clone()).await?;
                     return Ok(job);
@@ -1008,12 +1027,20 @@ impl RepoOrchestratorPort for OrchestrationService {
         let mut jobs = Vec::new();
 
         // Build single-step workflow for the fleet action
-        let wf_step = WorkflowStep::new("fleet-action", "Action distribuée sur la flotte", cmd.action);
-        let wf = self.create_workflow("fleet-workflow", "Fleet rollout", vec![wf_step]).await?;
+        let wf_step = WorkflowStep::new(
+            "fleet-action",
+            "Action distribuée sur la flotte",
+            cmd.action,
+        );
+        let wf = self
+            .create_workflow("fleet-workflow", "Fleet rollout", vec![wf_step])
+            .await?;
 
         for server_id in target_servers {
             match self.execute_workflow(&server_id, &wf.id).await {
-                Ok(job) if job.status() == crate::domain::orchestration::ExecutionStatus::Succeeded => {
+                Ok(job)
+                    if job.status() == crate::domain::orchestration::ExecutionStatus::Succeeded =>
+                {
                     succeeded_count += 1;
                     jobs.push(job);
                 }
@@ -1035,10 +1062,7 @@ impl RepoOrchestratorPort for OrchestrationService {
         })
     }
 
-    async fn create_schedule(
-        &self,
-        cmd: ScheduledJobCommand,
-    ) -> Result<ScheduledJob, DomainError> {
+    async fn create_schedule(&self, cmd: ScheduledJobCommand) -> Result<ScheduledJob, DomainError> {
         let schedule = ScheduledJob {
             id: ScheduleId::new(),
             name: cmd.name,
@@ -1085,7 +1109,11 @@ impl RepoOrchestratorPort for OrchestrationService {
             schedule.action.clone(),
         );
         let wf = self
-            .create_workflow(&format!("run-{}", schedule.name), "Scheduled run", vec![wf_step])
+            .create_workflow(
+                &format!("run-{}", schedule.name),
+                "Scheduled run",
+                vec![wf_step],
+            )
             .await?;
 
         // Update last_run
@@ -1130,7 +1158,9 @@ impl RepoOrchestratorPort for OrchestrationService {
                     value: server.host().ip().to_string(),
                 },
             );
-            let wf = self.create_workflow("domain-reconcile", "Bind domain", vec![step]).await?;
+            let wf = self
+                .create_workflow("domain-reconcile", "Bind domain", vec![step])
+                .await?;
             let job = self.execute_workflow(&desired.server_id, &wf.id).await?;
             remediation_jobs.push(job);
         }
@@ -1145,7 +1175,9 @@ impl RepoOrchestratorPort for OrchestrationService {
                     action: "start".to_string(),
                 },
             );
-            let wf = self.create_workflow("wg-reconcile", "Ensure WireGuard", vec![step]).await?;
+            let wf = self
+                .create_workflow("wg-reconcile", "Ensure WireGuard", vec![step])
+                .await?;
             let job = self.execute_workflow(&desired.server_id, &wf.id).await?;
             remediation_jobs.push(job);
         }

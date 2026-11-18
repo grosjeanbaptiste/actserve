@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{
-    catalog::AdminCategory,
-    errors::DomainError,
-    server::ServerSpec,
-};
+use crate::domain::{catalog::AdminCategory, errors::DomainError, server::ServerSpec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RegistrySource {
@@ -150,22 +146,22 @@ impl RegistryQuery {
     }
 
     pub fn matches(&self, pkg: &AdminPackage) -> bool {
-        if let Some(cat) = self.category {
-            if pkg.category() != cat {
-                return false;
-            }
+        if let Some(cat) = self.category
+            && pkg.category() != cat
+        {
+            return false;
         }
 
-        if let Some(src) = self.source {
-            if pkg.source() != src {
-                return false;
-            }
+        if let Some(src) = self.source
+            && pkg.source() != src
+        {
+            return false;
         }
 
-        if let Some(min) = self.min_stars {
-            if pkg.stars() < min {
-                return false;
-            }
+        if let Some(min) = self.min_stars
+            && pkg.stars() < min
+        {
+            return false;
         }
 
         if let Some(ref kw) = self.keyword {

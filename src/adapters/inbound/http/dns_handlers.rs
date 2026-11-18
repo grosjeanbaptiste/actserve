@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,7 +78,11 @@ pub async fn upsert_dns_record_handler(
     };
 
     let record_id = payload.id.unwrap_or_else(|| {
-        format!("rec-{}-{}", payload.name.replace('.', "-"), payload.value.replace('.', "-"))
+        format!(
+            "rec-{}-{}",
+            payload.name.replace('.', "-"),
+            payload.value.replace('.', "-")
+        )
     });
 
     let record = DnsRecord::new(
@@ -98,7 +102,10 @@ pub async fn delete_dns_record_handler(
     State(state): State<AppState>,
     Path((domain, record_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ApiError> {
-    state.dns_service.delete_dns_record(&domain, &record_id).await?;
+    state
+        .dns_service
+        .delete_dns_record(&domain, &record_id)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

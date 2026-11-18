@@ -1,11 +1,8 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-pub use crate::ports::inbound::server_admin::RegisterServerCommand;
 use crate::adapters::outbound::{
-    ansible::MockAnsibleEngine,
-    dns::MockDnsProvider,
-    tls::MockTlsManager,
+    ansible::MockAnsibleEngine, dns::MockDnsProvider, tls::MockTlsManager,
     wireguard::MockWireGuardEngine,
 };
 use crate::domain::{
@@ -14,9 +11,13 @@ use crate::domain::{
         wireguard::{WireGuardDeviceStatus, WireGuardInterface, WireGuardPeer},
     },
     errors::DomainError,
-    server::{HostAddress, Server, ServerId, ServerMetrics, ServerName, ServerStatus, ServiceAction, ServiceStatus},
+    server::{
+        HostAddress, Server, ServerId, ServerMetrics, ServerName, ServerStatus, ServiceAction,
+        ServiceStatus,
+    },
     tls::TlsCertificate,
 };
+pub use crate::ports::inbound::server_admin::RegisterServerCommand;
 use crate::ports::{
     inbound::server_admin::ServerAdminPort,
     outbound::{
@@ -187,7 +188,9 @@ impl ServerAdminPort for ServerService {
             )));
         }
 
-        self.executor.manage_system_service(&server, service, action).await
+        self.executor
+            .manage_system_service(&server, service, action)
+            .await
     }
 
     async fn get_metrics(&self, id: &ServerId) -> Result<ServerMetrics, DomainError> {
@@ -249,7 +252,9 @@ impl ServerAdminPort for ServerService {
                 id
             )));
         }
-        self.wireguard_engine.configure_interface(&server, &iface).await
+        self.wireguard_engine
+            .configure_interface(&server, &iface)
+            .await
     }
 
     async fn add_wireguard_peer(
@@ -265,7 +270,9 @@ impl ServerAdminPort for ServerService {
                 id
             )));
         }
-        self.wireguard_engine.add_peer(&server, iface_name, &peer).await
+        self.wireguard_engine
+            .add_peer(&server, iface_name, &peer)
+            .await
     }
 
     async fn remove_wireguard_peer(
@@ -281,7 +288,9 @@ impl ServerAdminPort for ServerService {
                 id
             )));
         }
-        self.wireguard_engine.remove_peer(&server, iface_name, peer_pubkey).await
+        self.wireguard_engine
+            .remove_peer(&server, iface_name, peer_pubkey)
+            .await
     }
 
     async fn get_wireguard_status(
@@ -296,7 +305,9 @@ impl ServerAdminPort for ServerService {
                 id
             )));
         }
-        self.wireguard_engine.get_device_status(&server, iface_name).await
+        self.wireguard_engine
+            .get_device_status(&server, iface_name)
+            .await
     }
 
     async fn list_wireguard_peers(

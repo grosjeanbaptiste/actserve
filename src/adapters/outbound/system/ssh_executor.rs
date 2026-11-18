@@ -39,7 +39,11 @@ impl ServerExecutorPort for SshServerExecutor {
         }
     }
 
-    async fn execute_command(&self, server: &Server, command: &str) -> Result<CommandResult, DomainError> {
+    async fn execute_command(
+        &self,
+        server: &Server,
+        command: &str,
+    ) -> Result<CommandResult, DomainError> {
         let output = Command::new("ssh")
             .arg("-p")
             .arg(server.host().port().to_string())
@@ -64,7 +68,9 @@ impl ServerExecutorPort for SshServerExecutor {
     }
 
     async fn inspect_system(&self, server: &Server) -> Result<ServerSpec, DomainError> {
-        let res = self.execute_command(server, "uname -s && uname -m && nproc").await?;
+        let res = self
+            .execute_command(server, "uname -s && uname -m && nproc")
+            .await?;
         if res.exit_code != 0 {
             return Err(DomainError::ExecutionFailed {
                 reason: "Failed to inspect remote system".to_string(),
@@ -114,13 +120,22 @@ impl ServerExecutorPort for SshServerExecutor {
         }
 
         let lines: Vec<&str> = res.stdout.lines().collect();
-        let cpu_pct = lines.first().and_then(|s| s.trim().parse::<f32>().ok()).unwrap_or(15.0);
+        let cpu_pct = lines
+            .first()
+            .and_then(|s| s.trim().parse::<f32>().ok())
+            .unwrap_or(15.0);
         let (ram_used, ram_total) = lines
             .get(1)
             .map(|s| {
                 let parts: Vec<&str> = s.split_whitespace().collect();
-                let u = parts.first().and_then(|x| x.parse::<u64>().ok()).unwrap_or(2048);
-                let t = parts.get(1).and_then(|x| x.parse::<u64>().ok()).unwrap_or(8192);
+                let u = parts
+                    .first()
+                    .and_then(|x| x.parse::<u64>().ok())
+                    .unwrap_or(2048);
+                let t = parts
+                    .get(1)
+                    .and_then(|x| x.parse::<u64>().ok())
+                    .unwrap_or(8192);
                 (u, t)
             })
             .unwrap_or((2048, 8192));
@@ -129,15 +144,34 @@ impl ServerExecutorPort for SshServerExecutor {
             .get(2)
             .map(|s| {
                 let parts: Vec<&str> = s.split_whitespace().collect();
-                let u = parts.first().and_then(|x| x.parse::<f32>().ok()).unwrap_or(10000.0) / 1024.0;
-                let t = parts.get(1).and_then(|x| x.parse::<f32>().ok()).unwrap_or(50000.0) / 1024.0;
+                let u = parts
+                    .first()
+                    .and_then(|x| x.parse::<f32>().ok())
+                    .unwrap_or(10000.0)
+                    / 1024.0;
+                let t = parts
+                    .get(1)
+                    .and_then(|x| x.parse::<f32>().ok())
+                    .unwrap_or(50000.0)
+                    / 1024.0;
                 (u, t)
             })
             .unwrap_or((10.0, 50.0));
 
-        let uptime = lines.get(3).and_then(|s| s.trim().parse::<f64>().ok()).unwrap_or(3600.0) as u64;
+        let uptime = lines
+            .get(3)
+            .and_then(|s| s.trim().parse::<f64>().ok())
+            .unwrap_or(3600.0) as u64;
 
-        ServerMetrics::new(cpu_pct, ram_used, ram_total, disk_used, disk_total, uptime, [0.1, 0.2, 0.3])
+        ServerMetrics::new(
+            cpu_pct,
+            ram_used,
+            ram_total,
+            disk_used,
+            disk_total,
+            uptime,
+            [0.1, 0.2, 0.3],
+        )
     }
 
     async fn reboot(&self, server: &Server) -> Result<(), DomainError> {

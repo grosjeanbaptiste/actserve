@@ -11,6 +11,7 @@ pub trait RegistrarProviderPort: Send + Sync {
     async fn register_domain(&self, registration: &DomainRegistration) -> Result<(), DomainError>;
     async fn get_domain(&self, domain: &str) -> Result<Option<DomainRegistration>, DomainError>;
     async fn list_domains(&self) -> Result<Vec<DomainRegistration>, DomainError>;
-    async fn set_nameservers(&self, domain: &str, ns: &NameserverConfig) -> Result<(), DomainError>;
+    async fn set_nameservers(&self, domain: &str, ns: &NameserverConfig)
+    -> Result<(), DomainError>;
     async fn set_auto_renew(&self, domain: &str, enable: bool) -> Result<(), DomainError>;
 }

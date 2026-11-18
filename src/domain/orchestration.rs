@@ -2,11 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::domain::{
-    errors::DomainError,
-    repository::RepoId,
-    server::ServerId,
-};
+use crate::domain::{errors::DomainError, repository::RepoId, server::ServerId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct JobId(Uuid);
@@ -282,7 +278,10 @@ impl OrchestrationJob {
             .collect()
     }
 
-    pub fn record_rollback_completed(&mut self, details: impl Into<String>) -> Result<(), DomainError> {
+    pub fn record_rollback_completed(
+        &mut self,
+        details: impl Into<String>,
+    ) -> Result<(), DomainError> {
         if self.status != ExecutionStatus::Failed {
             return Err(DomainError::InvalidStateTransition {
                 from: format!("{:?}", self.status),

@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -39,7 +39,10 @@ pub async fn search_registry_handler(
         min_stars: query.min_stars,
     };
 
-    let packages = state.orchestrator_service.search_registry(reg_query).await?;
+    let packages = state
+        .orchestrator_service
+        .search_registry(reg_query)
+        .await?;
     Ok(Json(packages))
 }
 

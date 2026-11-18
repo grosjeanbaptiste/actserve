@@ -30,7 +30,9 @@ impl RegistrarAdminPort for RegistrarService {
         &self,
         registration: DomainRegistration,
     ) -> Result<DomainRegistration, DomainError> {
-        self.registrar_provider.register_domain(&registration).await?;
+        self.registrar_provider
+            .register_domain(&registration)
+            .await?;
         Ok(registration)
     }
 

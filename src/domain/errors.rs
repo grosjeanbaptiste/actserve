@@ -15,7 +15,10 @@ pub enum DomainError {
     Conflict(String),
 
     #[error("Execution failed: {reason}")]
-    ExecutionFailed { reason: String, details: Option<String> },
+    ExecutionFailed {
+        reason: String,
+        details: Option<String>,
+    },
 
     #[error("VCS / Git error: {0}")]
     VcsError(String),

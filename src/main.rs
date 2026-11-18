@@ -18,26 +18,31 @@ use actserve::{
         },
     },
     application::{
-        dns_service::DnsService,
-        orchestration_service::OrchestrationService,
-        registrar_service::RegistrarService,
-        server_service::ServerService,
+        dns_service::DnsService, orchestration_service::OrchestrationService,
+        registrar_service::RegistrarService, server_service::ServerService,
     },
 };
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting Actserve Orchestrator v{}", env!("CARGO_PKG_VERSION"));
+    println!(
+        "Starting Actserve Orchestrator v{}",
+        env!("CARGO_PKG_VERSION")
+    );
 
     let server_store = Arc::new(InMemoryServerStore::new());
     let repo_store = Arc::new(InMemoryRepoStore::new());
     let job_store = Arc::new(InMemoryJobStore::new());
     let executor = Arc::new(SshServerExecutor::new());
     let git_provider = Arc::new(GitCliProvider::default());
-    let tofu_engine = Arc::new(actserve::adapters::outbound::opentofu::CliOpenTofuAdapter::default());
-    let ansible_engine = Arc::new(actserve::adapters::outbound::ansible::CliAnsibleAdapter::default());
-    let crossplane_engine = Arc::new(actserve::adapters::outbound::crossplane::CliCrossplaneAdapter::default());
-    let wireguard_engine = Arc::new(actserve::adapters::outbound::wireguard::CliWireGuardAdapter::default());
+    let tofu_engine =
+        Arc::new(actserve::adapters::outbound::opentofu::CliOpenTofuAdapter::default());
+    let ansible_engine =
+        Arc::new(actserve::adapters::outbound::ansible::CliAnsibleAdapter::default());
+    let crossplane_engine =
+        Arc::new(actserve::adapters::outbound::crossplane::CliCrossplaneAdapter::default());
+    let wireguard_engine =
+        Arc::new(actserve::adapters::outbound::wireguard::CliWireGuardAdapter::default());
     let dns_provider = Arc::new(MockDnsProvider::default());
     let registrar_provider = Arc::new(MockRegistrarProvider::default());
     let tls_manager = Arc::new(MockTlsManager::default());
@@ -56,16 +61,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_tls_manager(tls_manager),
     );
     let orchestrator_service = Arc::new(
-        OrchestrationService::new(
-            server_store,
-            repo_store,
-            job_store,
-            executor,
-            git_provider,
-        )
-        .with_tofu_engine(tofu_engine)
-        .with_ansible_engine(ansible_engine)
-        .with_crossplane_engine(crossplane_engine),
+        OrchestrationService::new(server_store, repo_store, job_store, executor, git_provider)
+            .with_tofu_engine(tofu_engine)
+            .with_ansible_engine(ansible_engine)
+            .with_crossplane_engine(crossplane_engine),
     );
 
     let router = create_router_full(

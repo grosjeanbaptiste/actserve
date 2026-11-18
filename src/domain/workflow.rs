@@ -57,11 +57,25 @@ impl std::fmt::Display for WorkflowId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WorkflowAction {
-    ShellCommand { command: String },
-    DnsRecordUpsert { domain: String, record_type: String, value: String },
-    HttpHealthCheck { url: String, expected_status: u16 },
-    ServiceAction { service: String, action: String },
-    PackageInstall { package_id: String },
+    ShellCommand {
+        command: String,
+    },
+    DnsRecordUpsert {
+        domain: String,
+        record_type: String,
+        value: String,
+    },
+    HttpHealthCheck {
+        url: String,
+        expected_status: u16,
+    },
+    ServiceAction {
+        service: String,
+        action: String,
+    },
+    PackageInstall {
+        package_id: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

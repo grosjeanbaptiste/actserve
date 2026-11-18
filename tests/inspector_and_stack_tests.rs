@@ -1,20 +1,24 @@
-use std::collections::HashMap;
 use actserve::domain::{
     errors::DomainError,
     repository::{DetectedAdminType, DiscoveredVariable, RepoAdminManifest, RepoId},
     stack::{MultiRepoStack, StackId, StackRepoEntry},
 };
+use std::collections::HashMap;
 
 #[test]
 fn test_repo_admin_manifest_detection_types() {
     let manifest = RepoAdminManifest::new(
         DetectedAdminType::DockerCompose,
-        vec!["docker-compose.yml".to_string(), "docker-compose.prod.yml".to_string()],
+        vec![
+            "docker-compose.yml".to_string(),
+            "docker-compose.prod.yml".to_string(),
+        ],
         vec![
             DiscoveredVariable::new("COMPOSE_PROJECT_NAME", Some("actserve-app".to_string())),
             DiscoveredVariable::new("PORT", Some("8080".to_string())),
         ],
-    ).expect("valid manifest");
+    )
+    .expect("valid manifest");
 
     assert_eq!(manifest.admin_type(), DetectedAdminType::DockerCompose);
     assert_eq!(manifest.entrypoints().len(), 2);
@@ -37,7 +41,9 @@ fn test_multi_repo_stack_creation_and_step_generation() {
             order: 1,
             step_name: "base-hardening".to_string(),
             command: "ansible-playbook -i inventory hardening.yml".to_string(),
-            rollback_command: Some("ansible-playbook -i inventory rollback-hardening.yml".to_string()),
+            rollback_command: Some(
+                "ansible-playbook -i inventory rollback-hardening.yml".to_string(),
+            ),
             overrides: overrides_1,
         },
         StackRepoEntry {
@@ -55,7 +61,8 @@ fn test_multi_repo_stack_creation_and_step_generation() {
         "full-production-baseline".to_string(),
         "Hardening + Monitoring stacked administration".to_string(),
         entries,
-    ).expect("valid multi repo stack");
+    )
+    .expect("valid multi repo stack");
 
     assert_eq!(stack.id(), stack_id);
     assert_eq!(stack.entries().len(), 2);
@@ -63,9 +70,15 @@ fn test_multi_repo_stack_creation_and_step_generation() {
     let steps = stack.compile_to_orchestration_steps();
     assert_eq!(steps.len(), 2);
     assert_eq!(steps[0].name, "base-hardening");
-    assert_eq!(steps[0].rollback_command.as_deref(), Some("ansible-playbook -i inventory rollback-hardening.yml"));
+    assert_eq!(
+        steps[0].rollback_command.as_deref(),
+        Some("ansible-playbook -i inventory rollback-hardening.yml")
+    );
     assert_eq!(steps[1].name, "monitoring-agent");
-    assert_eq!(steps[1].rollback_command.as_deref(), Some("docker compose down"));
+    assert_eq!(
+        steps[1].rollback_command.as_deref(),
+        Some("docker compose down")
+    );
 }
 
 #[test]

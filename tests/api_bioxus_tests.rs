@@ -3,7 +3,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use http_body_util::BodyExt;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -18,16 +18,8 @@ use actserve::{
             mock::{MockGitProvider, MockServerExecutor},
         },
     },
-    application::{
-        orchestration_service::OrchestrationService,
-        server_service::ServerService,
-    },
-    ports::{
-        inbound::{
-            repo_orchestrator::RepoOrchestratorPort,
-            server_admin::ServerAdminPort,
-        },
-    },
+    application::{orchestration_service::OrchestrationService, server_service::ServerService},
+    ports::inbound::{repo_orchestrator::RepoOrchestratorPort, server_admin::ServerAdminPort},
 };
 
 fn setup_test_app() -> axum::Router {
@@ -39,9 +31,13 @@ fn setup_test_app() -> axum::Router {
 
     let server_service: Arc<dyn ServerAdminPort> =
         Arc::new(ServerService::new(server_store.clone(), executor.clone()));
-    let orchestrator_service: Arc<dyn RepoOrchestratorPort> = Arc::new(
-        OrchestrationService::new(server_store, repo_store, job_store, executor, git_provider),
-    );
+    let orchestrator_service: Arc<dyn RepoOrchestratorPort> = Arc::new(OrchestrationService::new(
+        server_store,
+        repo_store,
+        job_store,
+        executor,
+        git_provider,
+    ));
 
     create_router(server_service, orchestrator_service)
 }
@@ -114,10 +110,8 @@ async fn test_bioxus_api_server_full_lifecycle() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    let list: Vec<Value> = serde_json::from_slice(
-        &res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let list: Vec<Value> =
+        serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(list.len(), 1);
     assert_eq!(list[0]["id"], server_id);
 
@@ -135,10 +129,8 @@ async fn test_bioxus_api_server_full_lifecycle() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    let health_resp: Value = serde_json::from_slice(
-        &res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let health_resp: Value =
+        serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(health_resp["status"], "Online");
 
     // 4. Execute administrative command POST /api/v1/servers/{id}/execute
@@ -159,10 +151,8 @@ async fn test_bioxus_api_server_full_lifecycle() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    let exec_res: Value = serde_json::from_slice(
-        &res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let exec_res: Value =
+        serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(exec_res["exit_code"], 0);
 
     // 5. Toggle Maintenance POST /api/v1/servers/{id}/maintenance
@@ -183,10 +173,8 @@ async fn test_bioxus_api_server_full_lifecycle() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    let maint_res: Value = serde_json::from_slice(
-        &res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let maint_res: Value =
+        serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(maint_res["status"], "Maintenance");
 }
 
@@ -216,10 +204,8 @@ async fn test_bioxus_api_orchestration_flow() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     // Activate server
@@ -256,10 +242,8 @@ async fn test_bioxus_api_orchestration_flow() {
         .await
         .unwrap();
     assert_eq!(repo_res.status(), StatusCode::CREATED);
-    let repo_json: Value = serde_json::from_slice(
-        &repo_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let repo_json: Value =
+        serde_json::from_slice(&repo_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let repo_id = repo_json["id"].as_str().unwrap();
 
     // 3. Sync repository POST /api/v1/repos/{id}/sync
@@ -296,10 +280,8 @@ async fn test_bioxus_api_orchestration_flow() {
         .await
         .unwrap();
     assert_eq!(orch_res.status(), StatusCode::CREATED);
-    let orch_json: Value = serde_json::from_slice(
-        &orch_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let orch_json: Value =
+        serde_json::from_slice(&orch_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(orch_json["status"], "Succeeded");
 
     let job_id = orch_json["id"].as_str().unwrap();
@@ -391,10 +373,8 @@ async fn test_bioxus_api_metrics_and_service_management() {
         .await
         .unwrap();
 
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     // Activate
@@ -423,10 +403,9 @@ async fn test_bioxus_api_metrics_and_service_management() {
         .unwrap();
 
     assert_eq!(metrics_res.status(), StatusCode::OK);
-    let metrics_json: Value = serde_json::from_slice(
-        &metrics_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let metrics_json: Value =
+        serde_json::from_slice(&metrics_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert!(metrics_json["cpu_usage_pct"].as_f64().is_some());
     assert!(metrics_json["ram_used_mb"].as_u64().is_some());
 
@@ -436,7 +415,10 @@ async fn test_bioxus_api_metrics_and_service_management() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/servers/{}/services/caddy/action", server_id))
+                .uri(format!(
+                    "/api/v1/servers/{}/services/caddy/action",
+                    server_id
+                ))
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
@@ -450,10 +432,8 @@ async fn test_bioxus_api_metrics_and_service_management() {
         .unwrap();
 
     assert_eq!(svc_res.status(), StatusCode::OK);
-    let svc_json: Value = serde_json::from_slice(
-        &svc_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let svc_json: Value =
+        serde_json::from_slice(&svc_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(svc_json["status"], "Active");
 
     // 3. POST /api/v1/servers/{id}/reboot
@@ -498,10 +478,8 @@ async fn test_bioxus_api_drift_and_cancellation() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     app.clone()
@@ -536,10 +514,8 @@ async fn test_bioxus_api_drift_and_cancellation() {
         )
         .await
         .unwrap();
-    let repo_json: Value = serde_json::from_slice(
-        &repo_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let repo_json: Value =
+        serde_json::from_slice(&repo_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let repo_id = repo_json["id"].as_str().unwrap();
 
     // POST /api/v1/orchestrations/drift
@@ -563,10 +539,8 @@ async fn test_bioxus_api_drift_and_cancellation() {
         .unwrap();
 
     assert_eq!(drift_res.status(), StatusCode::OK);
-    let drift_json: Value = serde_json::from_slice(
-        &drift_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let drift_json: Value =
+        serde_json::from_slice(&drift_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(drift_json["has_drift"], false);
 }
 
@@ -588,10 +562,8 @@ async fn test_bioxus_api_catalog_and_recipe_application() {
         .unwrap();
 
     assert_eq!(res.status(), StatusCode::OK);
-    let catalog: Vec<Value> = serde_json::from_slice(
-        &res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let catalog: Vec<Value> =
+        serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert!(catalog.len() >= 6);
     assert!(catalog.iter().any(|item| item["id"] == "linux-hardening"));
 
@@ -615,10 +587,9 @@ async fn test_bioxus_api_catalog_and_recipe_application() {
         .unwrap();
 
     assert_eq!(import_res.status(), StatusCode::CREATED);
-    let imported: Value = serde_json::from_slice(
-        &import_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let imported: Value =
+        serde_json::from_slice(&import_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert_eq!(imported["name"], "custom-hardening");
 
     // 3. Register server and apply recipe directly
@@ -643,10 +614,8 @@ async fn test_bioxus_api_catalog_and_recipe_application() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     // Activate server
@@ -686,10 +655,8 @@ async fn test_bioxus_api_catalog_and_recipe_application() {
         .unwrap();
 
     assert_eq!(apply_res.status(), StatusCode::CREATED);
-    let job_json: Value = serde_json::from_slice(
-        &apply_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let job_json: Value =
+        serde_json::from_slice(&apply_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(job_json["status"], "Succeeded");
 }
 
@@ -718,10 +685,8 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
         )
         .await
         .unwrap();
-    let r1_json: Value = serde_json::from_slice(
-        &r1.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let r1_json: Value =
+        serde_json::from_slice(&r1.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let r1_id = r1_json["id"].as_str().unwrap();
 
     let r2 = app
@@ -744,10 +709,8 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
         )
         .await
         .unwrap();
-    let r2_json: Value = serde_json::from_slice(
-        &r2.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let r2_json: Value =
+        serde_json::from_slice(&r2.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let r2_id = r2_json["id"].as_str().unwrap();
 
     // 2. POST /api/v1/stacks (compose multi-repo stack)
@@ -789,10 +752,8 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
         .unwrap();
 
     assert_eq!(stack_res.status(), StatusCode::CREATED);
-    let stack_json: Value = serde_json::from_slice(
-        &stack_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let stack_json: Value =
+        serde_json::from_slice(&stack_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let stack_id = stack_json["id"].as_str().unwrap();
 
     // 3. GET /api/v1/stacks
@@ -809,10 +770,8 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
         .unwrap();
 
     assert_eq!(list_res.status(), StatusCode::OK);
-    let list_json: Vec<Value> = serde_json::from_slice(
-        &list_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let list_json: Vec<Value> =
+        serde_json::from_slice(&list_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(list_json.len(), 1);
     assert_eq!(list_json[0]["id"], stack_id);
 
@@ -838,10 +797,8 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     app.clone()
@@ -873,7 +830,12 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
 
     assert_eq!(apply_stack_res.status(), StatusCode::CREATED);
     let job_out: Value = serde_json::from_slice(
-        &apply_stack_res.into_body().collect().await.unwrap().to_bytes(),
+        &apply_stack_res
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes(),
     )
     .unwrap();
     assert_eq!(job_out["status"], "Succeeded");
@@ -897,10 +859,9 @@ async fn test_bioxus_api_registry_search_and_preset_installation() {
         .unwrap();
 
     assert_eq!(search_res.status(), StatusCode::OK);
-    let pkgs: Vec<Value> = serde_json::from_slice(
-        &search_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let pkgs: Vec<Value> =
+        serde_json::from_slice(&search_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert!(!pkgs.is_empty());
     assert!(pkgs.iter().any(|p| p["id"] == "geerlingguy-docker"));
 
@@ -918,10 +879,9 @@ async fn test_bioxus_api_registry_search_and_preset_installation() {
         .unwrap();
 
     assert_eq!(presets_res.status(), StatusCode::OK);
-    let presets: Vec<Value> = serde_json::from_slice(
-        &presets_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let presets: Vec<Value> =
+        serde_json::from_slice(&presets_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert!(presets.iter().any(|p| p["id"] == "secure-web-baseline"));
 
     // 3. Register and activate server
@@ -946,10 +906,8 @@ async fn test_bioxus_api_registry_search_and_preset_installation() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     app.clone()
@@ -981,7 +939,12 @@ async fn test_bioxus_api_registry_search_and_preset_installation() {
 
     assert_eq!(apply_preset_res.status(), StatusCode::CREATED);
     let job_out: Value = serde_json::from_slice(
-        &apply_preset_res.into_body().collect().await.unwrap().to_bytes(),
+        &apply_preset_res
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes(),
     )
     .unwrap();
     assert_eq!(job_out["status"], "Succeeded");
@@ -1014,10 +977,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(repo_res.status(), StatusCode::CREATED);
-    let repo_json: Value = serde_json::from_slice(
-        &repo_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let repo_json: Value =
+        serde_json::from_slice(&repo_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let repo_id = repo_json["id"].as_str().unwrap();
 
     // 2. POST /api/v1/tofu/plan
@@ -1041,10 +1002,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(plan_res.status(), StatusCode::OK);
-    let plan_json: Value = serde_json::from_slice(
-        &plan_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let plan_json: Value =
+        serde_json::from_slice(&plan_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(plan_json["summary"]["to_add"], 2);
     assert_eq!(plan_json["summary"]["to_change"], 0);
     assert_eq!(plan_json["summary"]["to_destroy"], 0);
@@ -1070,10 +1029,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(apply_res.status(), StatusCode::OK);
-    let apply_json: Value = serde_json::from_slice(
-        &apply_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let apply_json: Value =
+        serde_json::from_slice(&apply_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(apply_json["success"], true);
     assert_eq!(apply_json["resources_created"], 2);
     assert_eq!(
@@ -1095,10 +1052,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(state_res.status(), StatusCode::OK);
-    let state_json: Value = serde_json::from_slice(
-        &state_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let state_json: Value =
+        serde_json::from_slice(&state_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(state_json["serial"], 1);
     assert_eq!(state_json["lineage"], "mock-lineage-123");
 
@@ -1122,10 +1077,9 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(destroy_res.status(), StatusCode::OK);
-    let destroy_json: Value = serde_json::from_slice(
-        &destroy_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let destroy_json: Value =
+        serde_json::from_slice(&destroy_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert_eq!(destroy_json["success"], true);
     assert_eq!(destroy_json["resources_deleted"], 2);
 
@@ -1151,10 +1105,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     app.clone()
@@ -1189,10 +1141,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(pb_res.status(), StatusCode::OK);
-    let pb_json: Value = serde_json::from_slice(
-        &pb_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let pb_json: Value =
+        serde_json::from_slice(&pb_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(pb_json["ok_count"], 3);
     assert_eq!(pb_json["changed_count"], 1);
     assert_eq!(pb_json["failed_count"], 0);
@@ -1218,10 +1168,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(mod_res.status(), StatusCode::OK);
-    let mod_json: Value = serde_json::from_slice(
-        &mod_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let mod_json: Value =
+        serde_json::from_slice(&mod_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(mod_json["module"], "command");
     assert_eq!(mod_json["changed"], true);
     assert_eq!(mod_json["rc"], 0);
@@ -1240,10 +1188,8 @@ async fn test_bioxus_api_opentofu_and_ansible_engine_endpoints() {
         .unwrap();
 
     assert_eq!(facts_res.status(), StatusCode::OK);
-    let facts_json: Value = serde_json::from_slice(
-        &facts_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let facts_json: Value =
+        serde_json::from_slice(&facts_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(facts_json["distribution"], "Ubuntu");
     assert_eq!(facts_json["distribution_version"], "22.04");
     assert_eq!(facts_json["memtotal_mb"], 8192);
@@ -1281,15 +1227,17 @@ async fn test_bioxus_api_crossplane_endpoints() {
         .unwrap();
 
     assert_eq!(create_res.status(), StatusCode::CREATED);
-    let create_json: Value = serde_json::from_slice(
-        &create_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let create_json: Value =
+        serde_json::from_slice(&create_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert_eq!(create_json["name"], "bioxus-prod-db");
     assert_eq!(create_json["kind"], "PostgreSQLInstance");
     assert_eq!(create_json["ready"], true);
     assert_eq!(create_json["synced"], true);
-    assert_eq!(create_json["managed_resources"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        create_json["managed_resources"].as_array().unwrap().len(),
+        2
+    );
 
     // 2. GET /api/v1/crossplane/claims/:namespace/:name
     let get_res = app
@@ -1305,10 +1253,8 @@ async fn test_bioxus_api_crossplane_endpoints() {
         .unwrap();
 
     assert_eq!(get_res.status(), StatusCode::OK);
-    let get_json: Value = serde_json::from_slice(
-        &get_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let get_json: Value =
+        serde_json::from_slice(&get_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(get_json["name"], "bioxus-prod-db");
     assert_eq!(get_json["ready"], true);
 
@@ -1341,10 +1287,8 @@ async fn test_bioxus_api_crossplane_endpoints() {
         .unwrap();
 
     assert_eq!(res_res.status(), StatusCode::OK);
-    let res_json: Value = serde_json::from_slice(
-        &res_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let res_json: Value =
+        serde_json::from_slice(&res_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(res_json.as_array().unwrap().len(), 2);
     assert_eq!(res_json[0]["provider"], "provider-aws");
 
@@ -1362,10 +1306,8 @@ async fn test_bioxus_api_crossplane_endpoints() {
         .unwrap();
 
     assert_eq!(prov_res.status(), StatusCode::OK);
-    let prov_json: Value = serde_json::from_slice(
-        &prov_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let prov_json: Value =
+        serde_json::from_slice(&prov_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(prov_json.as_array().unwrap().len(), 3);
     assert_eq!(prov_json[0]["name"], "provider-aws");
 }
@@ -1388,10 +1330,8 @@ async fn test_bioxus_api_wireguard_endpoints() {
         .unwrap();
 
     assert_eq!(key_res.status(), StatusCode::OK);
-    let key_json: Value = serde_json::from_slice(
-        &key_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let key_json: Value =
+        serde_json::from_slice(&key_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let privkey = key_json["private_key"].as_str().unwrap();
     let pubkey = key_json["public_key"].as_str().unwrap();
     assert!(!privkey.is_empty());
@@ -1419,10 +1359,8 @@ async fn test_bioxus_api_wireguard_endpoints() {
         )
         .await
         .unwrap();
-    let srv_json: Value = serde_json::from_slice(
-        &srv_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let srv_json: Value =
+        serde_json::from_slice(&srv_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = srv_json["id"].as_str().unwrap();
 
     app.clone()
@@ -1473,7 +1411,10 @@ async fn test_bioxus_api_wireguard_endpoints() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/api/v1/servers/{}/wireguard/wg0/status", server_id))
+                .uri(format!(
+                    "/api/v1/servers/{}/wireguard/wg0/status",
+                    server_id
+                ))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -1481,10 +1422,9 @@ async fn test_bioxus_api_wireguard_endpoints() {
         .unwrap();
 
     assert_eq!(status_res.status(), StatusCode::OK);
-    let status_json: Value = serde_json::from_slice(
-        &status_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let status_json: Value =
+        serde_json::from_slice(&status_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert_eq!(status_json["interface"], "wg0");
     assert_eq!(status_json["active_peers"], 1);
     assert_eq!(status_json["is_up"], true);
@@ -1527,10 +1467,8 @@ async fn test_bioxus_api_wireguard_endpoints() {
         .unwrap();
 
     assert_eq!(peers_res.status(), StatusCode::OK);
-    let peers_json: Value = serde_json::from_slice(
-        &peers_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let peers_json: Value =
+        serde_json::from_slice(&peers_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(peers_json.as_array().unwrap().len(), 2);
 
     // 7. DELETE /api/v1/servers/:id/wireguard/wg0/peers/:pubkey
@@ -1565,7 +1503,12 @@ async fn test_bioxus_api_wireguard_endpoints() {
         .unwrap();
 
     let peers_final_json: Value = serde_json::from_slice(
-        &peers_final_res.into_body().collect().await.unwrap().to_bytes(),
+        &peers_final_res
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes(),
     )
     .unwrap();
     assert_eq!(peers_final_json.as_array().unwrap().len(), 1);
@@ -1593,10 +1536,8 @@ async fn test_bioxus_api_dns_and_registrar_endpoints() {
         .unwrap();
 
     assert_eq!(check_res.status(), StatusCode::OK);
-    let check_json: Value = serde_json::from_slice(
-        &check_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let check_json: Value =
+        serde_json::from_slice(&check_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(check_json["domain"], "bioxus-platform.org");
     assert_eq!(check_json["available"], true);
 
@@ -1628,10 +1569,9 @@ async fn test_bioxus_api_dns_and_registrar_endpoints() {
         .unwrap();
 
     assert_eq!(register_res.status(), StatusCode::CREATED);
-    let reg_json: Value = serde_json::from_slice(
-        &register_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let reg_json: Value =
+        serde_json::from_slice(&register_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert_eq!(reg_json["domain"], "bioxus-platform.org");
     assert_eq!(reg_json["status"], "Active");
     assert_eq!(reg_json["auto_renew"], true);
@@ -1692,10 +1632,9 @@ async fn test_bioxus_api_dns_and_registrar_endpoints() {
         .unwrap();
 
     assert_eq!(get_dom_res.status(), StatusCode::OK);
-    let get_dom_json: Value = serde_json::from_slice(
-        &get_dom_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let get_dom_json: Value =
+        serde_json::from_slice(&get_dom_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     assert_eq!(
         get_dom_json["nameservers"]["servers"][0],
         "ns1.custom-dns.io"
@@ -1723,10 +1662,8 @@ async fn test_bioxus_api_dns_and_registrar_endpoints() {
         .unwrap();
 
     assert_eq!(zone_res.status(), StatusCode::CREATED);
-    let zone_json: Value = serde_json::from_slice(
-        &zone_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let zone_json: Value =
+        serde_json::from_slice(&zone_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(zone_json["domain"], "bioxus-platform.org");
     assert_eq!(zone_json["dnssec_status"], "Enabled");
 
@@ -1753,10 +1690,9 @@ async fn test_bioxus_api_dns_and_registrar_endpoints() {
         .unwrap();
 
     assert_eq!(record_res.status(), StatusCode::CREATED);
-    let record_json: Value = serde_json::from_slice(
-        &record_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let record_json: Value =
+        serde_json::from_slice(&record_res.into_body().collect().await.unwrap().to_bytes())
+            .unwrap();
     let record_id = record_json["id"].as_str().unwrap().to_string();
     assert_eq!(record_json["name"], "api");
     assert_eq!(record_json["record_type"], "A");
@@ -1776,10 +1712,8 @@ async fn test_bioxus_api_dns_and_registrar_endpoints() {
         .unwrap();
 
     assert_eq!(prop_res.status(), StatusCode::OK);
-    let prop_json: Value = serde_json::from_slice(
-        &prop_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let prop_json: Value =
+        serde_json::from_slice(&prop_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(prop_json["domain"], "bioxus-platform.org");
     assert_eq!(prop_json["propagated"], true);
 
@@ -1830,7 +1764,12 @@ async fn test_bioxus_api_bind_server_domain_and_auto_tls() {
 
     assert_eq!(reg_server_res.status(), StatusCode::CREATED);
     let server_json: Value = serde_json::from_slice(
-        &reg_server_res.into_body().collect().await.unwrap().to_bytes(),
+        &reg_server_res
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes(),
     )
     .unwrap();
     let server_id = server_json["id"].as_str().unwrap();
@@ -1855,10 +1794,8 @@ async fn test_bioxus_api_bind_server_domain_and_auto_tls() {
         .unwrap();
 
     assert_eq!(bind_res.status(), StatusCode::CREATED);
-    let cert_json: Value = serde_json::from_slice(
-        &bind_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let cert_json: Value =
+        serde_json::from_slice(&bind_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(cert_json["primary_domain"], "app.bioxus.cloud");
     assert_eq!(cert_json["status"], "Valid");
     assert_eq!(cert_json["challenge_type"], "Dns01");
@@ -1893,10 +1830,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(s_res.status(), StatusCode::CREATED);
-    let s_json: Value = serde_json::from_slice(
-        &s_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let s_json: Value =
+        serde_json::from_slice(&s_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let server_id = s_json["id"].as_str().unwrap().to_string();
 
     let _ = app
@@ -1934,10 +1869,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(repo_res.status(), StatusCode::CREATED);
-    let repo_json: Value = serde_json::from_slice(
-        &repo_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let repo_json: Value =
+        serde_json::from_slice(&repo_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let repo_id = repo_json["id"].as_str().unwrap().to_string();
 
     // 3. Trigger orchestration (POST /api/v1/orchestrations)
@@ -1961,10 +1894,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(trig_res.status(), StatusCode::CREATED);
-    let job_json: Value = serde_json::from_slice(
-        &trig_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let job_json: Value =
+        serde_json::from_slice(&trig_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let job_id = job_json["id"].as_str().unwrap().to_string();
 
     // 4. List orchestrations (GET /api/v1/orchestrations)
@@ -1982,7 +1913,12 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
 
     assert_eq!(list_jobs_res.status(), StatusCode::OK);
     let jobs_arr: Value = serde_json::from_slice(
-        &list_jobs_res.into_body().collect().await.unwrap().to_bytes(),
+        &list_jobs_res
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes(),
     )
     .unwrap();
     assert!(!jobs_arr.as_array().unwrap().is_empty());
@@ -2001,10 +1937,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(logs_res.status(), StatusCode::OK);
-    let logs_json: Value = serde_json::from_slice(
-        &logs_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let logs_json: Value =
+        serde_json::from_slice(&logs_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(logs_json["job_id"], job_id);
 
     // 6. Create workflow (POST /api/v1/workflows)
@@ -2039,10 +1973,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(wf_res.status(), StatusCode::CREATED);
-    let wf_json: Value = serde_json::from_slice(
-        &wf_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let wf_json: Value =
+        serde_json::from_slice(&wf_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let wf_id = wf_json["id"].as_str().unwrap().to_string();
 
     // 7. List workflows (GET /api/v1/workflows)
@@ -2108,10 +2040,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(fleet_res.status(), StatusCode::OK);
-    let fleet_json: Value = serde_json::from_slice(
-        &fleet_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let fleet_json: Value =
+        serde_json::from_slice(&fleet_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(fleet_json["succeeded_count"], 1);
 
     // 10. Create schedule (POST /api/v1/schedules)
@@ -2141,10 +2071,8 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(sched_res.status(), StatusCode::CREATED);
-    let sched_json: Value = serde_json::from_slice(
-        &sched_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let sched_json: Value =
+        serde_json::from_slice(&sched_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     let sched_id = sched_json["id"].as_str().unwrap().to_string();
 
     // 11. Run schedule now (POST /api/v1/schedules/:id/run)
@@ -2200,16 +2128,9 @@ async fn test_bioxus_api_complete_orchestration_endpoints() {
         .unwrap();
 
     assert_eq!(recon_res.status(), StatusCode::OK);
-    let recon_json: Value = serde_json::from_slice(
-        &recon_res.into_body().collect().await.unwrap().to_bytes(),
-    )
-    .unwrap();
+    let recon_json: Value =
+        serde_json::from_slice(&recon_res.into_body().collect().await.unwrap().to_bytes()).unwrap();
     assert_eq!(recon_json["server_id"], server_id);
     assert!(recon_json["drift_detected"].as_bool().unwrap());
     assert_eq!(recon_json["remediation_jobs"].as_array().unwrap().len(), 3);
 }
-
-
-
-
-

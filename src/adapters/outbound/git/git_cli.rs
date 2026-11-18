@@ -32,9 +32,11 @@ impl Default for GitCliProvider {
 impl GitProviderPort for GitCliProvider {
     async fn sync_repository(&self, repo: &ManagedRepository) -> Result<String, DomainError> {
         let repo_path = self.work_dir.join(repo.id().to_string());
-        tokio::fs::create_dir_all(&self.work_dir).await.map_err(|e| {
-            DomainError::VcsError(format!("Failed to create workspace directory: {}", e))
-        })?;
+        tokio::fs::create_dir_all(&self.work_dir)
+            .await
+            .map_err(|e| {
+                DomainError::VcsError(format!("Failed to create workspace directory: {}", e))
+            })?;
 
         if !repo_path.exists() {
             let output = Command::new("git")
@@ -102,25 +104,40 @@ impl GitProviderPort for GitCliProvider {
             ));
         }
 
-        Ok(String::from_utf8_lossy(&hash_output.stdout).trim().to_string())
+        Ok(String::from_utf8_lossy(&hash_output.stdout)
+            .trim()
+            .to_string())
     }
 
-    async fn resolve_plan(&self, repo: &ManagedRepository) -> Result<Vec<OrchestrationStep>, DomainError> {
+    async fn resolve_plan(
+        &self,
+        repo: &ManagedRepository,
+    ) -> Result<Vec<OrchestrationStep>, DomainError> {
         match repo.kind() {
             RepoKind::Playbook => Ok(vec![
-                OrchestrationStep::new("ansible_syntax_check", "ansible-playbook --syntax-check site.yml"),
+                OrchestrationStep::new(
+                    "ansible_syntax_check",
+                    "ansible-playbook --syntax-check site.yml",
+                ),
                 OrchestrationStep::new("ansible_apply", "ansible-playbook -i inventory site.yml"),
             ]),
             RepoKind::DockerCompose => Ok(vec![
                 OrchestrationStep::new("docker_compose_pull", "docker compose pull"),
-                OrchestrationStep::new("docker_compose_up", "docker compose up -d --remove-orphans"),
+                OrchestrationStep::new(
+                    "docker_compose_up",
+                    "docker compose up -d --remove-orphans",
+                ),
             ]),
-            RepoKind::ShellManifest => Ok(vec![
-                OrchestrationStep::new("run_manifest", "bash deploy.sh"),
-            ]),
+            RepoKind::ShellManifest => Ok(vec![OrchestrationStep::new(
+                "run_manifest",
+                "bash deploy.sh",
+            )]),
             RepoKind::RawConfig => Ok(vec![
                 OrchestrationStep::new("rsync_configs", "rsync -avz ./ /etc/actserve/"),
-                OrchestrationStep::new("reload_services", "systemctl reload-or-restart actserve-services"),
+                OrchestrationStep::new(
+                    "reload_services",
+                    "systemctl reload-or-restart actserve-services",
+                ),
             ]),
             RepoKind::OpenTofu => Ok(vec![
                 OrchestrationStep::new("opentofu_init", "tofu init -no-color"),
@@ -128,7 +145,10 @@ impl GitProviderPort for GitCliProvider {
                 OrchestrationStep::new("opentofu_apply", "tofu apply -auto-approve -no-color"),
             ]),
             RepoKind::Crossplane => Ok(vec![
-                OrchestrationStep::new("crossplane_render", "crossplane beta render claim.yaml composition.yaml"),
+                OrchestrationStep::new(
+                    "crossplane_render",
+                    "crossplane beta render claim.yaml composition.yaml",
+                ),
                 OrchestrationStep::new("crossplane_apply", "kubectl apply -f claim.yaml"),
             ]),
         }

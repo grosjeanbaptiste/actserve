@@ -17,15 +17,12 @@ use actserve::{
         repository::{GitRef, ManagedRepository, RepoId, RepoKind},
         server::{ServerId, SshCredentials},
         workflow::{
-            DesiredServerState, FleetRolloutCommand, FleetRolloutStrategy,
-            ScheduledJobCommand, WorkflowAction, WorkflowStep,
+            DesiredServerState, FleetRolloutCommand, FleetRolloutStrategy, ScheduledJobCommand,
+            WorkflowAction, WorkflowStep,
         },
     },
     ports::{
-        inbound::{
-            repo_orchestrator::RepoOrchestratorPort,
-            server_admin::ServerAdminPort,
-        },
+        inbound::{repo_orchestrator::RepoOrchestratorPort, server_admin::ServerAdminPort},
         outbound::repo_store::RepoStorePort,
     },
 };
@@ -99,8 +96,14 @@ async fn test_orchestration_list_and_detailed_logs() {
     let repo_id = repos[0].id();
 
     // Trigger two jobs
-    let job1 = orchestrator.trigger_orchestration(&s1, &repo_id).await.unwrap();
-    let _job2 = orchestrator.trigger_orchestration(&s1, &repo_id).await.unwrap();
+    let job1 = orchestrator
+        .trigger_orchestration(&s1, &repo_id)
+        .await
+        .unwrap();
+    let _job2 = orchestrator
+        .trigger_orchestration(&s1, &repo_id)
+        .await
+        .unwrap();
 
     // 1. List all jobs
     let all_jobs = orchestrator.list_jobs(None, None).await.unwrap();
@@ -123,25 +126,45 @@ async fn test_custom_workflow_pipeline_definition_and_execution() {
 
     // Define a 4-step workflow
     let steps = vec![
-        WorkflowStep::new("preflight", "Vérification espace disque", WorkflowAction::ShellCommand {
-            command: "df -h /".to_string(),
-        }),
-        WorkflowStep::new("sync-configs", "Synchronisation des dotfiles", WorkflowAction::ShellCommand {
-            command: "stow -v -R starship zsh git".to_string(),
-        }),
-        WorkflowStep::new("dns-announce", "Publication de l'adresse IP", WorkflowAction::DnsRecordUpsert {
-            domain: "bioxus.cloud".to_string(),
-            record_type: "A".to_string(),
-            value: "192.168.1.101".to_string(),
-        }),
-        WorkflowStep::new("health-probe", "Vérification service web", WorkflowAction::HttpHealthCheck {
-            url: "http://192.168.1.101/health".to_string(),
-            expected_status: 200,
-        }),
+        WorkflowStep::new(
+            "preflight",
+            "Vérification espace disque",
+            WorkflowAction::ShellCommand {
+                command: "df -h /".to_string(),
+            },
+        ),
+        WorkflowStep::new(
+            "sync-configs",
+            "Synchronisation des dotfiles",
+            WorkflowAction::ShellCommand {
+                command: "stow -v -R starship zsh git".to_string(),
+            },
+        ),
+        WorkflowStep::new(
+            "dns-announce",
+            "Publication de l'adresse IP",
+            WorkflowAction::DnsRecordUpsert {
+                domain: "bioxus.cloud".to_string(),
+                record_type: "A".to_string(),
+                value: "192.168.1.101".to_string(),
+            },
+        ),
+        WorkflowStep::new(
+            "health-probe",
+            "Vérification service web",
+            WorkflowAction::HttpHealthCheck {
+                url: "http://192.168.1.101/health".to_string(),
+                expected_status: 200,
+            },
+        ),
     ];
 
     let wf = orchestrator
-        .create_workflow("node-provisioning", "Pipeline de provisionnement complet", steps)
+        .create_workflow(
+            "node-provisioning",
+            "Pipeline de provisionnement complet",
+            steps,
+        )
         .await
         .unwrap();
 
@@ -221,7 +244,10 @@ async fn test_declarative_desired_state_reconciliation() {
     // Define desired state for s1
     let desired = DesiredServerState {
         server_id: s1,
-        required_packages: vec!["dev-sec-hardening".to_string(), "geerlingguy-docker".to_string()],
+        required_packages: vec![
+            "dev-sec-hardening".to_string(),
+            "geerlingguy-docker".to_string(),
+        ],
         bound_domain: Some("app.bioxus.cloud".to_string()),
         wireguard_enabled: true,
     };
@@ -230,5 +256,10 @@ async fn test_declarative_desired_state_reconciliation() {
     assert_eq!(recon_result.server_id, s1);
     assert!(recon_result.drift_detected);
     assert_eq!(recon_result.remediation_jobs.len(), 4); // Hardening + Docker + Domain + WireGuard
-    assert!(recon_result.remediation_jobs.iter().all(|j| j.status() == ExecutionStatus::Succeeded));
+    assert!(
+        recon_result
+            .remediation_jobs
+            .iter()
+            .all(|j| j.status() == ExecutionStatus::Succeeded)
+    );
 }

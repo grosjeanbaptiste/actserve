@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 
@@ -81,7 +81,10 @@ pub async fn register_domain_handler(
         payload.auto_renew.unwrap_or(true),
     )?;
 
-    let registered = state.registrar_service.register_domain(registration).await?;
+    let registered = state
+        .registrar_service
+        .register_domain(registration)
+        .await?;
     Ok((StatusCode::CREATED, Json(registered)))
 }
 
@@ -106,7 +109,10 @@ pub async fn update_nameservers_handler(
     Json(payload): Json<UpdateNameserversRequest>,
 ) -> Result<StatusCode, ApiError> {
     let ns = NameserverConfig::new(payload.nameservers)?;
-    state.registrar_service.update_domain_nameservers(&domain, ns).await?;
+    state
+        .registrar_service
+        .update_domain_nameservers(&domain, ns)
+        .await?;
     Ok(StatusCode::OK)
 }
 
@@ -115,6 +121,9 @@ pub async fn set_auto_renew_handler(
     Path(domain): Path<String>,
     Json(payload): Json<SetAutoRenewRequest>,
 ) -> Result<StatusCode, ApiError> {
-    state.registrar_service.set_domain_auto_renew(&domain, payload.enable).await?;
+    state
+        .registrar_service
+        .set_domain_auto_renew(&domain, payload.enable)
+        .await?;
     Ok(StatusCode::OK)
 }

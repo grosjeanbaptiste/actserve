@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -17,7 +17,8 @@ use crate::ports::outbound::server_executor::CommandResult;
 #[derive(Clone)]
 pub struct AppState {
     pub server_service: Arc<dyn ServerAdminPort>,
-    pub orchestrator_service: Arc<dyn crate::ports::inbound::repo_orchestrator::RepoOrchestratorPort>,
+    pub orchestrator_service:
+        Arc<dyn crate::ports::inbound::repo_orchestrator::RepoOrchestratorPort>,
     pub dns_service: Arc<dyn crate::ports::inbound::dns_admin::DnsAdminPort>,
     pub registrar_service: Arc<dyn crate::ports::inbound::registrar_admin::RegistrarAdminPort>,
 }
@@ -73,9 +74,7 @@ pub async fn register_server(
     Ok((StatusCode::CREATED, Json(server)))
 }
 
-pub async fn list_servers(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<Server>>, ApiError> {
+pub async fn list_servers(State(state): State<AppState>) -> Result<Json<Vec<Server>>, ApiError> {
     let servers = state.server_service.list_servers().await?;
     Ok(Json(servers))
 }
@@ -171,6 +170,9 @@ pub async fn bind_server_domain_handler(
     Json(payload): Json<BindDomainRequest>,
 ) -> Result<(StatusCode, Json<crate::domain::tls::TlsCertificate>), ApiError> {
     let server_id = ServerId::from_uuid(id);
-    let cert = state.server_service.bind_server_domain(&server_id, &payload.domain).await?;
+    let cert = state
+        .server_service
+        .bind_server_domain(&server_id, &payload.domain)
+        .await?;
     Ok((StatusCode::CREATED, Json(cert)))
 }

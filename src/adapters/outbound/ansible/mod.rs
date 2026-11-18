@@ -28,7 +28,12 @@ impl Default for MockAnsibleEngine {
                 0,
                 vec![
                     AnsibleTaskEvent::new("Gathering Facts", "server-node-1", "ok", None),
-                    AnsibleTaskEvent::new("Install Nginx", "server-node-1", "changed", Some("apt install nginx done".into())),
+                    AnsibleTaskEvent::new(
+                        "Install Nginx",
+                        "server-node-1",
+                        "changed",
+                        Some("apt install nginx done".into()),
+                    ),
                     AnsibleTaskEvent::new("Start Nginx Service", "server-node-1", "ok", None),
                 ],
             ),
@@ -113,18 +118,20 @@ impl AnsibleEnginePort for CliAnsibleAdapter {
     ) -> Result<AnsibleRunResult, DomainError> {
         let mut cmd = Command::new(&self.bin_path);
         let inventory = format!("{},", server.host());
-        cmd.arg("-i").arg(inventory)
-           .arg(playbook_name);
+        cmd.arg("-i").arg(inventory).arg(playbook_name);
 
         if !extra_vars.is_empty() {
             let vars_json = serde_json::to_string(&extra_vars).unwrap_or_default();
             cmd.arg("--extra-vars").arg(vars_json);
         }
 
-        let output = cmd.output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to spawn {}: {}", self.bin_path, e),
-            details: None,
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to spawn {}: {}", self.bin_path, e),
+                details: None,
+            })?;
 
         if !output.status.success() {
             return Err(DomainError::ExecutionFailed {
@@ -145,14 +152,20 @@ impl AnsibleEnginePort for CliAnsibleAdapter {
         let mut cmd = Command::new("ansible");
         let inventory = format!("{},", server.host());
         cmd.arg("all")
-           .arg("-i").arg(inventory)
-           .arg("-m").arg(module)
-           .arg("-a").arg(args);
+            .arg("-i")
+            .arg(inventory)
+            .arg("-m")
+            .arg(module)
+            .arg("-a")
+            .arg(args);
 
-        let output = cmd.output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to spawn ansible: {}", e),
-            details: None,
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to spawn ansible: {}", e),
+                details: None,
+            })?;
 
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
         let rc = output.status.code().unwrap_or(-1);
@@ -169,13 +182,18 @@ impl AnsibleEnginePort for CliAnsibleAdapter {
         let mut cmd = Command::new("ansible");
         let inventory = format!("{},", server.host());
         cmd.arg("all")
-           .arg("-i").arg(inventory)
-           .arg("-m").arg("setup");
+            .arg("-i")
+            .arg(inventory)
+            .arg("-m")
+            .arg("setup");
 
-        let output = cmd.output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to spawn ansible setup: {}", e),
-            details: None,
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to spawn ansible setup: {}", e),
+                details: None,
+            })?;
 
         if !output.status.success() {
             return Err(DomainError::ExecutionFailed {
@@ -184,6 +202,13 @@ impl AnsibleEnginePort for CliAnsibleAdapter {
             });
         }
 
-        Ok(AnsibleFacts::new("Linux", "Generic", "kernel", "3.10", vec!["eth0".into()], 4096))
+        Ok(AnsibleFacts::new(
+            "Linux",
+            "Generic",
+            "kernel",
+            "3.10",
+            vec!["eth0".into()],
+            4096,
+        ))
     }
 }

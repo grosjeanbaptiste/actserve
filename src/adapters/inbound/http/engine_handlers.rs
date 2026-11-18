@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -153,7 +153,10 @@ pub async fn apply_crossplane_claim_handler(
         payload.composition_ref,
         payload.parameters.unwrap_or_default(),
     )?;
-    let result = state.orchestrator_service.apply_crossplane_claim(claim).await?;
+    let result = state
+        .orchestrator_service
+        .apply_crossplane_claim(claim)
+        .await?;
     Ok((StatusCode::CREATED, Json(result)))
 }
 
@@ -263,7 +266,10 @@ pub async fn get_wireguard_status_handler(
     Path((server_id, iface)): Path<(Uuid, String)>,
 ) -> Result<Json<WireGuardDeviceStatus>, ApiError> {
     let id = ServerId::from_uuid(server_id);
-    let status = state.server_service.get_wireguard_status(&id, &iface).await?;
+    let status = state
+        .server_service
+        .get_wireguard_status(&id, &iface)
+        .await?;
     Ok(Json(status))
 }
 
@@ -272,7 +278,10 @@ pub async fn list_wireguard_peers_handler(
     Path((server_id, iface)): Path<(Uuid, String)>,
 ) -> Result<Json<Vec<WireGuardPeer>>, ApiError> {
     let id = ServerId::from_uuid(server_id);
-    let peers = state.server_service.list_wireguard_peers(&id, &iface).await?;
+    let peers = state
+        .server_service
+        .list_wireguard_peers(&id, &iface)
+        .await?;
     Ok(Json(peers))
 }
 
@@ -289,7 +298,10 @@ pub async fn add_wireguard_peer_handler(
         payload.allowed_ips,
         payload.persistent_keepalive,
     )?;
-    state.server_service.add_wireguard_peer(&id, &iface, peer).await?;
+    state
+        .server_service
+        .add_wireguard_peer(&id, &iface, peer)
+        .await?;
     Ok(StatusCode::CREATED)
 }
 
@@ -298,7 +310,10 @@ pub async fn remove_wireguard_peer_handler(
     Path((server_id, iface, pubkey)): Path<(Uuid, String, String)>,
 ) -> Result<StatusCode, ApiError> {
     let id = ServerId::from_uuid(server_id);
-    state.server_service.remove_wireguard_peer(&id, &iface, &pubkey).await?;
+    state
+        .server_service
+        .remove_wireguard_peer(&id, &iface, &pubkey)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

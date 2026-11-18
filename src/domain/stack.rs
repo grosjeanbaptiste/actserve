@@ -2,11 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::domain::{
-    errors::DomainError,
-    orchestration::OrchestrationStep,
-    repository::RepoId,
-};
+use crate::domain::{errors::DomainError, orchestration::OrchestrationStep, repository::RepoId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct StackId(Uuid);

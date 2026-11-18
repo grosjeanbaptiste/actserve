@@ -1,8 +1,8 @@
 use axum::{
-    routing::{get, post, put},
     Json, Router,
+    routing::{get, post, put},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 use crate::adapters::inbound::http::{
@@ -32,21 +32,20 @@ use crate::adapters::inbound::http::{
         register_domain_handler, set_auto_renew_handler, update_nameservers_handler,
     },
     registry_handlers::{
-        apply_preset_handler, install_package_handler, list_presets_handler, search_registry_handler,
+        apply_preset_handler, install_package_handler, list_presets_handler,
+        search_registry_handler,
     },
     repo_handlers::{get_repo, list_repos, register_repo, sync_repo},
     server_handlers::{
-        bind_server_domain_handler, execute_on_server, get_server, get_server_metrics,
+        AppState, bind_server_domain_handler, execute_on_server, get_server, get_server_metrics,
         health_check_server, list_servers, manage_service, reboot_server, register_server,
-        set_server_maintenance, AppState,
+        set_server_maintenance,
     },
     stack_handlers::{create_stack, execute_stack_handler, list_stacks},
 };
 use crate::ports::inbound::{
-    dns_admin::DnsAdminPort,
-    registrar_admin::RegistrarAdminPort,
-    repo_orchestrator::RepoOrchestratorPort,
-    server_admin::ServerAdminPort,
+    dns_admin::DnsAdminPort, registrar_admin::RegistrarAdminPort,
+    repo_orchestrator::RepoOrchestratorPort, server_admin::ServerAdminPort,
 };
 
 async fn health_check() -> Json<Value> {
@@ -64,12 +63,14 @@ pub fn create_router(
     create_router_full(
         server_service,
         orchestrator_service,
-        Arc::new(crate::application::dns_service::DnsService::new(
-            Arc::new(crate::adapters::outbound::dns::MockDnsProvider::default()),
-        )),
-        Arc::new(crate::application::registrar_service::RegistrarService::new(
-            Arc::new(crate::adapters::outbound::registrar::MockRegistrarProvider::default()),
-        )),
+        Arc::new(crate::application::dns_service::DnsService::new(Arc::new(
+            crate::adapters::outbound::dns::MockDnsProvider::default(),
+        ))),
+        Arc::new(
+            crate::application::registrar_service::RegistrarService::new(Arc::new(
+                crate::adapters::outbound::registrar::MockRegistrarProvider::default(),
+            )),
+        ),
     )
 }
 
@@ -92,7 +93,10 @@ pub fn create_router_full(
         .route("/api/v1/servers", post(register_server).get(list_servers))
         .route("/api/v1/servers/{id}", get(get_server))
         .route("/api/v1/servers/{id}/health", post(health_check_server))
-        .route("/api/v1/servers/{id}/maintenance", post(set_server_maintenance))
+        .route(
+            "/api/v1/servers/{id}/maintenance",
+            post(set_server_maintenance),
+        )
         .route("/api/v1/servers/{id}/execute", post(execute_on_server))
         .route("/api/v1/servers/{id}/metrics", get(get_server_metrics))
         .route(
@@ -129,20 +133,47 @@ pub fn create_router_full(
         // Multi-repo stacks
         .route("/api/v1/stacks", post(create_stack).get(list_stacks))
         // Orchestration routes
-        .route("/api/v1/orchestrations", post(trigger_orchestration).get(list_orchestrations))
+        .route(
+            "/api/v1/orchestrations",
+            post(trigger_orchestration).get(list_orchestrations),
+        )
         .route("/api/v1/orchestrations/{id}", get(get_orchestration))
-        .route("/api/v1/orchestrations/{id}/logs", get(get_orchestration_logs))
-        .route("/api/v1/orchestrations/{id}/cancel", post(cancel_orchestration))
+        .route(
+            "/api/v1/orchestrations/{id}/logs",
+            get(get_orchestration_logs),
+        )
+        .route(
+            "/api/v1/orchestrations/{id}/cancel",
+            post(cancel_orchestration),
+        )
         .route("/api/v1/orchestrations/drift", post(detect_drift_handler))
-        .route("/api/v1/orchestrations/fleet", post(execute_fleet_rollout_handler))
-        .route("/api/v1/orchestrations/reconcile", post(reconcile_server_state_handler))
+        .route(
+            "/api/v1/orchestrations/fleet",
+            post(execute_fleet_rollout_handler),
+        )
+        .route(
+            "/api/v1/orchestrations/reconcile",
+            post(reconcile_server_state_handler),
+        )
         // Custom Workflow Pipelines (for Biorcrux)
-        .route("/api/v1/workflows", post(create_workflow_handler).get(list_workflows_handler))
+        .route(
+            "/api/v1/workflows",
+            post(create_workflow_handler).get(list_workflows_handler),
+        )
         .route("/api/v1/workflows/{id}", get(get_workflow_handler))
-        .route("/api/v1/workflows/{id}/execute", post(execute_workflow_handler))
+        .route(
+            "/api/v1/workflows/{id}/execute",
+            post(execute_workflow_handler),
+        )
         // Scheduled Automations (for Biorcrux)
-        .route("/api/v1/schedules", post(create_schedule_handler).get(list_schedules_handler))
-        .route("/api/v1/schedules/{id}", get(get_schedule_handler).delete(delete_schedule_handler))
+        .route(
+            "/api/v1/schedules",
+            post(create_schedule_handler).get(list_schedules_handler),
+        )
+        .route(
+            "/api/v1/schedules/{id}",
+            get(get_schedule_handler).delete(delete_schedule_handler),
+        )
         .route("/api/v1/schedules/{id}/run", post(run_schedule_handler))
         // OpenTofu orchestration routes (for Biorcrux)
         .route("/api/v1/tofu/plan", post(plan_tofu_handler))
@@ -163,7 +194,10 @@ pub fn create_router_full(
             get(gather_ansible_facts_handler),
         )
         // Crossplane Control Plane orchestration routes (for Biorcrux)
-        .route("/api/v1/crossplane/claims", post(apply_crossplane_claim_handler))
+        .route(
+            "/api/v1/crossplane/claims",
+            post(apply_crossplane_claim_handler),
+        )
         .route(
             "/api/v1/crossplane/claims/{namespace}/{name}",
             get(get_crossplane_claim_handler).delete(delete_crossplane_claim_handler),
@@ -199,14 +233,29 @@ pub fn create_router_full(
         )
         // Domain Registrar orchestration routes (for Biorcrux)
         .route("/api/v1/domains/check", get(check_availability_handler))
-        .route("/api/v1/domains", post(register_domain_handler).get(list_domains_handler))
+        .route(
+            "/api/v1/domains",
+            post(register_domain_handler).get(list_domains_handler),
+        )
         .route("/api/v1/domains/{domain}", get(get_domain_handler))
-        .route("/api/v1/domains/{domain}/nameservers", put(update_nameservers_handler))
-        .route("/api/v1/domains/{domain}/auto-renew", put(set_auto_renew_handler))
+        .route(
+            "/api/v1/domains/{domain}/nameservers",
+            put(update_nameservers_handler),
+        )
+        .route(
+            "/api/v1/domains/{domain}/auto-renew",
+            put(set_auto_renew_handler),
+        )
         // DNS Zone and Record management routes (for Biorcrux)
-        .route("/api/v1/dns/zones", post(create_dns_zone_handler).get(list_dns_zones_handler))
+        .route(
+            "/api/v1/dns/zones",
+            post(create_dns_zone_handler).get(list_dns_zones_handler),
+        )
         .route("/api/v1/dns/zones/{domain}", get(get_dns_zone_handler))
-        .route("/api/v1/dns/zones/{domain}/records", post(upsert_dns_record_handler))
+        .route(
+            "/api/v1/dns/zones/{domain}/records",
+            post(upsert_dns_record_handler),
+        )
         .route(
             "/api/v1/dns/zones/{domain}/records/{record_id}",
             axum::routing::delete(delete_dns_record_handler),

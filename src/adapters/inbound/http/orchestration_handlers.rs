@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -13,8 +13,8 @@ use crate::domain::{
     server::ServerId,
     workflow::{
         DesiredServerState, FleetJobResult, FleetRolloutCommand, JobExecutionLogs,
-        ReconciliationResult, ScheduledJob, ScheduledJobCommand, ScheduleId,
-        WorkflowDefinition, WorkflowId, WorkflowStep,
+        ReconciliationResult, ScheduleId, ScheduledJob, ScheduledJobCommand, WorkflowDefinition,
+        WorkflowId, WorkflowStep,
     },
 };
 
@@ -128,7 +128,10 @@ pub async fn execute_fleet_rollout_handler(
     State(state): State<AppState>,
     Json(cmd): Json<FleetRolloutCommand>,
 ) -> Result<Json<FleetJobResult>, ApiError> {
-    let res = state.orchestrator_service.execute_fleet_rollout(cmd).await?;
+    let res = state
+        .orchestrator_service
+        .execute_fleet_rollout(cmd)
+        .await?;
     Ok(Json(res))
 }
 
@@ -184,7 +187,10 @@ pub async fn reconcile_server_state_handler(
     State(state): State<AppState>,
     Json(desired): Json<DesiredServerState>,
 ) -> Result<Json<ReconciliationResult>, ApiError> {
-    let res = state.orchestrator_service.reconcile_server_state(desired).await?;
+    let res = state
+        .orchestrator_service
+        .reconcile_server_state(desired)
+        .await?;
     Ok(Json(res))
 }
 
@@ -234,7 +240,9 @@ pub async fn cancel_orchestration(
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelJobRequest>,
 ) -> Result<Json<OrchestrationJob>, ApiError> {
-    let reason = payload.reason.unwrap_or_else(|| "User cancelled".to_string());
+    let reason = payload
+        .reason
+        .unwrap_or_else(|| "User cancelled".to_string());
     let job = state
         .orchestrator_service
         .cancel_job(&JobId::from_uuid(id), &reason)

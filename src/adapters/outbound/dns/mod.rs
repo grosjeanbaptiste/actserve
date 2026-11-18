@@ -17,7 +17,8 @@ pub struct MockDnsProvider {
 impl Default for MockDnsProvider {
     fn default() -> Self {
         let mut map = HashMap::new();
-        let mut sample_zone = DnsZone::new("zone-sample-1", "actserve.net", DnssecStatus::Enabled).unwrap();
+        let mut sample_zone =
+            DnsZone::new("zone-sample-1", "actserve.net", DnssecStatus::Enabled).unwrap();
         sample_zone.add_record(
             DnsRecord::new(
                 "rec-ns1",
@@ -76,7 +77,11 @@ impl DnsProviderPort for MockDnsProvider {
     async fn upsert_record(&self, zone_id: &str, record: &DnsRecord) -> Result<(), DomainError> {
         if self.should_fail {
             return Err(DomainError::ExecutionFailed {
-                reason: format!("Failed to upsert DNS record {} in zone {}", record.name(), zone_id),
+                reason: format!(
+                    "Failed to upsert DNS record {} in zone {}",
+                    record.name(),
+                    zone_id
+                ),
                 details: None,
             });
         }
@@ -96,7 +101,10 @@ impl DnsProviderPort for MockDnsProvider {
     async fn delete_record(&self, zone_id: &str, record_id: &str) -> Result<(), DomainError> {
         if self.should_fail {
             return Err(DomainError::ExecutionFailed {
-                reason: format!("Failed to delete DNS record {} in zone {}", record_id, zone_id),
+                reason: format!(
+                    "Failed to delete DNS record {} in zone {}",
+                    record_id, zone_id
+                ),
                 details: None,
             });
         }
