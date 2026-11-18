@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use tower::ServiceExt;
 
-use servai::{
+use actserve::{
     adapters::{
         inbound::http::create_router,
         outbound::{
@@ -1263,7 +1263,7 @@ async fn test_bioxus_api_crossplane_endpoints() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "api_version": "database.servai.io/v1alpha1",
+                        "api_version": "database.actserve.io/v1alpha1",
                         "kind": "PostgreSQLInstance",
                         "name": "bioxus-prod-db",
                         "namespace": "production",

@@ -280,7 +280,7 @@ impl RepoOrchestratorPort for OrchestrationService {
 
         for i in 0..step_count {
             let step_name = job.steps()[i].step.name.clone();
-            let cmd_to_run = format!("servai-run-step:{}", step_name);
+            let cmd_to_run = format!("actserve-run-step:{}", step_name);
 
             match self.executor.execute_command(&server, &cmd_to_run).await {
                 Ok(res) => {
@@ -525,7 +525,7 @@ impl RepoOrchestratorPort for OrchestrationService {
 
         for i in 0..step_count {
             let step_name = job.steps()[i].step.name.clone();
-            let cmd = format!("servai-run-stack-step:{}", step_name);
+            let cmd = format!("actserve-run-stack-step:{}", step_name);
 
             match self.executor.execute_command(&server, &cmd).await {
                 Ok(res) => {
@@ -938,7 +938,7 @@ impl RepoOrchestratorPort for OrchestrationService {
                     self.executor
                         .execute_command(
                             &server,
-                            &format!("servai-dns-record-upsert {} {} {}", domain, record_type, value),
+                            &format!("actserve-dns-record-upsert {} {} {}", domain, record_type, value),
                         )
                         .await
                 }
@@ -957,7 +957,7 @@ impl RepoOrchestratorPort for OrchestrationService {
                 }
                 WorkflowAction::PackageInstall { package_id } => {
                     self.executor
-                        .execute_command(&server, &format!("servai-package-install {}", package_id))
+                        .execute_command(&server, &format!("actserve-package-install {}", package_id))
                         .await
                 }
             };

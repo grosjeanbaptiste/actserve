@@ -52,7 +52,7 @@ use crate::ports::inbound::{
 async fn health_check() -> Json<Value> {
     Json(json!({
         "status": "ok",
-        "service": "servai",
+        "service": "actserve",
         "version": env!("CARGO_PKG_VERSION")
     }))
 }

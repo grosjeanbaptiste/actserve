@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use servai::{
+use actserve::{
     adapters::outbound::{
         memory::{
             job_store::InMemoryJobStore, repo_store::InMemoryRepoStore,

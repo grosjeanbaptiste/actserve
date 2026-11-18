@@ -1,4 +1,4 @@
-use servai::domain::{
+use actserve::domain::{
     errors::DomainError,
     orchestration::{ExecutionStatus, JobId, OrchestrationJob, OrchestrationStep},
     repository::{GitRef, ManagedRepository, RepoId, RepoKind, SyncStatus},
@@ -237,7 +237,7 @@ fn test_server_concurrency_lock() {
 
 #[test]
 fn test_server_metrics_validation() {
-    use servai::domain::server::ServerMetrics;
+    use actserve::domain::server::ServerMetrics;
 
     let metrics = ServerMetrics::new(
         42.5,   // CPU %
@@ -269,7 +269,7 @@ fn test_server_metrics_validation() {
 
 #[test]
 fn test_service_action_and_status() {
-    use servai::domain::server::{ServiceAction, ServiceStatus};
+    use actserve::domain::server::{ServiceAction, ServiceStatus};
 
     assert_eq!(ServiceAction::Restart.as_systemd_command(), "restart");
     assert_eq!(ServiceAction::Start.as_systemd_command(), "start");
@@ -303,11 +303,11 @@ fn test_orchestration_job_cancellation() {
 
 #[test]
 fn test_orchestration_job_with_rollback() {
-    use servai::domain::orchestration::RollbackPolicy;
+    use actserve::domain::orchestration::RollbackPolicy;
 
     let job_id = JobId::new();
     let mut step1 = OrchestrationStep::new("setup_db", "Prepare database schema");
-    step1.rollback_command = Some("drop database servai_temp".to_string());
+    step1.rollback_command = Some("drop database actserve_temp".to_string());
 
     let mut step2 = OrchestrationStep::new("migrate_data", "Migrate users");
     step2.rollback_command = Some("truncate table users".to_string());
@@ -335,7 +335,7 @@ fn test_orchestration_job_with_rollback() {
     assert_eq!(rollback_steps.len(), 1); // Only step 0 completed and needs rollback
     assert_eq!(
         rollback_steps[0].rollback_command.as_deref(),
-        Some("drop database servai_temp")
+        Some("drop database actserve_temp")
     );
 
     job.record_rollback_completed("Compensating rollback finished successfully")
@@ -345,7 +345,7 @@ fn test_orchestration_job_with_rollback() {
 
 #[test]
 fn test_drift_detection_report() {
-    use servai::domain::repository::DriftReport;
+    use actserve::domain::repository::DriftReport;
 
     let report = DriftReport::new(
         vec!["/etc/nginx/nginx.conf".to_string()],

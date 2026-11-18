@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use servai::{
+use actserve::{
     adapters::outbound::{
         memory::{
             job_store::InMemoryJobStore, repo_store::InMemoryRepoStore,
@@ -187,7 +187,7 @@ async fn test_orchestration_service_server_offline_rejected() {
 
 #[tokio::test]
 async fn test_server_service_manage_systemd_service() {
-    use servai::domain::server::{ServiceAction, ServiceStatus};
+    use actserve::domain::server::{ServiceAction, ServiceStatus};
 
     let store = Arc::new(InMemoryServerStore::default());
     let executor = Arc::new(MockServerExecutor::default());
@@ -262,7 +262,7 @@ async fn test_server_service_reboot() {
 
 #[tokio::test]
 async fn test_orchestration_service_rollback_on_step_failure() {
-    use servai::domain::orchestration::RollbackPolicy;
+    use actserve::domain::orchestration::RollbackPolicy;
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let repo_store = Arc::new(InMemoryRepoStore::default());
@@ -362,8 +362,8 @@ async fn test_orchestration_service_drift_detection() {
 
 #[tokio::test]
 async fn test_orchestration_service_browse_and_import_admin_catalog() {
-    use servai::domain::catalog::AdminCategory;
-    use servai::adapters::outbound::catalog::StandardServerAdminCatalog;
+    use actserve::domain::catalog::AdminCategory;
+    use actserve::adapters::outbound::catalog::StandardServerAdminCatalog;
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let repo_store = Arc::new(InMemoryRepoStore::default());
@@ -413,7 +413,7 @@ async fn test_orchestration_service_browse_and_import_admin_catalog() {
 
 #[tokio::test]
 async fn test_orchestration_service_apply_recipe_directly_to_server() {
-    use servai::adapters::outbound::catalog::StandardServerAdminCatalog;
+    use actserve::adapters::outbound::catalog::StandardServerAdminCatalog;
     use std::collections::HashMap;
 
     let server_store = Arc::new(InMemoryServerStore::default());
@@ -461,7 +461,7 @@ async fn test_orchestration_service_apply_recipe_directly_to_server() {
 
 #[tokio::test]
 async fn test_orchestration_service_multi_repo_stack_execution() {
-    use servai::domain::stack::StackRepoEntry;
+    use actserve::domain::stack::StackRepoEntry;
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let repo_store = Arc::new(InMemoryRepoStore::default());
@@ -553,8 +553,8 @@ async fn test_orchestration_service_multi_repo_stack_execution() {
 
 #[tokio::test]
 async fn test_orchestration_service_search_registry_and_dependency_resolution() {
-    use servai::domain::catalog::AdminCategory;
-    use servai::domain::registry::RegistryQuery;
+    use actserve::domain::catalog::AdminCategory;
+    use actserve::domain::registry::RegistryQuery;
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let repo_store = Arc::new(InMemoryRepoStore::default());
@@ -804,7 +804,7 @@ async fn test_server_service_ansible_module_and_facts() {
 
 #[tokio::test]
 async fn test_orchestration_service_crossplane_claim_lifecycle() {
-    use servai::domain::engines::crossplane::CrossplaneClaim;
+    use actserve::domain::engines::crossplane::CrossplaneClaim;
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let repo_store = Arc::new(InMemoryRepoStore::default());
@@ -881,7 +881,7 @@ async fn test_orchestration_service_crossplane_providers_and_resources() {
 
 #[tokio::test]
 async fn test_server_service_wireguard_interface_and_peer_management() {
-    use servai::domain::engines::wireguard::{WireGuardInterface, WireGuardPeer};
+    use actserve::domain::engines::wireguard::{WireGuardInterface, WireGuardPeer};
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let executor = Arc::new(MockServerExecutor::default());

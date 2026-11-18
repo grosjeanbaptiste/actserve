@@ -1,4 +1,4 @@
-use servai::domain::{
+use actserve::domain::{
     catalog::AdminCategory,
     registry::{AdminPackage, RegistryQuery, RegistrySource, ServerProfilePreset},
     server::ServerSpec,

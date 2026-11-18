@@ -1,4 +1,4 @@
-# Servai
+# Actserve
 
 [![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg?logo=rust)](https://www.rust-lang.org)
 [![TDD](https://img.shields.io/badge/methodology-100%25%20Pure%20TDD-brightgreen.svg)](https://en.wikipedia.org/wiki/Test-driven_development)
@@ -6,7 +6,7 @@
 [![Architecture](https://img.shields.io/badge/architecture-Hexagonal%20%28Ports%20%26%20Adapters%29-blue.svg)](#-architecture-hexagonale)
 [![UI](https://img.shields.io/badge/UI-Biorcrux%20Ready-6f42c1.svg)](#-endpoints-api-biorcrux)
 
-**Servai** est un orchestrateur universel en Rust conçu pour l'administration intégrale de serveurs. Il unifie l'ensemble de la chaîne de valeur système et cloud : **noms de domaine (Registrars)**, **zones et enregistrements DNS**, **délivrance de certificats TLS/SSL Let's Encrypt**, **tunnels VPN WireGuard**, moteurs d'automatisation déclarative (**OpenTofu**, **Ansible**, **Crossplane**), et **réutilisation maximale de dépôts d'administration existants** (Ansible Galaxy, LinuxServer.io, collections GitHub Sysadmin & Homelab).
+**Actserve** est un orchestrateur universel en Rust conçu pour l'administration intégrale de serveurs. Il unifie l'ensemble de la chaîne de valeur système et cloud : **noms de domaine (Registrars)**, **zones et enregistrements DNS**, **délivrance de certificats TLS/SSL Let's Encrypt**, **tunnels VPN WireGuard**, moteurs d'automatisation déclarative (**OpenTofu**, **Ansible**, **Crossplane**), et **réutilisation maximale de dépôts d'administration existants** (Ansible Galaxy, LinuxServer.io, collections GitHub Sysadmin & Homelab).
 
 Le projet expose une API REST réactive conçue pour alimenter directement l'interface utilisateur **Biorcrux**, et est développé selon une méthodologie **100% pure TDD (Test-Driven Development)** dans le respect strict des principes de l'**Architecture Hexagonale**.
 
@@ -72,7 +72,7 @@ Le projet expose une API REST réactive conçue pour alimenter directement l'int
 
 ### 3. Réutilisation Maximale de Dépôts Existants
 - **Registre Multi-Sources** : Catalogue indexant nativement [Ansible Galaxy](https://galaxy.ansible.com), [LinuxServer.io](https://fleet.linuxserver.io) et les collections GitHub Sysadmin de référence.
-- **Résolution Automatique de Dépendances** : Lorsqu'un service est sélectionné (ex: un conteneur LinuxServer ou un proxy Traefik), Servai installe automatiquement ses prérequis (ex: moteur Docker, configuration du pare-feu UFW) dans le bon ordre.
+- **Résolution Automatique de Dépendances** : Lorsqu'un service est sélectionné (ex: un conteneur LinuxServer ou un proxy Traefik), Actserve installe automatiquement ses prérequis (ex: moteur Docker, configuration du pare-feu UFW) dans le bon ordre.
 - **Profils de Serveur Prédéfinis (Presets)** :
   - `secure-web-baseline` : Hardening Linux CIS + UFW/Fail2ban + Caddy auto-HTTPS.
   - `docker-application-host` : Hardening Linux + Pare-feu + Docker Engine + Traefik v3.
@@ -120,7 +120,7 @@ L'API REST expose tous les services nécessaires à l'interface d'administration
 ### 🖥️ Administration du Serveur & Liaison de Domaine
 | Méthode | Route | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/health` | Statut et version de Servai |
+| `GET` | `/api/v1/health` | Statut et version de Actserve |
 | `POST` | `/api/v1/servers` | Enregistrer un nouveau serveur physique ou VPS |
 | `GET` | `/api/v1/servers` | Lister les serveurs gérés |
 | `GET` | `/api/v1/servers/{id}` | Inspecter la fiche détaillée d'un serveur |
@@ -190,7 +190,7 @@ L'API REST expose tous les services nécessaires à l'interface d'administration
 | `POST` | `/api/v1/servers/{id}/packages/{pkg_id}/install` | Installer un paquet avec résolution automatique de dépendances |
 | `POST` | `/api/v1/servers/{id}/presets/{preset_id}/apply` | Déployer un profil complet multi-dépôts en un clic |
 | `GET` | `/api/v1/catalog` | Explorer les recettes du catalogue standard |
-| `POST` | `/api/v1/catalog/{id}/import` | Importer une recette dans Servai |
+| `POST` | `/api/v1/catalog/{id}/import` | Importer une recette dans Actserve |
 | `POST` | `/api/v1/servers/{id}/recipes/{recipe_id}/apply` | Déployer une recette standard sur le serveur |
 | `POST` | `/api/v1/stacks` | Créer un stack multi-dépôts |
 | `GET` | `/api/v1/stacks` | Lister les stacks multi-dépôts |
@@ -233,7 +233,7 @@ L'API REST expose tous les services nécessaires à l'interface d'administration
 cargo run
 ```
 
-Par défaut, Servai écoute sur `http://0.0.0.0:8080` avec les en-têtes CORS permissifs configurés pour les connexions depuis l'UI **Biorcrux**.
+Par défaut, Actserve écoute sur `http://0.0.0.0:8080` avec les en-têtes CORS permissifs configurés pour les connexions depuis l'UI **Biorcrux**.
 
 ### Exemples d'appels cURL
 

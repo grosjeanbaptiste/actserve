@@ -17,10 +17,10 @@ pub struct MockRegistrarProvider {
 impl Default for MockRegistrarProvider {
     fn default() -> Self {
         let mut map = HashMap::new();
-        let contact = ContactInfo::new("Admin", "admin@servai.net", "+1.5550100", "Paris", "FR").unwrap();
-        let ns = NameserverConfig::new(vec!["ns1.servai.net".to_string(), "ns2.servai.net".to_string()]).unwrap();
+        let contact = ContactInfo::new("Admin", "admin@actserve.net", "+1.5550100", "Paris", "FR").unwrap();
+        let ns = NameserverConfig::new(vec!["ns1.actserve.net".to_string(), "ns2.actserve.net".to_string()]).unwrap();
         let reg = DomainRegistration::new(
-            "servai.net",
+            "actserve.net",
             RegistrarProvider::Cloudflare,
             DomainStatus::Active,
             contact,
@@ -28,7 +28,7 @@ impl Default for MockRegistrarProvider {
             true,
         )
         .unwrap();
-        map.insert("servai.net".to_string(), reg);
+        map.insert("actserve.net".to_string(), reg);
 
         Self {
             should_fail: false,

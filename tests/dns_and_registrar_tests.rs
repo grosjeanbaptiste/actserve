@@ -1,4 +1,4 @@
-use servai::domain::{
+use actserve::domain::{
     dns::{DnsRecord, DnsRecordType, DnsZone, DnssecStatus, Ttl},
     registrar::{
         ContactInfo, DomainRegistration, DomainStatus, NameserverConfig, RegistrarProvider,
@@ -98,8 +98,8 @@ fn test_domain_registration_and_registrar_management() {
     .unwrap();
 
     let ns = NameserverConfig::new(vec![
-        "ns1.servai-dns.com".to_string(),
-        "ns2.servai-dns.com".to_string(),
+        "ns1.actserve-dns.com".to_string(),
+        "ns2.actserve-dns.com".to_string(),
     ])
     .unwrap();
 
@@ -162,7 +162,7 @@ fn test_tls_certificate_lifecycle() {
 
 #[tokio::test]
 async fn test_dns_service_zone_and_record_lifecycle() {
-    use servai::{
+    use actserve::{
         adapters::outbound::dns::MockDnsProvider,
         application::dns_service::DnsService,
         ports::inbound::dns_admin::DnsAdminPort,
@@ -204,7 +204,7 @@ async fn test_dns_service_zone_and_record_lifecycle() {
 
 #[tokio::test]
 async fn test_registrar_service_domain_registration_and_nameservers() {
-    use servai::{
+    use actserve::{
         adapters::outbound::registrar::MockRegistrarProvider,
         application::registrar_service::RegistrarService,
         ports::inbound::registrar_admin::RegistrarAdminPort,
@@ -239,16 +239,16 @@ async fn test_registrar_service_domain_registration_and_nameservers() {
     assert!(!now_taken);
 
     // 4. Update nameservers
-    let new_ns = NameserverConfig::new(vec!["ns1.servai.io".to_string(), "ns2.servai.io".to_string()]).unwrap();
+    let new_ns = NameserverConfig::new(vec!["ns1.actserve.io".to_string(), "ns2.actserve.io".to_string()]).unwrap();
     service.update_domain_nameservers("brand-new-domain.com", new_ns).await.unwrap();
 
     let fetched = service.get_domain("brand-new-domain.com").await.unwrap();
-    assert_eq!(fetched.nameservers().servers()[0], "ns1.servai.io");
+    assert_eq!(fetched.nameservers().servers()[0], "ns1.actserve.io");
 }
 
 #[tokio::test]
 async fn test_server_service_bind_domain_and_auto_ssl() {
-    use servai::{
+    use actserve::{
         adapters::outbound::{
             memory::server_store::InMemoryServerStore,
             mock::MockServerExecutor,
@@ -276,8 +276,8 @@ async fn test_server_service_bind_domain_and_auto_ssl() {
     service.health_check(&server.id()).await.unwrap();
 
     // Bind domain: automatically registers DNS A record and issues TLS Cert!
-    let cert = service.bind_server_domain(&server.id(), "app.servai.net").await.unwrap();
-    assert_eq!(cert.primary_domain(), "app.servai.net");
+    let cert = service.bind_server_domain(&server.id(), "app.actserve.net").await.unwrap();
+    assert_eq!(cert.primary_domain(), "app.actserve.net");
     assert_eq!(cert.status(), CertStatus::Valid);
     assert!(!cert.needs_renewal());
 }

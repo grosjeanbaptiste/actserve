@@ -1,14 +1,14 @@
 [package]
-name = "servai"
+name = "actserve"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "servai"
+name = "actserve"
 path = "src/lib.rs"
 
 [[bin]]
-name = "servai"
+name = "actserve"
 path = "src/main.rs"
 
 [dependencies]

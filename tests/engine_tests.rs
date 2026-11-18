@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use servai::domain::engines::{
+use actserve::domain::engines::{
     ansible::{AnsibleFacts, AnsibleModuleResult, AnsibleRunResult, AnsibleTaskEvent},
     crossplane::{
         CrossplaneClaim, CrossplaneCondition, CrossplaneReconcileResult, CrossplaneResource,
@@ -104,7 +104,7 @@ fn test_crossplane_claim_and_condition_validation() {
     params.insert("region".to_string(), "eu-west-1".to_string());
 
     let claim = CrossplaneClaim::new(
-        "database.servai.io/v1alpha1",
+        "database.actserve.io/v1alpha1",
         "PostgreSQLInstance",
         "production-db",
         "default",
@@ -113,7 +113,7 @@ fn test_crossplane_claim_and_condition_validation() {
     )
     .unwrap();
 
-    assert_eq!(claim.api_version(), "database.servai.io/v1alpha1");
+    assert_eq!(claim.api_version(), "database.actserve.io/v1alpha1");
     assert_eq!(claim.kind(), "PostgreSQLInstance");
     assert_eq!(claim.name(), "production-db");
     assert_eq!(claim.namespace(), "default");
@@ -121,7 +121,7 @@ fn test_crossplane_claim_and_condition_validation() {
 
     // Validation edge case: empty name
     let invalid = CrossplaneClaim::new(
-        "database.servai.io/v1alpha1",
+        "database.actserve.io/v1alpha1",
         "PostgreSQLInstance",
         "",
         "default",

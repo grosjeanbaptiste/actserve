@@ -24,7 +24,7 @@ impl GitCliProvider {
 
 impl Default for GitCliProvider {
     fn default() -> Self {
-        Self::new("/tmp/servai/repos")
+        Self::new("/tmp/actserve/repos")
     }
 }
 
@@ -119,8 +119,8 @@ impl GitProviderPort for GitCliProvider {
                 OrchestrationStep::new("run_manifest", "bash deploy.sh"),
             ]),
             RepoKind::RawConfig => Ok(vec![
-                OrchestrationStep::new("rsync_configs", "rsync -avz ./ /etc/servai/"),
-                OrchestrationStep::new("reload_services", "systemctl reload-or-restart servai-services"),
+                OrchestrationStep::new("rsync_configs", "rsync -avz ./ /etc/actserve/"),
+                OrchestrationStep::new("reload_services", "systemctl reload-or-restart actserve-services"),
             ]),
             RepoKind::OpenTofu => Ok(vec![
                 OrchestrationStep::new("opentofu_init", "tofu init -no-color"),

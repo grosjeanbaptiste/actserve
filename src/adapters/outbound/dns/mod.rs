@@ -17,13 +17,13 @@ pub struct MockDnsProvider {
 impl Default for MockDnsProvider {
     fn default() -> Self {
         let mut map = HashMap::new();
-        let mut sample_zone = DnsZone::new("zone-sample-1", "servai.net", DnssecStatus::Enabled).unwrap();
+        let mut sample_zone = DnsZone::new("zone-sample-1", "actserve.net", DnssecStatus::Enabled).unwrap();
         sample_zone.add_record(
             DnsRecord::new(
                 "rec-ns1",
-                "servai.net",
+                "actserve.net",
                 DnsRecordType::NS,
-                "ns1.servai.net",
+                "ns1.actserve.net",
                 crate::domain::dns::Ttl::standard(),
                 None,
             )
@@ -32,15 +32,15 @@ impl Default for MockDnsProvider {
         sample_zone.add_record(
             DnsRecord::new(
                 "rec-ns2",
-                "servai.net",
+                "actserve.net",
                 DnsRecordType::NS,
-                "ns2.servai.net",
+                "ns2.actserve.net",
                 crate::domain::dns::Ttl::standard(),
                 None,
             )
             .unwrap(),
         );
-        map.insert("servai.net".to_string(), sample_zone);
+        map.insert("actserve.net".to_string(), sample_zone);
 
         Self {
             should_fail: false,

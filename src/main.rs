@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
-use servai::{
+use actserve::{
     adapters::{
         inbound::http::create_router_full,
         outbound::{
@@ -27,17 +27,17 @@ use servai::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting Servai Orchestrator v{}", env!("CARGO_PKG_VERSION"));
+    println!("Starting Actserve Orchestrator v{}", env!("CARGO_PKG_VERSION"));
 
     let server_store = Arc::new(InMemoryServerStore::new());
     let repo_store = Arc::new(InMemoryRepoStore::new());
     let job_store = Arc::new(InMemoryJobStore::new());
     let executor = Arc::new(SshServerExecutor::new());
     let git_provider = Arc::new(GitCliProvider::default());
-    let tofu_engine = Arc::new(servai::adapters::outbound::opentofu::CliOpenTofuAdapter::default());
-    let ansible_engine = Arc::new(servai::adapters::outbound::ansible::CliAnsibleAdapter::default());
-    let crossplane_engine = Arc::new(servai::adapters::outbound::crossplane::CliCrossplaneAdapter::default());
-    let wireguard_engine = Arc::new(servai::adapters::outbound::wireguard::CliWireGuardAdapter::default());
+    let tofu_engine = Arc::new(actserve::adapters::outbound::opentofu::CliOpenTofuAdapter::default());
+    let ansible_engine = Arc::new(actserve::adapters::outbound::ansible::CliAnsibleAdapter::default());
+    let crossplane_engine = Arc::new(actserve::adapters::outbound::crossplane::CliCrossplaneAdapter::default());
+    let wireguard_engine = Arc::new(actserve::adapters::outbound::wireguard::CliWireGuardAdapter::default());
     let dns_provider = Arc::new(MockDnsProvider::default());
     let registrar_provider = Arc::new(MockRegistrarProvider::default());
     let tls_manager = Arc::new(MockTlsManager::default());
@@ -77,7 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    println!("Servai API for Bioxus UI listening on http://{}", addr);
+    println!("Actserve API for Bioxus UI listening on http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, router).await?;

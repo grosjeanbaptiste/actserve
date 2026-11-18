@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use servai::domain::{
+use actserve::domain::{
     errors::DomainError,
     repository::{DetectedAdminType, DiscoveredVariable, RepoAdminManifest, RepoId},
     stack::{MultiRepoStack, StackId, StackRepoEntry},
@@ -11,7 +11,7 @@ fn test_repo_admin_manifest_detection_types() {
         DetectedAdminType::DockerCompose,
         vec!["docker-compose.yml".to_string(), "docker-compose.prod.yml".to_string()],
         vec![
-            DiscoveredVariable::new("COMPOSE_PROJECT_NAME", Some("servai-app".to_string())),
+            DiscoveredVariable::new("COMPOSE_PROJECT_NAME", Some("actserve-app".to_string())),
             DiscoveredVariable::new("PORT", Some("8080".to_string())),
         ],
     ).expect("valid manifest");

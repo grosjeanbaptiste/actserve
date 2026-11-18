@@ -19,14 +19,14 @@ impl Default for MockTlsManager {
         let mut map = HashMap::new();
         let cert = TlsCertificate::new(
             "cert-initial",
-            "servai.net",
-            vec!["*.servai.net".to_string()],
+            "actserve.net",
+            vec!["*.actserve.net".to_string()],
             ChallengeType::Dns01,
             CertStatus::Valid,
             89,
         )
         .unwrap();
-        map.insert("servai.net".to_string(), cert);
+        map.insert("actserve.net".to_string(), cert);
 
         Self {
             should_fail: false,

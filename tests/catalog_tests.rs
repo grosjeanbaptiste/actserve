@@ -1,4 +1,4 @@
-use servai::domain::{
+use actserve::domain::{
     catalog::{AdminCategory, CatalogItem, ConfigVariable},
     errors::DomainError,
     repository::{GitRef, RepoKind},
