@@ -1,8 +1,8 @@
-use async_trait::async_trait;
 use crate::domain::{
     errors::DomainError,
     repository::{ManagedRepository, RepoId},
 };
+use async_trait::async_trait;
 
 #[async_trait]
 pub trait RepoStorePort: Send + Sync {

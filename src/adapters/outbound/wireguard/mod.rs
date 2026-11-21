@@ -177,12 +177,12 @@ impl WireGuardEnginePort for CliWireGuardAdapter {
     ) -> Result<(), DomainError> {
         let config = iface.render_wg_quick_config();
         let tmp_path = format!("/tmp/{}.conf", iface.name());
-        tokio::fs::write(&tmp_path, config).await.map_err(|e| {
-            DomainError::ExecutionFailed {
+        tokio::fs::write(&tmp_path, config)
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
                 reason: format!("Failed to write WireGuard config file {}: {}", tmp_path, e),
                 details: None,
-            }
-        })?;
+            })?;
 
         let output = Command::new("wg-quick")
             .arg("up")
@@ -224,10 +224,13 @@ impl WireGuardEnginePort for CliWireGuardAdapter {
             cmd.arg("persistent-keepalive").arg(keepalive.to_string());
         }
 
-        let output = cmd.output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to execute wg set peer: {}", e),
-            details: None,
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to execute wg set peer: {}", e),
+                details: None,
+            })?;
 
         if !output.status.success() {
             return Err(DomainError::ExecutionFailed {
@@ -289,13 +292,7 @@ impl WireGuardEnginePort for CliWireGuardAdapter {
         }
 
         Ok(WireGuardDeviceStatus::new(
-            iface_name,
-            "pubkey",
-            51820,
-            0,
-            0,
-            0,
-            true,
+            iface_name, "pubkey", 51820, 0, 0, 0, true,
         ))
     }
 
@@ -317,7 +314,9 @@ impl WireGuardEnginePort for CliWireGuardAdapter {
                 details: None,
             })?;
 
-        let privkey = String::from_utf8_lossy(&genkey_out.stdout).trim().to_string();
+        let privkey = String::from_utf8_lossy(&genkey_out.stdout)
+            .trim()
+            .to_string();
 
         use tokio::io::AsyncWriteExt;
         let mut pubkey_cmd = Command::new(&self.wg_bin);
@@ -326,21 +325,29 @@ impl WireGuardEnginePort for CliWireGuardAdapter {
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped());
 
-        let mut child = pubkey_cmd.spawn().map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to spawn wg pubkey: {}", e),
-            details: None,
-        })?;
+        let mut child = pubkey_cmd
+            .spawn()
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to spawn wg pubkey: {}", e),
+                details: None,
+            })?;
 
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(privkey.as_bytes()).await;
         }
 
-        let pubkey_out = child.wait_with_output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to wait for wg pubkey: {}", e),
-            details: None,
-        })?;
+        let pubkey_out =
+            child
+                .wait_with_output()
+                .await
+                .map_err(|e| DomainError::ExecutionFailed {
+                    reason: format!("Failed to wait for wg pubkey: {}", e),
+                    details: None,
+                })?;
 
-        let pubkey = String::from_utf8_lossy(&pubkey_out.stdout).trim().to_string();
+        let pubkey = String::from_utf8_lossy(&pubkey_out.stdout)
+            .trim()
+            .to_string();
 
         Ok((privkey, pubkey))
     }

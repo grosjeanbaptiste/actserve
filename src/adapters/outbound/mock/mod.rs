@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use crate::domain::{
     errors::DomainError,
     orchestration::OrchestrationStep,
@@ -9,6 +8,7 @@ use crate::ports::outbound::{
     git_provider::GitProviderPort,
     server_executor::{CommandResult, ServerExecutorPort},
 };
+use async_trait::async_trait;
 
 #[derive(Clone)]
 pub struct MockServerExecutor {
@@ -37,7 +37,11 @@ impl ServerExecutorPort for MockServerExecutor {
         }
     }
 
-    async fn execute_command(&self, _server: &Server, _command: &str) -> Result<CommandResult, DomainError> {
+    async fn execute_command(
+        &self,
+        _server: &Server,
+        _command: &str,
+    ) -> Result<CommandResult, DomainError> {
         if self.should_fail_command {
             Err(DomainError::ExecutionFailed {
                 reason: "Command returned exit code 1".to_string(),
@@ -98,13 +102,18 @@ impl Default for MockGitProvider {
 impl GitProviderPort for MockGitProvider {
     async fn sync_repository(&self, _repo: &ManagedRepository) -> Result<String, DomainError> {
         if self.should_fail_sync {
-            Err(DomainError::VcsError("Failed to clone/pull repository".to_string()))
+            Err(DomainError::VcsError(
+                "Failed to clone/pull repository".to_string(),
+            ))
         } else {
             Ok(self.commit_hash.clone())
         }
     }
 
-    async fn resolve_plan(&self, _repo: &ManagedRepository) -> Result<Vec<OrchestrationStep>, DomainError> {
+    async fn resolve_plan(
+        &self,
+        _repo: &ManagedRepository,
+    ) -> Result<Vec<OrchestrationStep>, DomainError> {
         Ok(vec![
             OrchestrationStep::new("git_pull", "Pull latest changes"),
             OrchestrationStep::new("deploy_service", "Apply configurations"),

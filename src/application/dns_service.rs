@@ -38,7 +38,11 @@ impl DnsAdminPort for DnsService {
         self.dns_provider.list_zones().await
     }
 
-    async fn upsert_dns_record(&self, zone_id: &str, record: DnsRecord) -> Result<DnsRecord, DomainError> {
+    async fn upsert_dns_record(
+        &self,
+        zone_id: &str,
+        record: DnsRecord,
+    ) -> Result<DnsRecord, DomainError> {
         self.dns_provider.upsert_record(zone_id, &record).await?;
         Ok(record)
     }

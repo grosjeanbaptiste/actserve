@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use actserve::domain::engines::{
     ansible::{AnsibleFacts, AnsibleModuleResult, AnsibleRunResult, AnsibleTaskEvent},
     crossplane::{
@@ -7,6 +6,7 @@ use actserve::domain::engines::{
     opentofu::{TofuApplyResult, TofuPlanResult, TofuPlanSummary, TofuState},
     wireguard::{WireGuardDeviceStatus, WireGuardInterface, WireGuardPeer},
 };
+use std::collections::HashMap;
 
 #[test]
 fn test_opentofu_plan_summary_and_validation() {
@@ -58,7 +58,12 @@ fn test_opentofu_apply_result_and_state() {
 fn test_ansible_run_result_and_task_events() {
     let events = vec![
         AnsibleTaskEvent::new("Gathering Facts", "10.0.0.1", "ok", None),
-        AnsibleTaskEvent::new("Install Nginx", "10.0.0.1", "changed", Some("nginx installed".to_string())),
+        AnsibleTaskEvent::new(
+            "Install Nginx",
+            "10.0.0.1",
+            "changed",
+            Some("nginx installed".to_string()),
+        ),
         AnsibleTaskEvent::new("Start Service", "10.0.0.1", "ok", None),
     ];
 
@@ -68,9 +73,12 @@ fn test_ansible_run_result_and_task_events() {
     assert_eq!(result.changed_count(), 1);
     assert_eq!(result.failed_count(), 0);
 
-    let failed_events = vec![
-        AnsibleTaskEvent::new("Gathering Facts", "10.0.0.2", "unreachable", Some("SSH connection refused".to_string())),
-    ];
+    let failed_events = vec![AnsibleTaskEvent::new(
+        "Gathering Facts",
+        "10.0.0.2",
+        "unreachable",
+        Some("SSH connection refused".to_string()),
+    )];
     let failed_result = AnsibleRunResult::new(0, 0, 0, 1, failed_events);
     assert!(!failed_result.is_successful());
     assert!(failed_result.has_unreachable());
@@ -134,13 +142,32 @@ fn test_crossplane_claim_and_condition_validation() {
 #[test]
 fn test_crossplane_reconcile_result_and_managed_resources() {
     let conditions = vec![
-        CrossplaneCondition::new("Synced", "True", "ReconcileSuccess", "Resource synced successfully"),
+        CrossplaneCondition::new(
+            "Synced",
+            "True",
+            "ReconcileSuccess",
+            "Resource synced successfully",
+        ),
         CrossplaneCondition::new("Ready", "True", "Available", "Composite resource is ready"),
     ];
 
     let managed = vec![
-        CrossplaneResource::new("Instance", "postgres-m6i", "default", true, true, "provider-aws"),
-        CrossplaneResource::new("SubnetGroup", "postgres-subnets", "default", true, true, "provider-aws"),
+        CrossplaneResource::new(
+            "Instance",
+            "postgres-m6i",
+            "default",
+            true,
+            true,
+            "provider-aws",
+        ),
+        CrossplaneResource::new(
+            "SubnetGroup",
+            "postgres-subnets",
+            "default",
+            true,
+            true,
+            "provider-aws",
+        ),
     ];
 
     let result = CrossplaneReconcileResult::new(
@@ -162,7 +189,12 @@ fn test_crossplane_reconcile_result_and_managed_resources() {
         "KubernetesCluster",
         false,
         true,
-        vec![CrossplaneCondition::new("Ready", "False", "CreatingNodePool", "Nodes provisioning")],
+        vec![CrossplaneCondition::new(
+            "Ready",
+            "False",
+            "CreatingNodePool",
+            "Nodes provisioning",
+        )],
         vec![],
     );
     assert!(!degraded.is_ready());
@@ -223,7 +255,10 @@ fn test_wireguard_peer_and_device_status() {
     .unwrap();
 
     assert_eq!(peer.public_key, "peer-pubkey-xyz=");
-    assert_eq!(peer.preshared_key, Some("preshared-secret-key=".to_string()));
+    assert_eq!(
+        peer.preshared_key,
+        Some("preshared-secret-key=".to_string())
+    );
     assert_eq!(peer.allowed_ips.len(), 2);
 
     let status = WireGuardDeviceStatus::new(
@@ -242,5 +277,3 @@ fn test_wireguard_peer_and_device_status() {
     assert_eq!(status.tx_bytes, 2097152);
     assert!(status.is_up);
 }
-
-

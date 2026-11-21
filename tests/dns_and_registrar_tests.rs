@@ -88,14 +88,8 @@ fn test_dns_zone_management_and_records() {
 
 #[test]
 fn test_domain_registration_and_registrar_management() {
-    let contact = ContactInfo::new(
-        "Admin",
-        "admin@example.com",
-        "+33.123456789",
-        "Paris",
-        "FR",
-    )
-    .unwrap();
+    let contact =
+        ContactInfo::new("Admin", "admin@example.com", "+33.123456789", "Paris", "FR").unwrap();
 
     let ns = NameserverConfig::new(vec![
         "ns1.actserve-dns.com".to_string(),
@@ -163,8 +157,7 @@ fn test_tls_certificate_lifecycle() {
 #[tokio::test]
 async fn test_dns_service_zone_and_record_lifecycle() {
     use actserve::{
-        adapters::outbound::dns::MockDnsProvider,
-        application::dns_service::DnsService,
+        adapters::outbound::dns::MockDnsProvider, application::dns_service::DnsService,
         ports::inbound::dns_admin::DnsAdminPort,
     };
     use std::sync::Arc;
@@ -187,7 +180,10 @@ async fn test_dns_service_zone_and_record_lifecycle() {
         None,
     )
     .unwrap();
-    let upserted = service.upsert_dns_record("mycloud.org", record).await.unwrap();
+    let upserted = service
+        .upsert_dns_record("mycloud.org", record)
+        .await
+        .unwrap();
     assert_eq!(upserted.value(), "198.51.100.88");
 
     // 3. Verify propagation
@@ -198,7 +194,9 @@ async fn test_dns_service_zone_and_record_lifecycle() {
     assert!(is_propagated);
 
     // 4. Delete record
-    let del_res = service.delete_dns_record("mycloud.org", "rec-cloud-1").await;
+    let del_res = service
+        .delete_dns_record("mycloud.org", "rec-cloud-1")
+        .await;
     assert!(del_res.is_ok());
 }
 
@@ -215,11 +213,19 @@ async fn test_registrar_service_domain_registration_and_nameservers() {
     let service = RegistrarService::new(provider);
 
     // 1. Check availability
-    let available = service.check_domain_availability("brand-new-domain.com").await.unwrap();
+    let available = service
+        .check_domain_availability("brand-new-domain.com")
+        .await
+        .unwrap();
     assert!(available);
 
-    let contact = ContactInfo::new("DevOps", "ops@bioxus.io", "+33.60000000", "Paris", "FR").unwrap();
-    let ns = NameserverConfig::new(vec!["ns1.cloudflare.com".to_string(), "ns2.cloudflare.com".to_string()]).unwrap();
+    let contact =
+        ContactInfo::new("DevOps", "ops@bioxus.io", "+33.60000000", "Paris", "FR").unwrap();
+    let ns = NameserverConfig::new(vec![
+        "ns1.cloudflare.com".to_string(),
+        "ns2.cloudflare.com".to_string(),
+    ])
+    .unwrap();
     let reg = DomainRegistration::new(
         "brand-new-domain.com",
         RegistrarProvider::Cloudflare,
@@ -235,12 +241,22 @@ async fn test_registrar_service_domain_registration_and_nameservers() {
     assert_eq!(registered.domain(), "brand-new-domain.com");
 
     // 3. Now availability is false
-    let now_taken = service.check_domain_availability("brand-new-domain.com").await.unwrap();
+    let now_taken = service
+        .check_domain_availability("brand-new-domain.com")
+        .await
+        .unwrap();
     assert!(!now_taken);
 
     // 4. Update nameservers
-    let new_ns = NameserverConfig::new(vec!["ns1.actserve.io".to_string(), "ns2.actserve.io".to_string()]).unwrap();
-    service.update_domain_nameservers("brand-new-domain.com", new_ns).await.unwrap();
+    let new_ns = NameserverConfig::new(vec![
+        "ns1.actserve.io".to_string(),
+        "ns2.actserve.io".to_string(),
+    ])
+    .unwrap();
+    service
+        .update_domain_nameservers("brand-new-domain.com", new_ns)
+        .await
+        .unwrap();
 
     let fetched = service.get_domain("brand-new-domain.com").await.unwrap();
     assert_eq!(fetched.nameservers().servers()[0], "ns1.actserve.io");
@@ -249,10 +265,7 @@ async fn test_registrar_service_domain_registration_and_nameservers() {
 #[tokio::test]
 async fn test_server_service_bind_domain_and_auto_ssl() {
     use actserve::{
-        adapters::outbound::{
-            memory::server_store::InMemoryServerStore,
-            mock::MockServerExecutor,
-        },
+        adapters::outbound::{memory::server_store::InMemoryServerStore, mock::MockServerExecutor},
         application::server_service::{RegisterServerCommand, ServerService},
         domain::server::SshCredentials,
         ports::inbound::server_admin::ServerAdminPort,
@@ -276,9 +289,11 @@ async fn test_server_service_bind_domain_and_auto_ssl() {
     service.health_check(&server.id()).await.unwrap();
 
     // Bind domain: automatically registers DNS A record and issues TLS Cert!
-    let cert = service.bind_server_domain(&server.id(), "app.actserve.net").await.unwrap();
+    let cert = service
+        .bind_server_domain(&server.id(), "app.actserve.net")
+        .await
+        .unwrap();
     assert_eq!(cert.primary_domain(), "app.actserve.net");
     assert_eq!(cert.status(), CertStatus::Valid);
     assert!(!cert.needs_renewal());
 }
-

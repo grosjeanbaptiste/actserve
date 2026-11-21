@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use serde_json::json;
 
@@ -38,10 +38,7 @@ impl IntoResponse for ApiError {
                     format!("{}{}", reason, detail_str),
                 )
             }
-            DomainError::VcsError(msg) => (
-                StatusCode::BAD_GATEWAY,
-                format!("VCS Error: {}", msg),
-            ),
+            DomainError::VcsError(msg) => (StatusCode::BAD_GATEWAY, format!("VCS Error: {}", msg)),
         };
 
         let body = Json(json!({

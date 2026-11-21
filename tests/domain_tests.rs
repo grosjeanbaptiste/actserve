@@ -12,7 +12,8 @@ fn test_server_creation_nominal() {
     let host = HostAddress::new("192.168.1.100", 22).expect("valid host");
     let creds = SshCredentials::PrivateKey {
         username: "ubuntu".to_string(),
-        key_content: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----".to_string(),
+        key_content: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----"
+            .to_string(),
         passphrase: None,
     };
     let spec = ServerSpec {
@@ -169,7 +170,8 @@ fn test_orchestration_job_state_machine_and_execution() {
     assert_eq!(job.current_step_index(), 1);
 
     // Step 1 success
-    job.record_step_success(1, "Syntax valid").expect("step 1 recorded");
+    job.record_step_success(1, "Syntax valid")
+        .expect("step 1 recorded");
     assert_eq!(job.current_step_index(), 2);
 
     // Step 2 success
@@ -240,12 +242,12 @@ fn test_server_metrics_validation() {
     use actserve::domain::server::ServerMetrics;
 
     let metrics = ServerMetrics::new(
-        42.5,   // CPU %
-        8192,   // RAM used MB
-        16384,  // RAM total MB
-        120.0,  // Disk used GB
-        500.0,  // Disk total GB
-        360000, // Uptime seconds
+        42.5,               // CPU %
+        8192,               // RAM used MB
+        16384,              // RAM total MB
+        120.0,              // Disk used GB
+        500.0,              // Disk total GB
+        360000,             // Uptime seconds
         [0.45, 0.52, 0.60], // Load average
     )
     .expect("valid metrics");
@@ -360,4 +362,3 @@ fn test_drift_detection_report() {
     let clean_report = DriftReport::new(vec![], vec![], vec![]);
     assert!(!clean_report.has_drift());
 }
-

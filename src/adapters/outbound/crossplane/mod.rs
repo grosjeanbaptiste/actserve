@@ -67,7 +67,12 @@ impl CrossplaneEnginePort for MockCrossplaneEngine {
         }
 
         let conditions = vec![
-            CrossplaneCondition::new("Synced", "True", "ReconcileSuccess", "Resource synced successfully"),
+            CrossplaneCondition::new(
+                "Synced",
+                "True",
+                "ReconcileSuccess",
+                "Resource synced successfully",
+            ),
             CrossplaneCondition::new("Ready", "True", "Available", "Composite resource is ready"),
         ];
 
@@ -94,7 +99,12 @@ impl CrossplaneEnginePort for MockCrossplaneEngine {
         }
 
         let conditions = vec![
-            CrossplaneCondition::new("Synced", "True", "ReconcileSuccess", "Resource synced successfully"),
+            CrossplaneCondition::new(
+                "Synced",
+                "True",
+                "ReconcileSuccess",
+                "Resource synced successfully",
+            ),
             CrossplaneCondition::new("Ready", "True", "Available", "Composite resource is ready"),
         ];
 
@@ -169,7 +179,7 @@ impl CrossplaneEnginePort for CliCrossplaneAdapter {
 
         let mut cmd = Command::new(&self.kubectl_bin);
         cmd.arg("apply").arg("-f").arg("-");
-        
+
         // Write manifest to stdin
         use tokio::io::AsyncWriteExt;
         cmd.stdin(std::process::Stdio::piped())
@@ -185,10 +195,13 @@ impl CrossplaneEnginePort for CliCrossplaneAdapter {
             let _ = stdin.write_all(manifest.as_bytes()).await;
         }
 
-        let output = child.wait_with_output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to wait for kubectl apply: {}", e),
-            details: None,
-        })?;
+        let output = child
+            .wait_with_output()
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to wait for kubectl apply: {}", e),
+                details: None,
+            })?;
 
         if !output.status.success() {
             return Err(DomainError::ExecutionFailed {
@@ -279,10 +292,13 @@ impl CrossplaneEnginePort for CliCrossplaneAdapter {
             cmd.arg("-A");
         }
 
-        let output = cmd.output().await.map_err(|e| DomainError::ExecutionFailed {
-            reason: format!("Failed to spawn kubectl get managed: {}", e),
-            details: None,
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| DomainError::ExecutionFailed {
+                reason: format!("Failed to spawn kubectl get managed: {}", e),
+                details: None,
+            })?;
 
         if !output.status.success() {
             return Err(DomainError::ExecutionFailed {

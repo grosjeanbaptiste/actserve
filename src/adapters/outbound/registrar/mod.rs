@@ -4,7 +4,9 @@ use std::sync::{Arc, RwLock};
 
 use crate::domain::{
     errors::DomainError,
-    registrar::{ContactInfo, DomainRegistration, DomainStatus, NameserverConfig, RegistrarProvider},
+    registrar::{
+        ContactInfo, DomainRegistration, DomainStatus, NameserverConfig, RegistrarProvider,
+    },
 };
 use crate::ports::outbound::registrar_provider::RegistrarProviderPort;
 
@@ -17,8 +19,13 @@ pub struct MockRegistrarProvider {
 impl Default for MockRegistrarProvider {
     fn default() -> Self {
         let mut map = HashMap::new();
-        let contact = ContactInfo::new("Admin", "admin@actserve.net", "+1.5550100", "Paris", "FR").unwrap();
-        let ns = NameserverConfig::new(vec!["ns1.actserve.net".to_string(), "ns2.actserve.net".to_string()]).unwrap();
+        let contact =
+            ContactInfo::new("Admin", "admin@actserve.net", "+1.5550100", "Paris", "FR").unwrap();
+        let ns = NameserverConfig::new(vec![
+            "ns1.actserve.net".to_string(),
+            "ns2.actserve.net".to_string(),
+        ])
+        .unwrap();
         let reg = DomainRegistration::new(
             "actserve.net",
             RegistrarProvider::Cloudflare,
@@ -72,7 +79,11 @@ impl RegistrarProviderPort for MockRegistrarProvider {
         Ok(self.domains.read().unwrap().values().cloned().collect())
     }
 
-    async fn set_nameservers(&self, domain: &str, ns: &NameserverConfig) -> Result<(), DomainError> {
+    async fn set_nameservers(
+        &self,
+        domain: &str,
+        ns: &NameserverConfig,
+    ) -> Result<(), DomainError> {
         if self.should_fail {
             return Err(DomainError::ExecutionFailed {
                 reason: format!("Failed to update nameservers for {}", domain),

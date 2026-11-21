@@ -370,7 +370,10 @@ impl AdminRegistryPort for MultiSourceAdminRegistry {
         Ok(self.presets.clone())
     }
 
-    async fn resolve_dependencies(&self, package_id: &str) -> Result<Vec<AdminPackage>, DomainError> {
+    async fn resolve_dependencies(
+        &self,
+        package_id: &str,
+    ) -> Result<Vec<AdminPackage>, DomainError> {
         let root = self
             .get_package(package_id)
             .await?
@@ -388,7 +391,10 @@ impl AdminRegistryPort for MultiSourceAdminRegistry {
                     entity: "AdminPackage dependency",
                     id: dep_id.clone(),
                 })?;
-            if !resolved.iter().any(|p: &AdminPackage| p.id() == dep_pkg.id()) {
+            if !resolved
+                .iter()
+                .any(|p: &AdminPackage| p.id() == dep_pkg.id())
+            {
                 resolved.push(dep_pkg);
             }
         }

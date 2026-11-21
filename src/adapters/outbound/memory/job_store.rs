@@ -36,7 +36,10 @@ impl JobStorePort for InMemoryJobStore {
         Ok(list.iter().find(|j| j.id() == *id).cloned())
     }
 
-    async fn list_by_server(&self, server_id: &ServerId) -> Result<Vec<OrchestrationJob>, DomainError> {
+    async fn list_by_server(
+        &self,
+        server_id: &ServerId,
+    ) -> Result<Vec<OrchestrationJob>, DomainError> {
         let list = self.jobs.lock().unwrap();
         Ok(list
             .iter()

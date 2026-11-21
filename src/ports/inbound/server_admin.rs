@@ -7,7 +7,9 @@ use crate::domain::{
         wireguard::{WireGuardDeviceStatus, WireGuardInterface, WireGuardPeer},
     },
     errors::DomainError,
-    server::{Server, ServerId, ServerMetrics, ServerStatus, ServiceAction, ServiceStatus, SshCredentials},
+    server::{
+        Server, ServerId, ServerMetrics, ServerStatus, ServiceAction, ServiceStatus, SshCredentials,
+    },
     tls::TlsCertificate,
 };
 use crate::ports::outbound::server_executor::CommandResult;
@@ -28,7 +30,11 @@ pub trait ServerAdminPort: Send + Sync {
     async fn list_servers(&self) -> Result<Vec<Server>, DomainError>;
     async fn health_check(&self, id: &ServerId) -> Result<ServerStatus, DomainError>;
     async fn set_maintenance(&self, id: &ServerId, enable: bool) -> Result<Server, DomainError>;
-    async fn execute_on_server(&self, id: &ServerId, command: &str) -> Result<CommandResult, DomainError>;
+    async fn execute_on_server(
+        &self,
+        id: &ServerId,
+        command: &str,
+    ) -> Result<CommandResult, DomainError>;
     async fn manage_service(
         &self,
         id: &ServerId,

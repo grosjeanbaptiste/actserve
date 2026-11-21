@@ -41,10 +41,14 @@ impl ContactInfo {
         let n = name.into();
         let e = email.into();
         if n.trim().is_empty() {
-            return Err(DomainError::ValidationError("Contact name cannot be empty".to_string()));
+            return Err(DomainError::ValidationError(
+                "Contact name cannot be empty".to_string(),
+            ));
         }
         if !e.contains('@') {
-            return Err(DomainError::ValidationError("Invalid email address for domain contact".to_string()));
+            return Err(DomainError::ValidationError(
+                "Invalid email address for domain contact".to_string(),
+            ));
         }
 
         Ok(Self {
@@ -109,7 +113,11 @@ impl DomainRegistration {
     ) -> Result<Self, DomainError> {
         let dom = domain.into();
         let trimmed = dom.trim();
-        if trimmed.is_empty() || !trimmed.contains('.') || trimmed.starts_with('-') || trimmed.contains("--") {
+        if trimmed.is_empty()
+            || !trimmed.contains('.')
+            || trimmed.starts_with('-')
+            || trimmed.contains("--")
+        {
             return Err(DomainError::ValidationError(format!(
                 "Invalid domain name format '{}'",
                 trimmed

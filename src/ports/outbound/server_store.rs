@@ -1,8 +1,8 @@
-use async_trait::async_trait;
 use crate::domain::{
     errors::DomainError,
     server::{Server, ServerId},
 };
+use async_trait::async_trait;
 
 #[async_trait]
 pub trait ServerStorePort: Send + Sync {

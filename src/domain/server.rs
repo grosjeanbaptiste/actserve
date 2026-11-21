@@ -54,7 +54,8 @@ impl ServerName {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
         {
             return Err(DomainError::ValidationError(
-                "Server name contains invalid characters (allowed: alphanumeric, -, _, .)".to_string(),
+                "Server name contains invalid characters (allowed: alphanumeric, -, _, .)"
+                    .to_string(),
             ));
         }
         Ok(Self(trimmed.to_string()))

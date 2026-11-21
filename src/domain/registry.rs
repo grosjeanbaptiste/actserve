@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{
-    catalog::AdminCategory,
-    errors::DomainError,
-    server::ServerSpec,
-};
+use crate::domain::{catalog::AdminCategory, errors::DomainError, server::ServerSpec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RegistrySource {

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use actserve::{
     adapters::outbound::{
         memory::{
@@ -26,6 +24,8 @@ use actserve::{
         outbound::repo_store::RepoStorePort,
     },
 };
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_server_service_registration_and_healthcheck() {
@@ -41,16 +41,25 @@ async fn test_server_service_registration_and_healthcheck() {
         tags: vec!["production".to_string(), "api".to_string()],
     };
 
-    let server = service.register_server(cmd).await.expect("registration succeeds");
+    let server = service
+        .register_server(cmd)
+        .await
+        .expect("registration succeeds");
     assert_eq!(server.name().as_str(), "node-primary");
     assert_eq!(server.tags(), &["production", "api"]);
     assert_eq!(server.status(), ServerStatus::Pending);
 
     // Run healthcheck: executor ping returns true -> server transitions to Online
-    let status = service.health_check(&server.id()).await.expect("healthcheck succeeds");
+    let status = service
+        .health_check(&server.id())
+        .await
+        .expect("healthcheck succeeds");
     assert_eq!(status, ServerStatus::Online);
 
-    let fetched = service.get_server(&server.id()).await.expect("get succeeds");
+    let fetched = service
+        .get_server(&server.id())
+        .await
+        .expect("get succeeds");
     assert_eq!(fetched.status(), ServerStatus::Online);
     // Specs should be populated by inspect_system
     assert!(fetched.spec().is_some());
@@ -356,14 +365,17 @@ async fn test_orchestration_service_drift_detection() {
         .await
         .unwrap();
 
-    let drift = orchestrator.detect_drift(&server.id(), &repo.id()).await.unwrap();
+    let drift = orchestrator
+        .detect_drift(&server.id(), &repo.id())
+        .await
+        .unwrap();
     assert!(!drift.has_drift());
 }
 
 #[tokio::test]
 async fn test_orchestration_service_browse_and_import_admin_catalog() {
-    use actserve::domain::catalog::AdminCategory;
     use actserve::adapters::outbound::catalog::StandardServerAdminCatalog;
+    use actserve::domain::catalog::AdminCategory;
 
     let server_store = Arc::new(InMemoryServerStore::default());
     let repo_store = Arc::new(InMemoryRepoStore::default());
@@ -391,7 +403,11 @@ async fn test_orchestration_service_browse_and_import_admin_catalog() {
         .await
         .unwrap();
     assert!(!security_items.is_empty());
-    assert!(security_items.iter().any(|item| item.id() == "linux-hardening"));
+    assert!(
+        security_items
+            .iter()
+            .any(|item| item.id() == "linux-hardening")
+    );
 
     // Import the linux-hardening repo into managed repos
     let imported_repo = orchestrator
@@ -562,13 +578,8 @@ async fn test_orchestration_service_search_registry_and_dependency_resolution() 
     let executor = Arc::new(MockServerExecutor::default());
     let git = Arc::new(MockGitProvider::default());
 
-    let orchestrator = OrchestrationService::new(
-        server_store,
-        repo_store,
-        job_store,
-        executor,
-        git,
-    );
+    let orchestrator =
+        OrchestrationService::new(server_store, repo_store, job_store, executor, git);
 
     // Search for container packages
     let query = RegistryQuery::builder()
@@ -696,14 +707,20 @@ async fn test_orchestration_service_opentofu_plan_apply_destroy_and_state() {
     vars.insert("node_count".to_string(), "2".to_string());
 
     // 1. Plan
-    let plan = orchestrator.plan_tofu(&repo.id(), vars.clone()).await.unwrap();
+    let plan = orchestrator
+        .plan_tofu(&repo.id(), vars.clone())
+        .await
+        .unwrap();
     assert_eq!(plan.summary().to_add, 2);
     assert_eq!(plan.summary().to_change, 0);
     assert_eq!(plan.summary().to_destroy, 0);
     assert_eq!(plan.resources().len(), 2);
 
     // 2. Apply
-    let apply = orchestrator.apply_tofu(&repo.id(), vars.clone()).await.unwrap();
+    let apply = orchestrator
+        .apply_tofu(&repo.id(), vars.clone())
+        .await
+        .unwrap();
     assert!(apply.is_success());
     assert_eq!(apply.resources_created(), 2);
     assert_eq!(
@@ -795,7 +812,10 @@ async fn test_server_service_ansible_module_and_facts() {
     assert_eq!(module_res.module, "command");
 
     // Fact gathering
-    let facts = server_service.gather_ansible_facts(&server.id()).await.unwrap();
+    let facts = server_service
+        .gather_ansible_facts(&server.id())
+        .await
+        .unwrap();
     assert_eq!(facts.distribution, "Ubuntu");
     assert_eq!(facts.distribution_version, "22.04");
     assert_eq!(facts.memtotal_mb, 8192);
@@ -812,13 +832,8 @@ async fn test_orchestration_service_crossplane_claim_lifecycle() {
     let executor = Arc::new(MockServerExecutor::default());
     let git = Arc::new(MockGitProvider::default());
 
-    let orchestrator = OrchestrationService::new(
-        server_store,
-        repo_store,
-        job_store,
-        executor,
-        git,
-    );
+    let orchestrator =
+        OrchestrationService::new(server_store, repo_store, job_store, executor, git);
 
     let mut params = HashMap::new();
     params.insert("storageGb".to_string(), "50".to_string());
@@ -841,12 +856,17 @@ async fn test_orchestration_service_crossplane_claim_lifecycle() {
     assert_eq!(result.managed_resources().len(), 2);
 
     // 2. Query claim status
-    let status = orchestrator.get_crossplane_claim_status("staging", "app-db").await.unwrap();
+    let status = orchestrator
+        .get_crossplane_claim_status("staging", "app-db")
+        .await
+        .unwrap();
     assert!(status.is_ready());
     assert_eq!(status.name(), "app-db");
 
     // 3. Delete claim
-    let delete_res = orchestrator.delete_crossplane_claim("staging", "app-db").await;
+    let delete_res = orchestrator
+        .delete_crossplane_claim("staging", "app-db")
+        .await;
     assert!(delete_res.is_ok());
 }
 
@@ -858,13 +878,8 @@ async fn test_orchestration_service_crossplane_providers_and_resources() {
     let executor = Arc::new(MockServerExecutor::default());
     let git = Arc::new(MockGitProvider::default());
 
-    let orchestrator = OrchestrationService::new(
-        server_store,
-        repo_store,
-        job_store,
-        executor,
-        git,
-    );
+    let orchestrator =
+        OrchestrationService::new(server_store, repo_store, job_store, executor, git);
 
     // List providers
     let providers = orchestrator.list_crossplane_providers().await.unwrap();
@@ -873,7 +888,10 @@ async fn test_orchestration_service_crossplane_providers_and_resources() {
     assert!(providers[0].installed && providers[0].healthy);
 
     // List managed resources
-    let resources = orchestrator.list_crossplane_resources(Some("default".to_string())).await.unwrap();
+    let resources = orchestrator
+        .list_crossplane_resources(Some("default".to_string()))
+        .await
+        .unwrap();
     assert_eq!(resources.len(), 2);
     assert!(resources[0].ready && resources[0].synced);
     assert_eq!(resources[0].provider, "provider-aws");
@@ -919,10 +937,16 @@ async fn test_server_service_wireguard_interface_and_peer_management() {
     )
     .unwrap();
 
-    server_service.configure_wireguard(&server.id(), iface).await.unwrap();
+    server_service
+        .configure_wireguard(&server.id(), iface)
+        .await
+        .unwrap();
 
     // 2. Query status
-    let status = server_service.get_wireguard_status(&server.id(), "wg0").await.unwrap();
+    let status = server_service
+        .get_wireguard_status(&server.id(), "wg0")
+        .await
+        .unwrap();
     assert_eq!(status.interface, "wg0");
     assert_eq!(status.active_peers, 1);
     assert!(status.is_up);
@@ -936,14 +960,26 @@ async fn test_server_service_wireguard_interface_and_peer_management() {
         None,
     )
     .unwrap();
-    server_service.add_wireguard_peer(&server.id(), "wg0", new_peer).await.unwrap();
+    server_service
+        .add_wireguard_peer(&server.id(), "wg0", new_peer)
+        .await
+        .unwrap();
 
-    let peers = server_service.list_wireguard_peers(&server.id(), "wg0").await.unwrap();
+    let peers = server_service
+        .list_wireguard_peers(&server.id(), "wg0")
+        .await
+        .unwrap();
     assert_eq!(peers.len(), 2);
 
     // 4. Remove peer
-    server_service.remove_wireguard_peer(&server.id(), "wg0", "client-pubkey-1=").await.unwrap();
-    let peers_after = server_service.list_wireguard_peers(&server.id(), "wg0").await.unwrap();
+    server_service
+        .remove_wireguard_peer(&server.id(), "wg0", "client-pubkey-1=")
+        .await
+        .unwrap();
+    let peers_after = server_service
+        .list_wireguard_peers(&server.id(), "wg0")
+        .await
+        .unwrap();
     assert_eq!(peers_after.len(), 1);
     assert_eq!(peers_after[0].public_key, "client-pubkey-2=");
 }
@@ -959,9 +995,3 @@ async fn test_server_service_wireguard_keypair_generation() {
     assert!(!pubkey.is_empty());
     assert_ne!(privkey, pubkey);
 }
-
-
-
-
-
-

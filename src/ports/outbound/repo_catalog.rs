@@ -1,9 +1,6 @@
 use async_trait::async_trait;
 
-use crate::domain::{
-    catalog::CatalogItem,
-    errors::DomainError,
-};
+use crate::domain::{catalog::CatalogItem, errors::DomainError};
 
 #[async_trait]
 pub trait RepoCatalogPort: Send + Sync {

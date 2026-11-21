@@ -17,7 +17,8 @@ fn test_admin_package_creation_and_dependency_resolution() {
         vec!["docker-engine".to_string()], // depends on docker
         vec!["Ubuntu".to_string(), "Debian".to_string()],
         15000,
-    ).expect("valid package");
+    )
+    .expect("valid package");
 
     assert_eq!(pkg.id(), "traefik-edge-router");
     assert_eq!(pkg.source(), RegistrySource::LinuxServerIo);
@@ -58,7 +59,8 @@ fn test_registry_query_filtering() {
         vec![],
         vec![],
         1200,
-    ).unwrap();
+    )
+    .unwrap();
 
     assert!(query.matches(&pkg_match));
 
@@ -73,7 +75,8 @@ fn test_registry_query_filtering() {
         vec![],
         vec![],
         5000,
-    ).unwrap();
+    )
+    .unwrap();
 
     assert!(!query.matches(&pkg_no_match));
 }
@@ -90,7 +93,8 @@ fn test_server_profile_preset_composition() {
             "docker-engine".to_string(),
             "caddy-proxy".to_string(),
         ],
-    ).expect("valid preset");
+    )
+    .expect("valid preset");
 
     assert_eq!(preset.id(), "hardened-web-server");
     assert_eq!(preset.package_ids().len(), 4);

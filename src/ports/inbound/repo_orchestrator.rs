@@ -20,8 +20,8 @@ use crate::domain::{
     stack::{MultiRepoStack, StackId, StackRepoEntry},
     workflow::{
         DesiredServerState, FleetJobResult, FleetRolloutCommand, JobExecutionLogs,
-        ReconciliationResult, ScheduledJob, ScheduledJobCommand, ScheduleId,
-        WorkflowDefinition, WorkflowId, WorkflowStep,
+        ReconciliationResult, ScheduleId, ScheduledJob, ScheduledJobCommand, WorkflowDefinition,
+        WorkflowId, WorkflowStep,
     },
 };
 
@@ -35,7 +35,10 @@ pub struct RegisterRepoCommand {
 
 #[async_trait]
 pub trait RepoOrchestratorPort: Send + Sync {
-    async fn register_repo(&self, cmd: RegisterRepoCommand) -> Result<ManagedRepository, DomainError>;
+    async fn register_repo(
+        &self,
+        cmd: RegisterRepoCommand,
+    ) -> Result<ManagedRepository, DomainError>;
     async fn get_repo(&self, id: &RepoId) -> Result<ManagedRepository, DomainError>;
     async fn list_repos(&self) -> Result<Vec<ManagedRepository>, DomainError>;
     async fn sync_repo(&self, id: &RepoId) -> Result<ManagedRepository, DomainError>;
@@ -91,10 +94,8 @@ pub trait RepoOrchestratorPort: Send + Sync {
     ) -> Result<OrchestrationJob, DomainError>;
 
     // Multi-source ecosystem registry
-    async fn search_registry(
-        &self,
-        query: RegistryQuery,
-    ) -> Result<Vec<AdminPackage>, DomainError>;
+    async fn search_registry(&self, query: RegistryQuery)
+    -> Result<Vec<AdminPackage>, DomainError>;
     async fn list_profile_presets(&self) -> Result<Vec<ServerProfilePreset>, DomainError>;
     async fn install_package_with_dependencies(
         &self,
@@ -144,18 +145,14 @@ pub trait RepoOrchestratorPort: Send + Sync {
         namespace: &str,
         name: &str,
     ) -> Result<CrossplaneReconcileResult, DomainError>;
-    async fn delete_crossplane_claim(
-        &self,
-        namespace: &str,
-        name: &str,
-    ) -> Result<(), DomainError>;
+    async fn delete_crossplane_claim(&self, namespace: &str, name: &str)
+    -> Result<(), DomainError>;
     async fn list_crossplane_resources(
         &self,
         namespace: Option<String>,
     ) -> Result<Vec<CrossplaneResource>, DomainError>;
-    async fn list_crossplane_providers(
-        &self,
-    ) -> Result<Vec<CrossplaneProviderStatus>, DomainError>;
+    async fn list_crossplane_providers(&self)
+    -> Result<Vec<CrossplaneProviderStatus>, DomainError>;
 
     // Orchestration Job Listing & Logs
     async fn list_jobs(
@@ -187,10 +184,7 @@ pub trait RepoOrchestratorPort: Send + Sync {
     ) -> Result<FleetJobResult, DomainError>;
 
     // Schedules / Recurring Orchestrations
-    async fn create_schedule(
-        &self,
-        cmd: ScheduledJobCommand,
-    ) -> Result<ScheduledJob, DomainError>;
+    async fn create_schedule(&self, cmd: ScheduledJobCommand) -> Result<ScheduledJob, DomainError>;
     async fn list_schedules(&self) -> Result<Vec<ScheduledJob>, DomainError>;
     async fn get_schedule(&self, id: &ScheduleId) -> Result<ScheduledJob, DomainError>;
     async fn delete_schedule(&self, id: &ScheduleId) -> Result<(), DomainError>;

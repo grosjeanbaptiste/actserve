@@ -16,7 +16,11 @@ pub struct CommandResult {
 #[async_trait]
 pub trait ServerExecutorPort: Send + Sync {
     async fn ping(&self, server: &Server) -> Result<bool, DomainError>;
-    async fn execute_command(&self, server: &Server, command: &str) -> Result<CommandResult, DomainError>;
+    async fn execute_command(
+        &self,
+        server: &Server,
+        command: &str,
+    ) -> Result<CommandResult, DomainError>;
     async fn inspect_system(&self, server: &Server) -> Result<ServerSpec, DomainError>;
     async fn manage_system_service(
         &self,
