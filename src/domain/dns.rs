@@ -94,13 +94,11 @@ impl DnsRecord {
                     )));
                 }
             }
-            DnsRecordType::AAAA => {
-                if trimmed_val.parse::<Ipv6Addr>().is_err() {
-                    return Err(DomainError::ValidationError(format!(
-                        "Invalid IPv6 address '{}' for AAAA record",
-                        trimmed_val
-                    )));
-                }
+            DnsRecordType::AAAA if trimmed_val.parse::<Ipv6Addr>().is_err() => {
+                return Err(DomainError::ValidationError(format!(
+                    "Invalid IPv6 address '{}' for AAAA record",
+                    trimmed_val
+                )));
             }
             _ => {}
         }

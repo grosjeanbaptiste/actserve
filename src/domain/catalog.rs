@@ -55,19 +55,34 @@ pub struct CatalogItem {
     required_variables: Vec<ConfigVariable>,
 }
 
+/// Raw, unvalidated fields of a [`CatalogItem`]; `CatalogItem::new` validates them.
+#[derive(Debug, Clone)]
+pub struct CatalogItemSpec {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: AdminCategory,
+    pub upstream_url: String,
+    pub target_ref: GitRef,
+    pub kind: RepoKind,
+    pub supported_os: Vec<String>,
+    pub required_variables: Vec<ConfigVariable>,
+}
+
 impl CatalogItem {
-    pub fn new(
-        id: impl Into<String>,
-        name: impl Into<String>,
-        description: impl Into<String>,
-        category: AdminCategory,
-        upstream_url: impl Into<String>,
-        target_ref: GitRef,
-        kind: RepoKind,
-        supported_os: Vec<String>,
-        required_variables: Vec<ConfigVariable>,
-    ) -> Result<Self, DomainError> {
-        let id_s = id.into();
+    pub fn new(spec: CatalogItemSpec) -> Result<Self, DomainError> {
+        let CatalogItemSpec {
+            id,
+            name,
+            description,
+            category,
+            upstream_url,
+            target_ref,
+            kind,
+            supported_os,
+            required_variables,
+        } = spec;
+        let id_s: String = id;
         let trimmed_id = id_s.trim();
         if trimmed_id.is_empty() {
             return Err(DomainError::ValidationError(
@@ -75,7 +90,7 @@ impl CatalogItem {
             ));
         }
 
-        let name_s = name.into();
+        let name_s: String = name;
         let trimmed_name = name_s.trim();
         if trimmed_name.is_empty() {
             return Err(DomainError::ValidationError(
@@ -83,7 +98,7 @@ impl CatalogItem {
             ));
         }
 
-        let url_s = upstream_url.into();
+        let url_s: String = upstream_url;
         let trimmed_url = url_s.trim();
         if !trimmed_url.starts_with("git@")
             && !trimmed_url.starts_with("https://")
@@ -99,7 +114,7 @@ impl CatalogItem {
         Ok(Self {
             id: trimmed_id.to_string(),
             name: trimmed_name.to_string(),
-            description: description.into(),
+            description,
             category,
             upstream_url: trimmed_url.to_string(),
             target_ref,

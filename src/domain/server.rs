@@ -369,23 +369,25 @@ impl Server {
             return Ok(());
         }
 
-        let is_valid = match (self.status, new_status) {
-            (ServerStatus::Pending, ServerStatus::Online | ServerStatus::Offline) => true,
+        let is_valid = matches!(
+            (self.status, new_status),
             (
+                ServerStatus::Pending,
+                ServerStatus::Online | ServerStatus::Offline
+            ) | (
                 ServerStatus::Online,
                 ServerStatus::Maintenance | ServerStatus::Degraded | ServerStatus::Offline,
-            ) => true,
-            (ServerStatus::Maintenance, ServerStatus::Online | ServerStatus::Offline) => true,
-            (
+            ) | (
+                ServerStatus::Maintenance,
+                ServerStatus::Online | ServerStatus::Offline
+            ) | (
                 ServerStatus::Degraded,
                 ServerStatus::Online | ServerStatus::Maintenance | ServerStatus::Offline,
-            ) => true,
-            (
+            ) | (
                 ServerStatus::Offline,
                 ServerStatus::Online | ServerStatus::Maintenance | ServerStatus::Pending,
-            ) => true,
-            _ => false,
-        };
+            )
+        );
 
         if !is_valid {
             return Err(DomainError::InvalidStateTransition {
