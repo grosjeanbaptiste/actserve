@@ -2,6 +2,7 @@ pub mod catalog;
 pub mod dns;
 pub mod engines;
 pub mod errors;
+pub mod fleet;
 pub mod orchestration;
 pub mod registrar;
 pub mod registry;
