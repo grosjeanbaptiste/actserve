@@ -17,6 +17,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 
 actserve doit reprendre toute l'administration du VPS et de son réseau que `dotfiles` assure. Inventaire et tranches : `ROADMAP.md`. Frontière (owner) : actserve administre le fonctionnement, actparc répertorie qui contient quoi.
 
+## Responsabilités (2026-11-21, propriétaire, dites en session)
+
+- actserve administre le fonctionnement des hôtes distants (status, audit, bootstrap, deploy, rotate, backup) ; actparc répertorie qui contient quoi et fournit l'inventaire des serveurs.
+- actserve n'installe pas de logiciel : actinstall le fait, sur demande d'actparc.
+- Pour se connecter à un compte, actserve demande le identifiant à actesskey au moment du besoin et ne le garde pas. En attendant actesskey : `dotfiles secret get`.
+
 ## À faire
 
 1. Merge de la PR #1 (propriétaire), puis PR de la tranche 1.
