@@ -10,8 +10,8 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 
 | dotfiles command | actserve today | Slice |
 |---|---|---|
-| `servers list`, inventory `servers.txt` (NAME\|SSH-TARGET\|HOSTNAME) | goes to actparc; actserve reads it | 1 |
-| `servers status` (ssh hostname, ok/unreachable/wrong-host) | `ServerExecutorPort` + `ssh_executor` | 1 |
+| `servers list`, inventory `servers.txt` (NAME\|SSH-TARGET\|HOSTNAME) | goes to actparc; actserve reads it (`FileServerInventory`) | 1 done |
+| `servers status` (ssh hostname, ok/unreachable/wrong-host) | `actserve status [NAME]` (`FleetStatusService`, `SshHostnameProbe`) | 1 done |
 | `servers audit` / `acteble edge-audit` (ssh, ports, ufw, updates, fail2ban, containers, ADR-123) | none | 2 |
 | `servers bootstrap` / `apply` (reach, harden, runtime, edge, stacks, audit) | partial: Ansible engine | 3 |
 | `acteble deploy`, `deploy-caddy`, `cdn-deploy`, `edge-deploy` (+ `--dry-run`) | none (OpenTofu/Ansible/Crossplane engines only) | 4 |
