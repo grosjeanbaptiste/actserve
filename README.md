@@ -89,7 +89,7 @@ Le projet expose une API REST réactive conçue pour alimenter directement l'int
 
 ---
 
-## 🧪 Tests TDD (79/79 Passing - 100% Couverture)
+## 🧪 Tests TDD (79/79 Passing)
 
 L'intégralité du projet est développée en **Test-Driven Development pur** (Red $\rightarrow$ Green $\rightarrow$ Refactor) :
 
@@ -230,10 +230,10 @@ L'API REST expose tous les services nécessaires à l'interface d'administration
 
 ### Lancement du serveur API
 ```bash
-cargo run
+cargo run            # binaire `actserve` (src/main.rs)
 ```
 
-Par défaut, Actserve écoute sur `http://0.0.0.0:8080` avec les en-têtes CORS permissifs configurés pour les connexions depuis l'UI **Biorcrux**.
+Le port est fixé dans `src/main.rs` (`SocketAddr` `0.0.0.0:8080`, non configurable). Actserve écoute sur `http://0.0.0.0:8080` avec les en-têtes CORS permissifs configurés pour les connexions depuis l'UI **Biorcrux**.
 
 ### Exemples d'appels cURL
 
