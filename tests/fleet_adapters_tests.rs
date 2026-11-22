@@ -92,3 +92,32 @@ async fn probe_empty_answer_is_an_error() {
     let ssh = fake_ssh(&dir, "exit 0");
     assert!(SshHostnameProbe::new(ssh).hostname("t").await.is_err());
 }
+
+#[tokio::test]
+async fn probe_ends_the_options_before_the_target() {
+    let dir = scratch("probe-dashes");
+    let ssh = fake_ssh(
+        &dir,
+        r#"case "$*" in *" -- -oProxyCommand=x hostname") echo h;; *) echo "bad args: $*" >&2; exit 9;; esac"#,
+    );
+    let got = SshHostnameProbe::new(ssh)
+        .hostname("-oProxyCommand=x")
+        .await
+        .unwrap();
+    assert_eq!(got, "h");
+}
+
+#[tokio::test]
+async fn probe_keeps_the_first_line_and_drops_control_characters() {
+    let dir = scratch("probe-clean");
+    let ssh = fake_ssh(&dir, r"printf 'host-1\033[31m\nsecond\n'");
+    let got = SshHostnameProbe::new(ssh).hostname("t").await.unwrap();
+    assert_eq!(got, "host-1[31m");
+}
+
+#[tokio::test]
+async fn probe_answer_made_only_of_control_characters_is_an_error() {
+    let dir = scratch("probe-ctrl");
+    let ssh = fake_ssh(&dir, r"printf '\033\r\n'");
+    assert!(SshHostnameProbe::new(ssh).hostname("t").await.is_err());
+}
