@@ -68,6 +68,7 @@ impl FleetStatusService {
             Ok(answer) if answer.trim() == host.expected_hostname() => HostStatus::Ok,
             Ok(answer) => HostStatus::WrongHost {
                 got: answer.trim().to_string(),
+                expected: host.expected_hostname().to_string(),
             },
         };
         HostReport {
@@ -77,14 +78,19 @@ impl FleetStatusService {
     }
 }
 
-/// One line per host: `name: ok`, `name: unreachable (why)`, `name: wrong-host (answered x)`.
+/// One line per host: `name: ok`, `name: unreachable (why)`, `name: wrong-host (answered x, expected y)`.
 pub fn render(reports: &[HostReport]) -> String {
     reports
         .iter()
         .map(|r| match &r.status {
             HostStatus::Ok => format!("{}: ok\n", r.name),
             HostStatus::Unreachable { reason } => format!("{}: unreachable ({reason})\n", r.name),
-            HostStatus::WrongHost { got } => format!("{}: wrong-host (answered {got})\n", r.name),
+            HostStatus::WrongHost { got, expected } => {
+                format!(
+                    "{}: wrong-host (answered {got}, expected {expected})\n",
+                    r.name
+                )
+            }
         })
         .collect()
 }

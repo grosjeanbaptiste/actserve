@@ -129,7 +129,8 @@ async fn status_is_wrong_host_when_another_hostname_answers() {
     assert_eq!(
         reports[0].status,
         HostStatus::WrongHost {
-            got: "other".into()
+            got: "other".into(),
+            expected: "h1".into(),
         }
     );
 }
@@ -178,7 +179,10 @@ fn all_ok_is_false_when_any_host_is_not_ok_and_for_empty_fleet() {
     };
     let bad = HostReport {
         name: "b".into(),
-        status: HostStatus::WrongHost { got: "x".into() },
+        status: HostStatus::WrongHost {
+            got: "x".into(),
+            expected: "h".into(),
+        },
     };
     assert!(all_ok(std::slice::from_ref(&ok)));
     assert!(!all_ok(&[ok, bad]));
@@ -201,11 +205,14 @@ fn render_prints_one_line_per_host_with_state_and_detail() {
         },
         HostReport {
             name: "c".into(),
-            status: HostStatus::WrongHost { got: "x".into() },
+            status: HostStatus::WrongHost {
+                got: "x".into(),
+                expected: "h".into(),
+            },
         },
     ];
     assert_eq!(
         render(&reports),
-        "a: ok\nb: unreachable (refused)\nc: wrong-host (answered x)\n"
+        "a: ok\nb: unreachable (refused)\nc: wrong-host (answered x, expected h)\n"
     );
 }
