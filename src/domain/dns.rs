@@ -86,13 +86,11 @@ impl DnsRecord {
 
         // Validate IP formats for A and AAAA records
         match record_type {
-            DnsRecordType::A => {
-                if trimmed_val.parse::<Ipv4Addr>().is_err() {
-                    return Err(DomainError::ValidationError(format!(
-                        "Invalid IPv4 address '{}' for A record",
-                        trimmed_val
-                    )));
-                }
+            DnsRecordType::A if trimmed_val.parse::<Ipv4Addr>().is_err() => {
+                return Err(DomainError::ValidationError(format!(
+                    "Invalid IPv4 address '{}' for A record",
+                    trimmed_val
+                )));
             }
             DnsRecordType::AAAA if trimmed_val.parse::<Ipv6Addr>().is_err() => {
                 return Err(DomainError::ValidationError(format!(
