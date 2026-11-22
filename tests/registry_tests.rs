@@ -1,22 +1,16 @@
 use actserve::domain::{
     catalog::AdminCategory,
-    registry::{AdminPackage, RegistryQuery, RegistrySource, ServerProfilePreset},
+    registry::{
+        AdminPackage, AdminPackageSpec, RegistryQuery, RegistrySource, ServerProfilePreset,
+    },
     server::ServerSpec,
 };
 
 #[test]
 fn test_admin_package_creation_and_dependency_resolution() {
     let pkg = AdminPackage::new(
-        "traefik-edge-router",
-        "Traefik v3 Reverse Proxy",
-        "Automated edge router with Let's Encrypt certificates",
-        RegistrySource::LinuxServerIo,
-        "https://github.com/traefik/traefik.git",
-        "master",
-        AdminCategory::Networking,
-        vec!["docker-engine".to_string()], // depends on docker
-        vec!["Ubuntu".to_string(), "Debian".to_string()],
-        15000,
+        AdminPackageSpec { id: "traefik-edge-router".into(), name: "Traefik v3 Reverse Proxy".into(), description: "Automated edge router with Let's Encrypt certificates".into(), source: RegistrySource::LinuxServerIo, repo_url: "https://github.com/traefik/traefik.git".into(), target_ref: "master".into(), category: AdminCategory::Networking, dependencies: vec!["docker-engine".to_string()], supported_os: // depends on docker
+        vec!["Ubuntu".to_string(), "Debian".to_string()], stars: 15000, },
     )
     .expect("valid package");
 
@@ -48,34 +42,34 @@ fn test_registry_query_filtering() {
     assert_eq!(query.source, Some(RegistrySource::AnsibleGalaxy));
     assert_eq!(query.min_stars, Some(100));
 
-    let pkg_match = AdminPackage::new(
-        "dev-sec-hardening",
-        "Dev-Sec Hardening",
-        "Security hardening collection",
-        RegistrySource::AnsibleGalaxy,
-        "https://github.com/dev-sec/ansible-collection-hardening.git",
-        "main",
-        AdminCategory::Security,
-        vec![],
-        vec![],
-        1200,
-    )
+    let pkg_match = AdminPackage::new(AdminPackageSpec {
+        id: "dev-sec-hardening".into(),
+        name: "Dev-Sec Hardening".into(),
+        description: "Security hardening collection".into(),
+        source: RegistrySource::AnsibleGalaxy,
+        repo_url: "https://github.com/dev-sec/ansible-collection-hardening.git".into(),
+        target_ref: "main".into(),
+        category: AdminCategory::Security,
+        dependencies: vec![],
+        supported_os: vec![],
+        stars: 1200,
+    })
     .unwrap();
 
     assert!(query.matches(&pkg_match));
 
-    let pkg_no_match = AdminPackage::new(
-        "grafana",
-        "Grafana Dashboards",
-        "Monitoring visualization",
-        RegistrySource::LinuxServerIo,
-        "https://github.com/grafana/grafana.git",
-        "main",
-        AdminCategory::Monitoring,
-        vec![],
-        vec![],
-        5000,
-    )
+    let pkg_no_match = AdminPackage::new(AdminPackageSpec {
+        id: "grafana".into(),
+        name: "Grafana Dashboards".into(),
+        description: "Monitoring visualization".into(),
+        source: RegistrySource::LinuxServerIo,
+        repo_url: "https://github.com/grafana/grafana.git".into(),
+        target_ref: "main".into(),
+        category: AdminCategory::Monitoring,
+        dependencies: vec![],
+        supported_os: vec![],
+        stars: 5000,
+    })
     .unwrap();
 
     assert!(!query.matches(&pkg_no_match));

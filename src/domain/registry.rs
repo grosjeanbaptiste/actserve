@@ -24,20 +24,36 @@ pub struct AdminPackage {
     stars: u32,
 }
 
+/// Raw, unvalidated fields of an [`AdminPackage`]; `AdminPackage::new` validates them.
+#[derive(Debug, Clone)]
+pub struct AdminPackageSpec {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub source: RegistrySource,
+    pub repo_url: String,
+    pub target_ref: String,
+    pub category: AdminCategory,
+    pub dependencies: Vec<String>,
+    pub supported_os: Vec<String>,
+    pub stars: u32,
+}
+
 impl AdminPackage {
-    pub fn new(
-        id: impl Into<String>,
-        name: impl Into<String>,
-        description: impl Into<String>,
-        source: RegistrySource,
-        repo_url: impl Into<String>,
-        target_ref: impl Into<String>,
-        category: AdminCategory,
-        dependencies: Vec<String>,
-        supported_os: Vec<String>,
-        stars: u32,
-    ) -> Result<Self, DomainError> {
-        let id_s = id.into();
+    pub fn new(spec: AdminPackageSpec) -> Result<Self, DomainError> {
+        let AdminPackageSpec {
+            id,
+            name,
+            description,
+            source,
+            repo_url,
+            target_ref,
+            category,
+            dependencies,
+            supported_os,
+            stars,
+        } = spec;
+        let id_s: String = id;
         let trimmed_id = id_s.trim();
         if trimmed_id.is_empty() {
             return Err(DomainError::ValidationError(
@@ -45,7 +61,7 @@ impl AdminPackage {
             ));
         }
 
-        let name_s = name.into();
+        let name_s: String = name;
         let trimmed_name = name_s.trim();
         if trimmed_name.is_empty() {
             return Err(DomainError::ValidationError(
@@ -53,7 +69,7 @@ impl AdminPackage {
             ));
         }
 
-        let url_s = repo_url.into();
+        let url_s: String = repo_url;
         let trimmed_url = url_s.trim();
         if !trimmed_url.starts_with("git@")
             && !trimmed_url.starts_with("https://")
@@ -69,10 +85,10 @@ impl AdminPackage {
         Ok(Self {
             id: trimmed_id.to_string(),
             name: trimmed_name.to_string(),
-            description: description.into(),
+            description,
             source,
             repo_url: trimmed_url.to_string(),
-            target_ref: target_ref.into(),
+            target_ref,
             category,
             dependencies,
             supported_os,

@@ -1,5 +1,5 @@
 use actserve::domain::{
-    catalog::{AdminCategory, CatalogItem, ConfigVariable},
+    catalog::{AdminCategory, CatalogItem, CatalogItemSpec, ConfigVariable},
     errors::DomainError,
     repository::{GitRef, RepoKind},
     server::ServerSpec,
@@ -7,20 +7,10 @@ use actserve::domain::{
 
 #[test]
 fn test_catalog_item_creation_and_os_compatibility() {
-    let item = CatalogItem::new(
-        "security-hardening",
-        "Linux OS & SSH Security Hardening (Dev-Sec)",
-        "Automated CIS benchmark security hardening for Linux servers (SSH, sysctl, limits, firewall)",
-        AdminCategory::Security,
-        "https://github.com/dev-sec/ansible-collection-hardening.git",
-        GitRef::Branch("master".to_string()),
-        RepoKind::Playbook,
-        vec!["Ubuntu".to_string(), "Debian".to_string(), "RHEL".to_string()],
-        vec![
+    let item = CatalogItem::new(CatalogItemSpec { id: "security-hardening".into(), name: "Linux OS & SSH Security Hardening (Dev-Sec)".into(), description: "Automated CIS benchmark security hardening for Linux servers (SSH, sysctl, limits, firewall)".into(), category: AdminCategory::Security, upstream_url: "https://github.com/dev-sec/ansible-collection-hardening.git".into(), target_ref: GitRef::Branch("master".to_string()), kind: RepoKind::Playbook, supported_os: vec!["Ubuntu".to_string(), "Debian".to_string(), "RHEL".to_string()], required_variables: vec![
             ConfigVariable::new("ssh_port", "Custom SSH port", Some("22".to_string()), false),
             ConfigVariable::new("allow_root_ssh", "Permit root login over SSH", Some("no".to_string()), false),
-        ],
-    ).expect("valid catalog item");
+        ], }).expect("valid catalog item");
 
     assert_eq!(item.id(), "security-hardening");
     assert_eq!(item.category(), AdminCategory::Security);
@@ -47,33 +37,33 @@ fn test_catalog_item_creation_and_os_compatibility() {
 fn test_catalog_validation_errors() {
     // Empty ID
     assert!(matches!(
-        CatalogItem::new(
-            "",
-            "Title",
-            "Desc",
-            AdminCategory::Monitoring,
-            "https://github.com/prometheus/node_exporter.git",
-            GitRef::Branch("main".to_string()),
-            RepoKind::DockerCompose,
-            vec![],
-            vec![],
-        ),
+        CatalogItem::new(CatalogItemSpec {
+            id: "".into(),
+            name: "Title".into(),
+            description: "Desc".into(),
+            category: AdminCategory::Monitoring,
+            upstream_url: "https://github.com/prometheus/node_exporter.git".into(),
+            target_ref: GitRef::Branch("main".to_string()),
+            kind: RepoKind::DockerCompose,
+            supported_os: vec![],
+            required_variables: vec![],
+        }),
         Err(DomainError::ValidationError(_))
     ));
 
     // Invalid URL
     assert!(matches!(
-        CatalogItem::new(
-            "bad-url-item",
-            "Title",
-            "Desc",
-            AdminCategory::Monitoring,
-            "ftp://invalid-url.com",
-            GitRef::Branch("main".to_string()),
-            RepoKind::DockerCompose,
-            vec![],
-            vec![],
-        ),
+        CatalogItem::new(CatalogItemSpec {
+            id: "bad-url-item".into(),
+            name: "Title".into(),
+            description: "Desc".into(),
+            category: AdminCategory::Monitoring,
+            upstream_url: "ftp://invalid-url.com".into(),
+            target_ref: GitRef::Branch("main".to_string()),
+            kind: RepoKind::DockerCompose,
+            supported_os: vec![],
+            required_variables: vec![],
+        }),
         Err(DomainError::ValidationError(_))
     ));
 }

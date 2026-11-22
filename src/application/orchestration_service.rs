@@ -57,6 +57,25 @@ pub struct OrchestrationService {
     schedules: Arc<RwLock<HashMap<ScheduleId, ScheduledJob>>>,
 }
 
+/// The storage and execution ports an [`OrchestrationService`] is wired from.
+pub struct OrchestrationPorts {
+    pub server_store: Arc<dyn ServerStorePort>,
+    pub repo_store: Arc<dyn RepoStorePort>,
+    pub job_store: Arc<dyn JobStorePort>,
+    pub executor: Arc<dyn ServerExecutorPort>,
+    pub git_provider: Arc<dyn GitProviderPort>,
+    pub catalog: Arc<dyn RepoCatalogPort>,
+    pub stack_store: Arc<dyn StackStorePort>,
+    pub registry: Arc<dyn AdminRegistryPort>,
+}
+
+/// The automation engines of an [`OrchestrationService`].
+pub struct Engines {
+    pub tofu_engine: Arc<dyn OpenTofuEnginePort>,
+    pub ansible_engine: Arc<dyn AnsibleEnginePort>,
+    pub crossplane_engine: Arc<dyn CrossplaneEnginePort>,
+}
+
 impl OrchestrationService {
     pub fn new(
         server_store: Arc<dyn ServerStorePort>,
@@ -65,16 +84,16 @@ impl OrchestrationService {
         executor: Arc<dyn ServerExecutorPort>,
         git_provider: Arc<dyn GitProviderPort>,
     ) -> Self {
-        Self::new_full(
+        Self::new_full(OrchestrationPorts {
             server_store,
             repo_store,
             job_store,
             executor,
             git_provider,
-            Arc::new(StandardServerAdminCatalog::default()),
-            Arc::new(InMemoryStackStore::new()),
-            Arc::new(MultiSourceAdminRegistry::default()),
-        )
+            catalog: Arc::new(StandardServerAdminCatalog::default()),
+            stack_store: Arc::new(InMemoryStackStore::new()),
+            registry: Arc::new(MultiSourceAdminRegistry::default()),
+        })
     }
 
     pub fn new_with_catalog(
@@ -85,29 +104,31 @@ impl OrchestrationService {
         git_provider: Arc<dyn GitProviderPort>,
         catalog: Arc<dyn RepoCatalogPort>,
     ) -> Self {
-        Self::new_full(
+        Self::new_full(OrchestrationPorts {
             server_store,
             repo_store,
             job_store,
             executor,
             git_provider,
             catalog,
-            Arc::new(InMemoryStackStore::new()),
-            Arc::new(MultiSourceAdminRegistry::default()),
+            stack_store: Arc::new(InMemoryStackStore::new()),
+            registry: Arc::new(MultiSourceAdminRegistry::default()),
+        })
+    }
+
+    pub fn new_full(ports: OrchestrationPorts) -> Self {
+        Self::new_with_engines(
+            ports,
+            Engines {
+                tofu_engine: Arc::new(MockOpenTofuEngine::default()),
+                ansible_engine: Arc::new(MockAnsibleEngine::default()),
+                crossplane_engine: Arc::new(MockCrossplaneEngine::default()),
+            },
         )
     }
 
-    pub fn new_full(
-        server_store: Arc<dyn ServerStorePort>,
-        repo_store: Arc<dyn RepoStorePort>,
-        job_store: Arc<dyn JobStorePort>,
-        executor: Arc<dyn ServerExecutorPort>,
-        git_provider: Arc<dyn GitProviderPort>,
-        catalog: Arc<dyn RepoCatalogPort>,
-        stack_store: Arc<dyn StackStorePort>,
-        registry: Arc<dyn AdminRegistryPort>,
-    ) -> Self {
-        Self::new_with_engines(
+    pub fn new_with_engines(ports: OrchestrationPorts, engines: Engines) -> Self {
+        let OrchestrationPorts {
             server_store,
             repo_store,
             job_store,
@@ -116,25 +137,12 @@ impl OrchestrationService {
             catalog,
             stack_store,
             registry,
-            Arc::new(MockOpenTofuEngine::default()),
-            Arc::new(MockAnsibleEngine::default()),
-            Arc::new(MockCrossplaneEngine::default()),
-        )
-    }
-
-    pub fn new_with_engines(
-        server_store: Arc<dyn ServerStorePort>,
-        repo_store: Arc<dyn RepoStorePort>,
-        job_store: Arc<dyn JobStorePort>,
-        executor: Arc<dyn ServerExecutorPort>,
-        git_provider: Arc<dyn GitProviderPort>,
-        catalog: Arc<dyn RepoCatalogPort>,
-        stack_store: Arc<dyn StackStorePort>,
-        registry: Arc<dyn AdminRegistryPort>,
-        tofu_engine: Arc<dyn OpenTofuEnginePort>,
-        ansible_engine: Arc<dyn AnsibleEnginePort>,
-        crossplane_engine: Arc<dyn CrossplaneEnginePort>,
-    ) -> Self {
+        } = ports;
+        let Engines {
+            tofu_engine,
+            ansible_engine,
+            crossplane_engine,
+        } = engines;
         Self {
             server_store,
             repo_store,
