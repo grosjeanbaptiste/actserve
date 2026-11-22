@@ -51,7 +51,7 @@ impl FleetHost {
 pub enum HostStatus {
     Ok,
     Unreachable { reason: String },
-    WrongHost { got: String },
+    WrongHost { got: String, expected: String },
 }
 
 /// Parse the `NAME|SSH-TARGET|EXPECTED-HOSTNAME` inventory format; `#` lines
