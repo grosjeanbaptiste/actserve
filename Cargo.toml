@@ -22,6 +22,7 @@ thiserror = "2.0"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
+actessh = { git = "ssh://git@github.com/grosjeanbaptiste/actessh.git", rev = "375c9f66d9d04f7b13e14025169282815241f0b2" }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
