@@ -30,7 +30,8 @@ fn state_root() -> Result<PathBuf, Box<dyn std::error::Error>> {
         .or_else(|_| std::env::var("HOME").map(|h| PathBuf::from(h).join("machine")))?)
 }
 
-fn inventory_and_ssh() -> Result<(Arc<FileServerInventory>, PathBuf), Box<dyn std::error::Error>> {
+pub(crate) fn inventory_and_ssh()
+-> Result<(Arc<FileServerInventory>, PathBuf), Box<dyn std::error::Error>> {
     let root = state_root()?;
     let ssh = std::env::var("DOTFILES_SSH").unwrap_or_else(|_| "ssh".to_string());
     Ok((

@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 4a faite — 2026-11-23
+
+- `actserve ps NAME api|cdn` (`docker compose ps` dans `/opt/acteble/<stack>`) et `actserve logs NAME api|cdn [SERVICE]` (suit les 100 dernières lignes sur le terminal via `ssh -t` ; défaut `api` / `cdn_checkpoint`). Remplacent `acteble status|logs|cdn-status|cdn-logs`. Plus strict que le bash : refus si l'hôte n'est pas celui attendu (code 3) ; nom de service validé (`[A-Za-z0-9_.-]`) car interpolé dans un shell. Codes : celui de la commande distante, 3 hôte refusé, 2 nom inconnu ou usage, 1 pile ou service refusé.
+- Nouveaux : `domain/observe.rs`, `application/observe_service.rs`, `ports/outbound/remote_terminal.rs`, `adapters/outbound/system/ssh_terminal.rs`, `observe_cli.rs`.
+- Faux ssh seulement. Reste de la tranche 4 : `edge-status` (a besoin du secret `acteble-edge-prod`, donc d'un port secrets vers actesskey), `deploy`, `deploy-caddy`, `cdn-deploy`, `edge-deploy`, `rollback`.
+
 ## Tranche 3d faite — 2026-11-23 (tranche 3 complète)
 
 - `actserve bootstrap NAME [--dry-run]` et `apply NAME` : valide tous les fichiers déclarés avant le premier appel distant (mieux que le bash), puis reach, harden, runtime, edge, stacks, audit ; arrêt au premier échec ; code 0 seulement si l'audit est conforme ; `--dry-run` n'applique rien et n'audite pas. `BootstrapService` compose les services des tranches 3a-3c.

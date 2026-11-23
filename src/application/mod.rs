@@ -4,6 +4,7 @@ pub mod fleet_audit_service;
 pub mod fleet_status_service;
 pub mod harden_service;
 pub mod item_runner;
+pub mod observe_service;
 pub mod orchestration_service;
 pub mod registrar_service;
 pub mod runtime_service;
