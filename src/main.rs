@@ -14,14 +14,16 @@ use actserve::{
             },
             registrar::MockRegistrarProvider,
             system::{
-                file_inventory::FileServerInventory, ssh_edge_audit::SshEdgeAudit,
-                ssh_executor::SshServerExecutor, ssh_hostname_probe::SshHostnameProbe,
+                file_declared_data::FileDeclaredData, file_inventory::FileServerInventory,
+                ssh_edge_audit::SshEdgeAudit, ssh_executor::SshServerExecutor,
+                ssh_hostname_probe::SshHostnameProbe, ssh_remote_shell::SshRemoteShell,
             },
             tls::MockTlsManager,
         },
     },
     application::{
         dns_service::DnsService,
+        fleet_apply_service::FleetApplyService,
         fleet_audit_service::{AuditOutcome, FleetAuditService},
         fleet_status_service::{FleetStatusService, HostReport, all_ok, render},
         orchestration_service::OrchestrationService,
@@ -90,6 +92,24 @@ async fn run_audit(name: &str) -> Result<std::process::ExitCode, Box<dyn std::er
     Ok(std::process::ExitCode::from(report.exit_code()))
 }
 
+/// `actserve apply NAME --dry-run`: hostname check, then every check of the
+/// bootstrap (reach, harden, runtime, edge, stacks) read-only; says what would
+/// change. Exit 0 when nothing would, 1 otherwise. Writes are not ported yet.
+async fn run_apply(name: &str) -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
+    let (root, ssh) = fleet_env()?;
+    let service = FleetApplyService::new(
+        Arc::new(FileServerInventory::new(root.join("servers.txt"))),
+        Arc::new(SshHostnameProbe::new(ssh.clone())),
+        Arc::new(SshRemoteShell::new(ssh)),
+        Arc::new(FileDeclaredData::new(root)),
+    );
+    let report = service.dry_run(name).await?;
+    for line in &report.lines {
+        println!("{line}");
+    }
+    Ok(std::process::ExitCode::from(report.exit_code()))
+}
+
 #[tokio::main]
 async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -102,6 +122,13 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
             return Ok(std::process::ExitCode::from(2));
         };
         return run_audit(name).await;
+    }
+    if args.first().map(String::as_str) == Some("apply") {
+        let (Some(name), Some("--dry-run")) = (args.get(1), args.get(2).map(String::as_str)) else {
+            eprintln!("usage: actserve apply NAME --dry-run (changes are not ported yet)");
+            return Ok(std::process::ExitCode::from(2));
+        };
+        return run_apply(name).await;
     }
     println!(
         "Starting Actserve Orchestrator v{}",

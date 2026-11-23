@@ -1,6 +1,7 @@
 pub mod admin_registry;
 pub mod ansible_engine;
 pub mod crossplane_engine;
+pub mod declared_data;
 pub mod dns_provider;
 pub mod edge_audit;
 pub mod git_provider;
@@ -8,6 +9,7 @@ pub mod hostname_probe;
 pub mod job_store;
 pub mod opentofu_engine;
 pub mod registrar_provider;
+pub mod remote_shell;
 pub mod repo_catalog;
 pub mod repo_store;
 pub mod server_executor;
