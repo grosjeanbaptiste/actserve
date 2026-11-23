@@ -10,12 +10,14 @@ use crate::adapters::outbound::system::{
     file_declared_data::FileDeclaredData, file_inventory::FileServerInventory,
     ssh_edge_audit::SshEdgeAudit, ssh_hostname_probe::SshHostnameProbe,
     ssh_remote_shell::SshRemoteShell, ssh_sshd_installer::SshSshdInstaller,
+    unported_stack_deploy::UnportedStackDeploy,
 };
 use crate::application::{
     fleet_audit_service::{self, FleetAuditService},
     fleet_status_service::{FleetStatusService, all_ok, render},
     harden_service::{self, HardenRun, HardenService},
     runtime_service::RuntimeService,
+    stacks_service::StacksService,
 };
 use crate::domain::errors::DomainError;
 
@@ -76,6 +78,8 @@ pub async fn run_audit(name: Option<&str>) -> CliResult {
 }
 
 const HARDEN_USAGE: &str = "usage: actserve harden NAME [--dry-run]";
+const EDGE_USAGE: &str = "usage: actserve edge NAME [--dry-run]";
+const STACKS_USAGE: &str = "usage: actserve stacks NAME [--dry-run]";
 const RUNTIME_USAGE: &str = "usage: actserve runtime NAME [--dry-run]";
 
 /// `NAME [--dry-run]`; anything else is a usage error.
@@ -139,4 +143,43 @@ pub async fn run_runtime(args: &[String]) -> CliResult {
         Arc::new(SshRemoteShell::new(ssh)),
     );
     finish(name, service.run(name, dry_run).await)
+}
+
+fn stacks_service(
+    ssh: PathBuf,
+    inventory: Arc<FileServerInventory>,
+) -> Result<StacksService, Box<dyn std::error::Error>> {
+    Ok(StacksService::new(
+        inventory,
+        Arc::new(SshHostnameProbe::new(ssh.clone())),
+        Arc::new(FileDeclaredData::new(state_root()?)),
+        Arc::new(SshRemoteShell::new(ssh)),
+        Arc::new(UnportedStackDeploy),
+    ))
+}
+
+/// The edge of one server (`actserve edge NAME [--dry-run]`).
+pub async fn run_edge(args: &[String]) -> CliResult {
+    let Some((name, dry_run)) = name_and_flag(args) else {
+        eprintln!("{EDGE_USAGE}");
+        return Ok(ExitCode::from(2));
+    };
+    let (inventory, ssh) = inventory_and_ssh()?;
+    finish(
+        name,
+        stacks_service(ssh, inventory)?.edge(name, dry_run).await,
+    )
+}
+
+/// The declared stacks of one server (`actserve stacks NAME [--dry-run]`).
+pub async fn run_stacks(args: &[String]) -> CliResult {
+    let Some((name, dry_run)) = name_and_flag(args) else {
+        eprintln!("{STACKS_USAGE}");
+        return Ok(ExitCode::from(2));
+    };
+    let (inventory, ssh) = inventory_and_ssh()?;
+    finish(
+        name,
+        stacks_service(ssh, inventory)?.stacks(name, dry_run).await,
+    )
 }

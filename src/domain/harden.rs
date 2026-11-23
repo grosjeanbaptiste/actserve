@@ -9,6 +9,8 @@ pub enum ItemOutcome {
     Applied,
     /// Dry run: the check failed, apply was not run.
     WouldApply,
+    /// Declared but held back: named and left alone.
+    Held,
     Failed(String),
 }
 
