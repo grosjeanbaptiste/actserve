@@ -61,20 +61,24 @@ impl FleetStatusService {
     }
 
     async fn check(&self, host: &FleetHost) -> HostReport {
-        let status = match self.probe.hostname(host.ssh_target()).await {
-            Err(e) => HostStatus::Unreachable {
-                reason: describe(&e),
-            },
-            Ok(answer) if answer.trim() == host.expected_hostname() => HostStatus::Ok,
-            Ok(answer) => HostStatus::WrongHost {
-                got: answer.trim().to_string(),
-                expected: host.expected_hostname().to_string(),
-            },
-        };
         HostReport {
             name: host.name().to_string(),
-            status,
+            status: probe_status(self.probe.as_ref(), host).await,
         }
+    }
+}
+
+/// Ask `host` for its hostname and compare it with the inventory.
+pub async fn probe_status(probe: &dyn HostnameProbePort, host: &FleetHost) -> HostStatus {
+    match probe.hostname(host.ssh_target()).await {
+        Err(e) => HostStatus::Unreachable {
+            reason: describe(&e),
+        },
+        Ok(answer) if answer.trim() == host.expected_hostname() => HostStatus::Ok,
+        Ok(answer) => HostStatus::WrongHost {
+            got: answer.trim().to_string(),
+            expected: host.expected_hostname().to_string(),
+        },
     }
 }
 

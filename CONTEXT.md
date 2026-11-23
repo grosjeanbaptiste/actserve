@@ -1,4 +1,4 @@
-# actserve — état au 2026-11-21
+# actserve — état au 2026-11-23
 
 ## Rôle
 
@@ -12,6 +12,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - PR #1 (refactor + fmt) ouverte : https://github.com/grosjeanbaptiste/actserve/pull/1
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
+
+## Tranche 2 faite — 2026-11-23
+
+- `actserve audit NAME` : contrôle du hostname puis `edge audit` en ssh avec sudo ; sortie 0 conforme, 1 écart ou autre hôte, 3 illisible, 2 nom inconnu ou absent. Tests : `tests/fleet_audit_tests.rs`, `tests/cli_audit_tests.rs` (binaire réel, ssh remplacé). Mutation : aucun survivant (2 timeouts = le binaire démarrerait le serveur HTTP si une branche de `main` disparaissait).
+- PR #7 (`wrong-host` nomme l'attendu) et #8 (`--` avant la cible ssh, réponse nettoyée) mergées.
+- Décision du propriétaire (2026-11-23) : plus rien pour les serveurs ne passe par `dotfiles` ; voir `ROADMAP.md`.
 
 ## Direction (owner, 2026-11-21)
 

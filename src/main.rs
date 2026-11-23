@@ -13,50 +13,24 @@ use actserve::{
                 server_store::InMemoryServerStore,
             },
             registrar::MockRegistrarProvider,
-            system::{
-                file_inventory::FileServerInventory, ssh_executor::SshServerExecutor,
-                ssh_hostname_probe::SshHostnameProbe,
-            },
+            system::ssh_executor::SshServerExecutor,
             tls::MockTlsManager,
         },
     },
     application::{
-        dns_service::DnsService,
-        fleet_status_service::{FleetStatusService, all_ok, render},
-        orchestration_service::OrchestrationService,
-        registrar_service::RegistrarService,
-        server_service::ServerService,
+        dns_service::DnsService, orchestration_service::OrchestrationService,
+        registrar_service::RegistrarService, server_service::ServerService,
     },
+    fleet_cli,
 };
-
-/// `actserve status [NAME]`: ask each server of the actparc inventory
-/// (`$DOTFILES_STATE_ROOT/servers.txt`, default `~/machine`) for its hostname
-/// over ssh (`$DOTFILES_SSH`, default `ssh`). Exit 0 only when all answer as expected.
-async fn run_status(
-    name: Option<&str>,
-) -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
-    let root = std::env::var("DOTFILES_STATE_ROOT")
-        .map(std::path::PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| std::path::Path::new(&h).join("machine")))?;
-    let ssh = std::env::var("DOTFILES_SSH").unwrap_or_else(|_| "ssh".to_string());
-    let service = FleetStatusService::new(
-        Arc::new(FileServerInventory::new(root.join("servers.txt"))),
-        Arc::new(SshHostnameProbe::new(ssh)),
-    );
-    let reports = service.status(name).await?;
-    print!("{}", render(&reports));
-    Ok(if all_ok(&reports) {
-        std::process::ExitCode::SUCCESS
-    } else {
-        std::process::ExitCode::FAILURE
-    })
-}
 
 #[tokio::main]
 async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.first().map(String::as_str) == Some("status") {
-        return run_status(args.get(1).map(String::as_str)).await;
+    match args.first().map(String::as_str) {
+        Some("status") => return fleet_cli::run_status(args.get(1).map(String::as_str)).await,
+        Some("audit") => return fleet_cli::run_audit(args.get(1).map(String::as_str)).await,
+        _ => {}
     }
     println!(
         "Starting Actserve Orchestrator v{}",
