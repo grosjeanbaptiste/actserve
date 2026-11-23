@@ -3,9 +3,10 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use crate::adapters::outbound::system::{
-    ssh_hostname_probe::SshHostnameProbe, ssh_remote_shell::SshRemoteShell,
-    ssh_terminal::SshTerminal,
+    actesskey_secret_store::ActesskeySecretStore, ssh_hostname_probe::SshHostnameProbe,
+    ssh_remote_shell::SshRemoteShell, ssh_terminal::SshTerminal,
 };
+use crate::application::edge_status_service::EdgeStatusService;
 use crate::application::observe_service::{ObserveRun, ObserveService, exit_code, render};
 use crate::domain::{errors::DomainError, observe::Stack};
 use crate::fleet_cli::inventory_and_ssh;
@@ -88,4 +89,28 @@ pub async fn run_logs(args: &[String]) -> CliResult {
         Err(e) => Err(e),
     };
     finish(name, run)
+}
+
+const EDGE_STATUS_USAGE: &str = "usage: actserve edge-status NAME";
+
+/// What the edge of a server says about itself; its secret comes from actesskey
+/// (`$ACTSERVE_ACTESSKEY`, default `actesskey`).
+pub async fn run_edge_status(args: &[String]) -> CliResult {
+    let [name] = args else {
+        eprintln!("{EDGE_STATUS_USAGE}");
+        return Ok(ExitCode::from(2));
+    };
+    if !is_name(name) {
+        eprintln!("{EDGE_STATUS_USAGE}");
+        return Ok(ExitCode::from(2));
+    }
+    let (inventory, ssh) = inventory_and_ssh()?;
+    let key = std::env::var("ACTSERVE_ACTESSKEY").unwrap_or_else(|_| "actesskey".to_string());
+    let service = EdgeStatusService::new(
+        inventory,
+        Arc::new(SshHostnameProbe::new(ssh.clone())),
+        Arc::new(SshRemoteShell::new(ssh)),
+        Arc::new(ActesskeySecretStore::new(key)),
+    );
+    finish(name, service.status(name).await)
 }

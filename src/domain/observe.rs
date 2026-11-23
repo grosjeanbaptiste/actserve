@@ -59,3 +59,12 @@ pub fn logs_command(stack: Stack, service: &str) -> Result<String, DomainError> 
         stack.dir()
     ))
 }
+
+pub const EDGE_DIR: &str = "/opt/acteble/edge";
+pub const EDGE_SECRET: &str = "acteble-edge-prod";
+pub const EDGE_ENV_PATH: &str = "/dev/shm/acteble-edge.env";
+
+/// What the edge says about itself, read with its env file.
+pub fn edge_status_command() -> String {
+    format!("cd '{EDGE_DIR}' && ./edge status --env-file {EDGE_ENV_PATH}")
+}

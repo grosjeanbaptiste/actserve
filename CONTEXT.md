@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 4b faite — 2026-11-23 (socle des secrets, `edge-status`)
+
+- `actserve edge-status NAME` : lit le secret `acteble-edge-prod` avec `actesskey get` (`$ACTSERVE_ACTESSKEY`, défaut `actesskey`), l'envoie sur stdin vers `/dev/shm/acteble-edge.env` (umask 077), lance `./edge status --env-file …`, puis supprime le fichier même si la commande échoue ; un fichier non supprimé ou non écrit est une erreur, jamais un silence. Hôte refusé avant la lecture du secret (code 3).
+- Socle réutilisé par les déploiements : `domain/secret.rs` (`SecretValue` qui s'affiche `***`, noms et chemins tmpfs validés), `SecretStorePort` + `ActesskeySecretStore` (UTF-8 strict, valeur jamais dans une erreur), `application/remote_env.rs` (`with_remote_env`), `EdgeStatusService`.
+- Faux ssh et faux actesskey seulement. Reste de la tranche 4 : `deploy`, `deploy-caddy`, `cdn-deploy`, `edge-deploy` (copie de fichiers par scp, login ghcr avec `ghcr-read-packages`), `rollback`.
+
 ## Tranche 4a faite — 2026-11-23
 
 - `actserve ps NAME api|cdn` (`docker compose ps` dans `/opt/acteble/<stack>`) et `actserve logs NAME api|cdn [SERVICE]` (suit les 100 dernières lignes sur le terminal via `ssh -t` ; défaut `api` / `cdn_checkpoint`). Remplacent `acteble status|logs|cdn-status|cdn-logs`. Plus strict que le bash : refus si l'hôte n'est pas celui attendu (code 3) ; nom de service validé (`[A-Za-z0-9_.-]`) car interpolé dans un shell. Codes : celui de la commande distante, 3 hôte refusé, 2 nom inconnu ou usage, 1 pile ou service refusé.

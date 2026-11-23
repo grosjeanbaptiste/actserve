@@ -39,6 +39,7 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
         Some("harden") => return fleet_cli::run_harden(&args[1..]).await,
         Some("ps") => return actserve::observe_cli::run_ps(&args[1..]).await,
         Some("logs") => return actserve::observe_cli::run_logs(&args[1..]).await,
+        Some("edge-status") => return actserve::observe_cli::run_edge_status(&args[1..]).await,
         _ => {}
     }
     println!(

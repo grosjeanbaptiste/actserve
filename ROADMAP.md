@@ -16,7 +16,8 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `servers bootstrap` / `apply` (reach, harden, runtime, edge, stacks, audit) | 3a done: `actserve harden NAME [--dry-run]` (sshd drop-in with rollback, ufw, fail2ban, unattended-upgrades; `HardenService`). 3b done: `actserve runtime NAME [--dry-run]` (Docker + Compose, `daemon.json` log rotation, stack directories from `dirs.txt`). 3c done: `actserve edge NAME` and `actserve stacks NAME` (network, Caddy, cdn checks; starting them waits for slice 4, the deploy, and fails saying so). 3d done: `actserve bootstrap NAME [--dry-run]` and `apply` (all six steps, every declared file validated first, audit last decides the exit status). Starting Caddy/cdn waits for slice 4 | 3 done |
 | `acteble deploy`, `deploy-caddy`, `cdn-deploy`, `edge-deploy` (+ `--dry-run`) | none (OpenTofu/Ansible/Crossplane engines only) | 4 |
 | `acteble status`, `logs`, `cdn-status`, `cdn-logs` | 4a done: `actserve ps NAME api\|cdn`, `actserve logs NAME api\|cdn [SERVICE]` (`ObserveService`, `SshTerminal`) | 4a done |
-| `acteble rollback`, `edge-status` | none (need the secret store: actesskey) | 4 |
+| `acteble edge-status` | 4b done: `actserve edge-status NAME` (secret from actesskey on the server tmpfs, removed after; `SecretStorePort`, `with_remote_env`) | 4b done |
+| `acteble rollback` | none | 4 |
 | `acteble rotate jwt\|postgres\|minio\|all` | none; secrets belong to actesskey | 5 |
 | `acteble edge-backup` | none | 5 |
 | DNS, TLS, WireGuard | present (domain, adapters, API) | verify |
