@@ -14,6 +14,7 @@ pub mod registrar;
 pub mod registry;
 pub mod repository;
 pub mod runtime;
+pub mod secret;
 pub mod server;
 pub mod stack;
 pub mod stacks;

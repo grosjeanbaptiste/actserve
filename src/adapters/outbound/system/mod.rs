@@ -1,3 +1,4 @@
+pub mod actesskey_secret_store;
 pub mod file_declared_data;
 pub mod file_inventory;
 mod spawn_retry;

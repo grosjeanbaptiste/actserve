@@ -13,6 +13,7 @@ pub mod remote_shell;
 pub mod remote_terminal;
 pub mod repo_catalog;
 pub mod repo_store;
+pub mod secret_store;
 pub mod server_executor;
 pub mod server_inventory;
 pub mod server_store;
