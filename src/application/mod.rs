@@ -1,4 +1,5 @@
 pub mod dns_service;
+pub mod fleet_apply_service;
 pub mod fleet_audit_service;
 pub mod fleet_status_service;
 pub mod orchestration_service;
