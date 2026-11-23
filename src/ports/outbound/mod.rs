@@ -10,6 +10,7 @@ pub mod job_store;
 pub mod opentofu_engine;
 pub mod registrar_provider;
 pub mod remote_shell;
+pub mod remote_terminal;
 pub mod repo_catalog;
 pub mod repo_store;
 pub mod server_executor;

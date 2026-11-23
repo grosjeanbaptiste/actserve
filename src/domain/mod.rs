@@ -7,6 +7,7 @@ pub mod errors;
 pub mod fleet;
 pub mod fleet_audit;
 pub mod harden;
+pub mod observe;
 pub mod orchestration;
 pub mod ports_file;
 pub mod registrar;
