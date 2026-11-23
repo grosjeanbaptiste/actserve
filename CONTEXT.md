@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 3c faite — 2026-11-23
+
+- `actserve edge NAME [--dry-run]` (réseau `acteble_edge`, Caddy) et `actserve stacks NAME [--dry-run]` (`stacks.txt` : cdn run ou held, api held seulement). Les contrôles et la création du réseau sont portés. Démarrer Caddy ou cdn = le déploiement, tranche 4 : `UnportedStackDeploy` ne démarre rien et échoue en le disant (`StackDeployPort` est le point d'accroche de la tranche 4). Aucun passage par `dotfiles`.
+- Faux ssh seulement ; jamais lancé sur le VPS réel. Mutants tous attrapés (timeouts sur les branches de `main`).
+- Reste de la tranche 3 : composition `bootstrap`/`apply` (reach, harden, runtime, edge, stacks, audit ; 0 seulement si l'audit passe).
+
 ## Tranche 3b faite — 2026-11-23
 
 - `actserve runtime NAME [--dry-run]` : hôte vérifié, `docker-daemon.json` et `dirs.txt` (chemins absolus sans `..`, propriétaires valides) validés avant tout appel distant, puis docker, logs (installé, effectif au prochain redémarrage de Docker, rien n'est redémarré), dirs. Moteur commun check-puis-apply : `application/item_runner.rs`, partagé avec `harden`.

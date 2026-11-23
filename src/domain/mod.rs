@@ -15,5 +15,6 @@ pub mod repository;
 pub mod runtime;
 pub mod server;
 pub mod stack;
+pub mod stacks;
 pub mod tls;
 pub mod workflow;

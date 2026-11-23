@@ -6,3 +6,4 @@ pub mod ssh_executor;
 pub mod ssh_hostname_probe;
 pub mod ssh_remote_shell;
 pub mod ssh_sshd_installer;
+pub mod unported_stack_deploy;

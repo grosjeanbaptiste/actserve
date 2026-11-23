@@ -16,6 +16,7 @@ pub mod server_executor;
 pub mod server_inventory;
 pub mod server_store;
 pub mod sshd_installer;
+pub mod stack_deploy;
 pub mod stack_store;
 pub mod tls_manager;
 pub mod wireguard_engine;

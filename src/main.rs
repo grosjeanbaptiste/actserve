@@ -30,6 +30,8 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
     match args.first().map(String::as_str) {
         Some("status") => return fleet_cli::run_status(args.get(1).map(String::as_str)).await,
         Some("audit") => return fleet_cli::run_audit(args.get(1).map(String::as_str)).await,
+        Some("edge") => return fleet_cli::run_edge(&args[1..]).await,
+        Some("stacks") => return fleet_cli::run_stacks(&args[1..]).await,
         Some("runtime") => return fleet_cli::run_runtime(&args[1..]).await,
         Some("harden") => return fleet_cli::run_harden(&args[1..]).await,
         _ => {}

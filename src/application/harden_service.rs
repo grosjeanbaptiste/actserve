@@ -163,6 +163,7 @@ fn line(r: &ItemReport) -> String {
         ItemOutcome::Ok => "ok".to_string(),
         ItemOutcome::Applied => "applied".to_string(),
         ItemOutcome::WouldApply => "would apply".to_string(),
+        ItemOutcome::Held => "skipped (held back)".to_string(),
         ItemOutcome::Failed(m) => format!("fail ({m})"),
     };
     let note = match (r.item, &r.outcome) {

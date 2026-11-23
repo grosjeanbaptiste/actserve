@@ -7,3 +7,4 @@ pub mod orchestration_service;
 pub mod registrar_service;
 pub mod runtime_service;
 pub mod server_service;
+pub mod stacks_service;
