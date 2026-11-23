@@ -14,15 +14,16 @@ use actserve::{
             },
             registrar::MockRegistrarProvider,
             system::{
-                file_inventory::FileServerInventory, ssh_executor::SshServerExecutor,
-                ssh_hostname_probe::SshHostnameProbe,
+                file_inventory::FileServerInventory, ssh_edge_audit::SshEdgeAudit,
+                ssh_executor::SshServerExecutor, ssh_hostname_probe::SshHostnameProbe,
             },
             tls::MockTlsManager,
         },
     },
     application::{
         dns_service::DnsService,
-        fleet_status_service::{FleetStatusService, all_ok, render},
+        fleet_audit_service::{AuditOutcome, FleetAuditService},
+        fleet_status_service::{FleetStatusService, HostReport, all_ok, render},
         orchestration_service::OrchestrationService,
         registrar_service::RegistrarService,
         server_service::ServerService,
@@ -52,11 +53,51 @@ async fn run_status(
     })
 }
 
+/// `actserve audit NAME`: hostname check, then `edge audit` on the server over
+/// ssh with sudo. Exit 0 conforming, 1 deviation / unreachable / other host,
+/// 3 unreadable (as `dotfiles servers audit`).
+async fn run_audit(name: &str) -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
+    let root = std::env::var("DOTFILES_STATE_ROOT")
+        .map(std::path::PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|h| std::path::Path::new(&h).join("machine")))?;
+    let ssh = std::env::var("DOTFILES_SSH").unwrap_or_else(|_| "ssh".to_string());
+    let service = FleetAuditService::new(
+        Arc::new(FileServerInventory::new(root.join("servers.txt"))),
+        Arc::new(SshHostnameProbe::new(ssh.clone())),
+        Arc::new(SshEdgeAudit::new(ssh)),
+    );
+    let report = service.audit(name).await?;
+    match &report.outcome {
+        AuditOutcome::NotChecked(status) => print!(
+            "{}",
+            render(&[HostReport {
+                name: report.name.clone(),
+                status: status.clone(),
+            }])
+        ),
+        AuditOutcome::Audited(v) => {
+            use actserve::domain::fleet::AuditVerdict::*;
+            match v {
+                Conforming(out) | Deviation(out) => print!("{out}"),
+                Unreadable(why) => eprintln!("{}: audit unreadable ({why})", report.name),
+            }
+        }
+    }
+    Ok(std::process::ExitCode::from(report.exit_code()))
+}
+
 #[tokio::main]
 async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("status") {
         return run_status(args.get(1).map(String::as_str)).await;
+    }
+    if args.first().map(String::as_str) == Some("audit") {
+        let Some(name) = args.get(1) else {
+            eprintln!("usage: actserve audit NAME");
+            return Ok(std::process::ExitCode::from(2));
+        };
+        return run_audit(name).await;
     }
     println!(
         "Starting Actserve Orchestrator v{}",

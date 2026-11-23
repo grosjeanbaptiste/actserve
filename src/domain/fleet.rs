@@ -85,3 +85,12 @@ pub fn parse_inventory(text: &str) -> Result<Vec<FleetHost>, DomainError> {
     }
     Ok(hosts)
 }
+
+/// What `edge audit` said about a host. Output is the server's own text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AuditVerdict {
+    Conforming(String),
+    Deviation(String),
+    /// The audit could not run or its status is unknown (ssh failure included).
+    Unreadable(String),
+}

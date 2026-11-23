@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "actessh"
 version = "0.1.0"
-source = "git+ssh://git@github.com/grosjeanbaptiste/actessh.git?rev=375c9f66d9d04f7b13e14025169282815241f0b2#375c9f66d9d04f7b13e14025169282815241f0b2"
+source = "git+ssh://git@github.com/grosjeanbaptiste/actessh.git?rev=6f70960f2da6038681b5d42ca2b0d589c1e9dd5d#6f70960f2da6038681b5d42ca2b0d589c1e9dd5d"
 dependencies = [
  "actesskey",
 ]
