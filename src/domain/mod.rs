@@ -1,10 +1,13 @@
+pub mod baseline;
 pub mod catalog;
 pub mod dns;
 pub mod engines;
 pub mod errors;
 pub mod fleet;
 pub mod fleet_audit;
+pub mod harden;
 pub mod orchestration;
+pub mod ports_file;
 pub mod registrar;
 pub mod registry;
 pub mod repository;
