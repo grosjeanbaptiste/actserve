@@ -155,8 +155,26 @@ fn with_fix(mut item: Item, command: &str) -> Item {
     item
 }
 
-fn docker_ps(project: &str) -> String {
-    format!("test -n \"$(docker ps -q --filter label=com.docker.compose.project={project})\"")
+/// The systemd units of the user session that make a stack run; empty for a stack that is never checked.
+fn stack_units(name: &str) -> &'static [&'static str] {
+    match name {
+        "cdn" => &[
+            "acteble_cdn-minio.service",
+            "acteble_cdn-checkpoint.service",
+        ],
+        _ => &[],
+    }
+}
+
+fn units_active(units: &[&str]) -> String {
+    if units.is_empty() {
+        return "true".to_string();
+    }
+    units
+        .iter()
+        .map(|u| format!("systemctl --user is-active --quiet {u}"))
+        .collect::<Vec<_>>()
+        .join(" && ")
 }
 
 /// The ordered items of steps 2 to 5 (harden, runtime, edge, stacks) with their checks.
@@ -198,13 +216,9 @@ pub fn plan(d: &Declared) -> Result<Vec<Item>, DomainError> {
         stdin: Vec::new(),
     });
 
-    let mut network = check(
-        "edge",
-        "network",
-        "docker network inspect acteble_edge > /dev/null 2>&1",
-    );
+    let mut network = check("edge", "network", "podman network exists acteble_edge");
     network.fix = Some(RemoteCommand {
-        command: "docker network create acteble_edge".to_string(),
+        command: "systemctl --user start acteble_edge-network.service".to_string(),
         stdin: Vec::new(),
     });
 
@@ -234,11 +248,11 @@ pub fn plan(d: &Declared) -> Result<Vec<Item>, DomainError> {
         check(
             "edge",
             "caddy",
-            "test -n \"$(docker ps -q --filter label=com.docker.compose.project=acteble_edge --filter label=com.docker.compose.service=caddy)\"",
+            units_active(&["acteble_edge-caddy.service"]),
         ),
     ];
     for (name, mode) in stacks {
-        let mut item = check("stacks", &name, docker_ps(&format!("acteble_{name}")));
+        let mut item = check("stacks", &name, units_active(stack_units(&name)));
         item.held = mode == StackMode::Held;
         items.push(item);
     }

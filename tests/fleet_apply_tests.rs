@@ -259,7 +259,16 @@ async fn dry_run_on_another_host_sends_nothing() {
 async fn dry_run_never_runs_a_mutating_command() {
     let (s, calls) = service(
         "cloud-1",
-        vec!["cmp", "ufw", "fail2ban", "dpkg", "docker", "stat", "ps -q"],
+        vec![
+            "cmp",
+            "ufw",
+            "fail2ban",
+            "dpkg",
+            "docker",
+            "stat",
+            "is-active",
+            "podman network",
+        ],
     );
     s.dry_run("acteble").await.unwrap();
     for c in calls.lock().unwrap().iter() {
@@ -271,6 +280,9 @@ async fn dry_run_never_runs_a_mutating_command() {
             "install ",
             "cat >",
             "network create",
+            "mkdir",
+            "systemctl --user start",
+            "enable",
             "reload",
             "restart",
         ] {
@@ -325,16 +337,6 @@ fn the_root_directory_is_refused_and_owners_may_use_digits_dash_underscore() {
     assert!(parse_dirs("dirs.txt", "/opt/a-b_c.d/e|deploy\n").is_ok());
     assert!(parse_dirs("dirs.txt", "/opt/..hidden|deploy\n").is_ok());
     assert!(parse_dirs("dirs.txt", "/opt/a/..|deploy\n").is_err());
-}
-
-#[test]
-fn a_stack_is_checked_by_its_compose_project_label() {
-    let items = plan(&declared()).unwrap();
-    let cdn = items.iter().find(|i| i.name == "cdn").unwrap();
-    assert_eq!(
-        cdn.check.command,
-        r#"test -n "$(docker ps -q --filter label=com.docker.compose.project=acteble_cdn)""#
-    );
 }
 
 /// A server that drifts until a command containing `fix` has run: every command
@@ -440,8 +442,8 @@ async fn apply_whose_fix_fails_says_so_and_does_not_recheck() {
 #[tokio::test]
 async fn apply_creates_the_missing_edge_network() {
     let (s, calls) = drifting_service(
-        "docker network inspect acteble_edge",
-        "docker network create acteble_edge",
+        "podman network exists acteble_edge",
+        "systemctl --user start acteble_edge-network.service",
     );
     let r = s.apply("acteble").await.unwrap();
     assert_eq!(r.exit_code(), 0, "{:?}", r.lines);
@@ -455,7 +457,7 @@ async fn apply_creates_the_missing_edge_network() {
             .lock()
             .unwrap()
             .iter()
-            .any(|c| c == "docker network create acteble_edge")
+            .any(|c| c == "systemctl --user start acteble_edge-network.service")
     );
 }
 
@@ -497,4 +499,29 @@ async fn apply_installs_and_starts_the_missing_fail2ban() {
     assert!(calls.lock().unwrap().iter().any(|c| {
         c == "sudo -n apt-get install -y fail2ban && sudo -n systemctl enable --now fail2ban"
     }));
+}
+
+#[test]
+fn plan_checks_the_edge_and_the_stacks_through_systemd_units_not_docker() {
+    let items = plan(&declared()).unwrap();
+    let check = |name: &str| {
+        items
+            .iter()
+            .find(|i| i.name == name)
+            .map(|i| i.check.command.clone())
+            .unwrap_or_default()
+    };
+    assert_eq!(check("network"), "podman network exists acteble_edge");
+    assert_eq!(
+        check("caddy"),
+        "systemctl --user is-active --quiet acteble_edge-caddy.service"
+    );
+    assert_eq!(
+        check("cdn"),
+        "systemctl --user is-active --quiet acteble_cdn-minio.service && systemctl --user is-active --quiet acteble_cdn-checkpoint.service"
+    );
+    assert!(
+        items.iter().all(|i| !i.check.command.contains("docker ps")),
+        "{items:?}"
+    );
 }

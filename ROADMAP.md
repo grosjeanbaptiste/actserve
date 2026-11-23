@@ -32,3 +32,20 @@ owning `servers.txt`.
 
 No silent failure, `--dry-run` on every mutating action, nothing removed,
 secrets via actesskey never printed, 100 % TDD with failure-path tests.
+
+## Runtime: Podman + Quadlet (owner, 2026-11-23)
+
+The VPS runs its services as rootless Podman Quadlet units (`.container`,
+`.network`, `.volume`) in the `administrator` user session, not Docker Compose.
+Checks are `systemctl --user is-active <unit>` and `podman network exists`;
+logs come from `journalctl --user`.
+
+Done on `acteble` (2026-11-23): Podman 5.7.0, sysctl `ip_unprivileged_port_start=80`,
+linger on, units of `acteble_edge`, `acteble_cdn` and `actif` running, volumes
+copied, secrets as Podman secrets. Docker containers are stopped, not removed:
+the way back is `systemctl --user stop` the units, then `docker start`.
+
+Open: the `docker` and `logs` items still check Docker (`docker compose version`,
+`/etc/docker/daemon.json`) and have no writer; the units are installed by hand
+(deploy is slice 4); secrets are created from `.env`, not yet from actesskey;
+`cdn_publisher` and `geo_builder` are not ported; no reboot test yet.
