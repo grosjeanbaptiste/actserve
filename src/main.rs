@@ -30,16 +30,23 @@ use actserve::{
     },
 };
 
+/// Where the inventory lives (`$ACTSERVE_STATE_ROOT`, default `~/machine`) and
+/// which ssh binary to run (`$ACTSERVE_SSH`, default `ssh`).
+fn fleet_env() -> Result<(std::path::PathBuf, String), Box<dyn std::error::Error>> {
+    let root = std::env::var("ACTSERVE_STATE_ROOT")
+        .map(std::path::PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|h| std::path::Path::new(&h).join("machine")))?;
+    let ssh = std::env::var("ACTSERVE_SSH").unwrap_or_else(|_| "ssh".to_string());
+    Ok((root, ssh))
+}
+
 /// `actserve status [NAME]`: ask each server of the actparc inventory
-/// (`$DOTFILES_STATE_ROOT/servers.txt`, default `~/machine`) for its hostname
-/// over ssh (`$DOTFILES_SSH`, default `ssh`). Exit 0 only when all answer as expected.
+/// (`$ACTSERVE_STATE_ROOT/servers.txt`, default `~/machine`) for its hostname
+/// over ssh (`$ACTSERVE_SSH`, default `ssh`). Exit 0 only when all answer as expected.
 async fn run_status(
     name: Option<&str>,
 ) -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
-    let root = std::env::var("DOTFILES_STATE_ROOT")
-        .map(std::path::PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| std::path::Path::new(&h).join("machine")))?;
-    let ssh = std::env::var("DOTFILES_SSH").unwrap_or_else(|_| "ssh".to_string());
+    let (root, ssh) = fleet_env()?;
     let service = FleetStatusService::new(
         Arc::new(FileServerInventory::new(root.join("servers.txt"))),
         Arc::new(SshHostnameProbe::new(ssh)),
@@ -57,10 +64,7 @@ async fn run_status(
 /// ssh with sudo. Exit 0 conforming, 1 deviation / unreachable / other host,
 /// 3 unreadable (as `dotfiles servers audit`).
 async fn run_audit(name: &str) -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
-    let root = std::env::var("DOTFILES_STATE_ROOT")
-        .map(std::path::PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| std::path::Path::new(&h).join("machine")))?;
-    let ssh = std::env::var("DOTFILES_SSH").unwrap_or_else(|_| "ssh".to_string());
+    let (root, ssh) = fleet_env()?;
     let service = FleetAuditService::new(
         Arc::new(FileServerInventory::new(root.join("servers.txt"))),
         Arc::new(SshHostnameProbe::new(ssh.clone())),

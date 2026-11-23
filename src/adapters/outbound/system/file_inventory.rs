@@ -9,7 +9,7 @@ use crate::domain::{
 use crate::ports::outbound::server_inventory::ServerInventoryPort;
 
 /// Reads the `NAME|SSH-TARGET|EXPECTED-HOSTNAME` file kept by actparc
-/// (`$DOTFILES_STATE_ROOT/servers.txt`).
+/// (`$ACTSERVE_STATE_ROOT/servers.txt`).
 pub struct FileServerInventory {
     path: PathBuf,
 }
