@@ -12,6 +12,25 @@ Le projet expose une API REST réactive conçue pour alimenter directement l'int
 
 ---
 
+## Contents
+
+- [How it works](#how-it-works)
+- [🏛️ Architecture Hexagonale](#-architecture-hexagonale)
+- [🚀 Capacités d'Orchestration Intégrale](#-capacités-dorchestration-intégrale)
+- [🧪 Tests TDD (79/79 Passing)](#-tests-tdd-7979-passing)
+- [🌐 Endpoints API Biorcrux](#-endpoints-api-biorcrux)
+- [🚀 Démarrage Rapide](#-démarrage-rapide)
+- [📄 Licence](#-licence)
+
+## How it works
+
+```mermaid
+flowchart LR
+    ui["Biorcrux UI (actserve-ui)"] --> api["actserve REST API"]
+    api --> core["hexagonal core (ports)"]
+    core --> adapters["adapters"]
+```
+
 ## 🏛️ Architecture Hexagonale
 
 ```text
