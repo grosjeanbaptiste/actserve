@@ -1,5 +1,6 @@
 pub mod baseline;
 pub mod catalog;
+pub mod dirs_file;
 pub mod dns;
 pub mod engines;
 pub mod errors;
@@ -11,6 +12,7 @@ pub mod ports_file;
 pub mod registrar;
 pub mod registry;
 pub mod repository;
+pub mod runtime;
 pub mod server;
 pub mod stack;
 pub mod tls;

@@ -1,18 +1,19 @@
 use std::sync::Arc;
 
-use crate::application::fleet_status_service::probe_status;
+use crate::application::{
+    fleet_status_service::probe_status,
+    item_runner::{Cmd, check_apply, find_host, push},
+};
 use crate::domain::{
     baseline,
     errors::DomainError,
-    fleet::{FleetHost, HostStatus},
+    fleet::HostStatus,
     harden::{ItemOutcome, ItemReport, SshdOutcome},
     ports_file::parse_ports,
 };
 use crate::ports::outbound::{
-    declared_data::DeclaredDataPort,
-    hostname_probe::HostnameProbePort,
-    remote_shell::{RemoteOutput, RemoteShellPort},
-    server_inventory::ServerInventoryPort,
+    declared_data::DeclaredDataPort, hostname_probe::HostnameProbePort,
+    remote_shell::RemoteShellPort, server_inventory::ServerInventoryPort,
     sshd_installer::SshdInstallerPort,
 };
 
@@ -32,11 +33,6 @@ pub struct HardenService {
     data: Arc<dyn DeclaredDataPort>,
     shell: Arc<dyn RemoteShellPort>,
     sshd: Arc<dyn SshdInstallerPort>,
-}
-
-fn failed(out: &RemoteOutput) -> String {
-    let code = out.code.map_or("signal".to_string(), |c| c.to_string());
-    format!("exit {code}: {}", out.stderr.trim())
 }
 
 impl HardenService {
@@ -59,7 +55,7 @@ impl HardenService {
     /// Harden `name`. Declared data is validated before any remote call; the
     /// run stops at the first failed step. With `dry_run` nothing is applied.
     pub async fn run(&self, name: &str, dry_run: bool) -> Result<HardenRun, DomainError> {
-        let host = self.find(name).await?;
+        let host = find_host(&*self.inventory, name).await?;
         let conf = self.data.read(name, "sshd.conf").await?;
         let ports = parse_ports("ports.txt", &self.data.read(name, "ports.txt").await?)?;
         let status = probe_status(&*self.probe, &host).await;
@@ -68,12 +64,17 @@ impl HardenService {
         }
         let t = host.ssh_target();
         let mut items = Vec::new();
-        let reach = self.step(t, REACH_CHECK, None, dry_run).await?;
-        let ok = Self::push(&mut items, "reach", reach);
-        let ok = ok && {
-            let o = self.sshd_item(t, &conf, dry_run).await?;
-            Self::push(&mut items, "sshd", o)
+        let reach = self.shell.run(t, REACH_CHECK, None).await?;
+        let reach = if reach.code == Some(0) {
+            ItemOutcome::Ok
+        } else {
+            ItemOutcome::Failed("needs a non-root user with passwordless sudo".to_string())
         };
+        let mut ok = push(&mut items, "reach", "reach", reach);
+        if ok {
+            let o = self.sshd_item(t, &conf, dry_run).await?;
+            ok = push(&mut items, "harden", "sshd", o);
+        }
         let ufw = (
             baseline::ufw_check_command(&ports),
             baseline::ufw_apply_command(&ports),
@@ -91,63 +92,15 @@ impl HardenService {
                 baseline::UPGRADES_APPLY,
             ),
         ];
-        let mut ok = ok;
         for (item, check, apply) in rest {
             if !ok {
                 break;
             }
-            let o = self.step(t, check, Some(apply), dry_run).await?;
-            ok = Self::push(&mut items, item, o);
+            let o =
+                check_apply(&*self.shell, t, Cmd(check, None), Cmd(apply, None), dry_run).await?;
+            ok = push(&mut items, "harden", item, o);
         }
         Ok(HardenRun::Done(items))
-    }
-
-    async fn find(&self, name: &str) -> Result<FleetHost, DomainError> {
-        self.inventory
-            .hosts()
-            .await?
-            .into_iter()
-            .find(|h| h.name() == name)
-            .ok_or(DomainError::NotFound {
-                entity: "FleetHost",
-                id: name.to_string(),
-            })
-    }
-
-    /// Records the outcome; true when the run may go on.
-    fn push(items: &mut Vec<ItemReport>, item: &'static str, outcome: ItemOutcome) -> bool {
-        let go = !matches!(outcome, ItemOutcome::Failed(_));
-        items.push(ItemReport { item, outcome });
-        go
-    }
-
-    /// Check, then apply only when the check fails (never in a dry run).
-    /// `apply: None` makes the check the whole step (reach).
-    async fn step(
-        &self,
-        target: &str,
-        check: &str,
-        apply: Option<&str>,
-        dry_run: bool,
-    ) -> Result<ItemOutcome, DomainError> {
-        let out = self.shell.run(target, check, None).await?;
-        if out.code == Some(0) {
-            return Ok(ItemOutcome::Ok);
-        }
-        let Some(apply) = apply else {
-            return Ok(ItemOutcome::Failed(
-                "needs a non-root user with passwordless sudo".to_string(),
-            ));
-        };
-        if dry_run {
-            return Ok(ItemOutcome::WouldApply);
-        }
-        let done = self.shell.run(target, apply, None).await?;
-        Ok(if done.code == Some(0) {
-            ItemOutcome::Applied
-        } else {
-            ItemOutcome::Failed(failed(&done))
-        })
     }
 
     async fn sshd_item(
@@ -201,10 +154,10 @@ pub fn render(name: &str, run: &HardenRun) -> String {
 }
 
 fn line(r: &ItemReport) -> String {
-    let label = if r.item == "reach" {
+    let label = if r.step == r.item {
         format!("{:<11}", r.item)
     } else {
-        format!("harden {:<9} ", r.item)
+        format!("{} {:<9} ", r.step, r.item)
     };
     let status = match &r.outcome {
         ItemOutcome::Ok => "ok".to_string(),
@@ -212,5 +165,12 @@ fn line(r: &ItemReport) -> String {
         ItemOutcome::WouldApply => "would apply".to_string(),
         ItemOutcome::Failed(m) => format!("fail ({m})"),
     };
-    format!("{label}{status}\n")
+    let note = match (r.item, &r.outcome) {
+        ("logs", ItemOutcome::Applied) => format!(
+            "{} logs: installed; it takes effect at the next restart of Docker, containers keep running\n",
+            r.step
+        ),
+        _ => String::new(),
+    };
+    format!("{label}{status}\n{note}")
 }
