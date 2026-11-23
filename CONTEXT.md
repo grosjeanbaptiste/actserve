@@ -13,6 +13,13 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 3d faite — 2026-11-23 (tranche 3 complète)
+
+- `actserve bootstrap NAME [--dry-run]` et `apply NAME` : valide tous les fichiers déclarés avant le premier appel distant (mieux que le bash), puis reach, harden, runtime, edge, stacks, audit ; arrêt au premier échec ; code 0 seulement si l'audit est conforme ; `--dry-run` n'applique rien et n'audite pas. `BootstrapService` compose les services des tranches 3a-3c.
+- Limite connue : démarrer Caddy ou cdn attend la tranche 4 (`StackDeployPort`) ; un serveur à démarrer échoue en le disant.
+- Faux ssh seulement ; jamais lancé sur le VPS réel. Mutants tous attrapés (un timeout sur la branche `main`).
+- Suite : dotfiles délègue `servers audit`/`bootstrap`/`apply` à actserve, puis retire la commande (PR séparées, recherche des appelants) ; tranche 4 (deploy, rollback, logs).
+
 ## Tranche 3c faite — 2026-11-23
 
 - `actserve edge NAME [--dry-run]` (réseau `acteble_edge`, Caddy) et `actserve stacks NAME [--dry-run]` (`stacks.txt` : cdn run ou held, api held seulement). Les contrôles et la création du réseau sont portés. Démarrer Caddy ou cdn = le déploiement, tranche 4 : `UnportedStackDeploy` ne démarre rien et échoue en le disant (`StackDeployPort` est le point d'accroche de la tranche 4). Aucun passage par `dotfiles`.

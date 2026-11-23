@@ -13,6 +13,7 @@ use crate::adapters::outbound::system::{
     unported_stack_deploy::UnportedStackDeploy,
 };
 use crate::application::{
+    bootstrap_service::BootstrapService,
     fleet_audit_service::{self, FleetAuditService},
     fleet_status_service::{FleetStatusService, all_ok, render},
     harden_service::{self, HardenRun, HardenService},
@@ -182,4 +183,47 @@ pub async fn run_stacks(args: &[String]) -> CliResult {
         name,
         stacks_service(ssh, inventory)?.stacks(name, dry_run).await,
     )
+}
+
+/// `actserve bootstrap NAME [--dry-run]`, and `apply` (the same run on a
+/// server that exists): reach, harden, runtime, edge, stacks, audit.
+pub async fn run_bootstrap(verb: &str, args: &[String]) -> CliResult {
+    let Some((name, dry_run)) = name_and_flag(args) else {
+        eprintln!("usage: actserve {verb} NAME [--dry-run]");
+        return Ok(ExitCode::from(2));
+    };
+    let (inventory, ssh) = inventory_and_ssh()?;
+    let probe = Arc::new(SshHostnameProbe::new(ssh.clone()));
+    let data = Arc::new(FileDeclaredData::new(state_root()?));
+    let shell = Arc::new(SshRemoteShell::new(ssh.clone()));
+    let service = BootstrapService::new(
+        inventory.clone(),
+        data.clone(),
+        Arc::new(HardenService::new(
+            inventory.clone(),
+            probe.clone(),
+            data.clone(),
+            shell.clone(),
+            Arc::new(SshSshdInstaller::new(ssh.clone())),
+        )),
+        Arc::new(RuntimeService::new(
+            inventory.clone(),
+            probe.clone(),
+            data.clone(),
+            shell.clone(),
+        )),
+        Arc::new(StacksService::new(
+            inventory.clone(),
+            probe.clone(),
+            data,
+            shell,
+            Arc::new(UnportedStackDeploy),
+        )),
+        Arc::new(FleetAuditService::new(
+            inventory,
+            probe,
+            Arc::new(SshEdgeAudit::new(ssh)),
+        )),
+    );
+    finish(name, service.run(name, dry_run).await)
 }
