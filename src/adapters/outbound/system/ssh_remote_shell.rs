@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
+use super::spawn_retry::retry_busy;
 use crate::domain::errors::DomainError;
 use crate::ports::outbound::remote_shell::{RemoteOutput, RemoteShellPort};
 
@@ -32,7 +33,8 @@ pub(super) async fn run_ssh(
     args: &[String],
     stdin: Option<&str>,
 ) -> Result<RemoteOutput, DomainError> {
-    let mut child = Command::new(ssh)
+    let mut command = Command::new(ssh);
+    command
         .args(args)
         .stdin(if stdin.is_some() {
             Stdio::piped()
@@ -40,8 +42,9 @@ pub(super) async fn run_ssh(
             Stdio::null()
         })
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+        .stderr(Stdio::piped());
+    let mut child = retry_busy(|| std::future::ready(command.spawn()))
+        .await
         .map_err(|e| cannot_run(ssh, &e))?;
     if let (Some(text), Some(mut pipe)) = (stdin, child.stdin.take()) {
         // A command that exits without reading closes the pipe: its exit
