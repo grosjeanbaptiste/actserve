@@ -13,7 +13,7 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `servers list`, inventory `servers.txt` (NAME\|SSH-TARGET\|HOSTNAME) | goes to actparc; actserve reads it (`FileServerInventory`) | 1 done |
 | `servers status` (ssh hostname, ok/unreachable/wrong-host) | `actserve status [NAME]` (`FleetStatusService`, `SshHostnameProbe`) | 1 done |
 | `servers audit` (hostname check, then `edge audit` over ssh with sudo; exit 0/1/3, 2 unknown) | `actserve audit NAME` (`FleetAuditService`, `SshEdgeAudit`) | 2 done (`acteble edge-audit` still dotfiles) |
-| `servers bootstrap` / `apply` (reach, harden, runtime, edge, stacks, audit) | partial: Ansible engine | 3 |
+| `servers bootstrap` / `apply` (reach, harden, runtime, edge, stacks, audit) | 3a done: `actserve harden NAME [--dry-run]` (sshd drop-in with rollback, ufw, fail2ban, unattended-upgrades; `HardenService`). Left: runtime, edge, stacks and the `bootstrap`/`apply` composition | 3 (3a done) |
 | `acteble deploy`, `deploy-caddy`, `cdn-deploy`, `edge-deploy` (+ `--dry-run`) | none (OpenTofu/Ansible/Crossplane engines only) | 4 |
 | `acteble rollback`, `status`, `logs`, `edge-status`, `cdn-status`, `cdn-logs` | none | 4 |
 | `acteble rotate jwt\|postgres\|minio\|all` | none; secrets belong to actesskey | 5 |
