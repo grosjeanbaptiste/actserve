@@ -2,6 +2,7 @@ pub mod admin_registry;
 pub mod ansible_engine;
 pub mod crossplane_engine;
 pub mod dns_provider;
+pub mod edge_audit;
 pub mod git_provider;
 pub mod hostname_probe;
 pub mod job_store;

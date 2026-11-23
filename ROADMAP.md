@@ -12,7 +12,7 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 |---|---|---|
 | `servers list`, inventory `servers.txt` (NAME\|SSH-TARGET\|HOSTNAME) | goes to actparc; actserve reads it (`FileServerInventory`) | 1 done |
 | `servers status` (ssh hostname, ok/unreachable/wrong-host) | `actserve status [NAME]` (`FleetStatusService`, `SshHostnameProbe`) | 1 done |
-| `servers audit` / `acteble edge-audit` (ssh, ports, ufw, updates, fail2ban, containers, ADR-123) | none | 2 |
+| `servers audit` (hostname check, then `edge audit` over ssh with sudo; exit 0/1/3, 2 unknown) | `actserve audit NAME` (`FleetAuditService`, `SshEdgeAudit`) | 2 done (`acteble edge-audit` still dotfiles) |
 | `servers bootstrap` / `apply` (reach, harden, runtime, edge, stacks, audit) | partial: Ansible engine | 3 |
 | `acteble deploy`, `deploy-caddy`, `cdn-deploy`, `edge-deploy` (+ `--dry-run`) | none (OpenTofu/Ansible/Crossplane engines only) | 4 |
 | `acteble rollback`, `status`, `logs`, `edge-status`, `cdn-status`, `cdn-logs` | none | 4 |
@@ -20,6 +20,15 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `acteble edge-backup` | none | 5 |
 | DNS, TLS, WireGuard | present (domain, adapters, API) | verify |
 | `service start\|stop\|status` (local, no launchd) | out: local processes go to actparc / actautoma | - |
+
+## Decision (owner, 2026-11-23)
+
+Nothing for the servers passes through `dotfiles` any more. Every row above
+moves to actserve; each slice is its own PR, then `dotfiles` drops the command
+in a separate PR after a search of every caller (`~/Source`, `~/machine`, the
+Claude settings, hooks and docs). Until a slice is merged and installed,
+`dotfiles` keeps its command and delegates where actserve already has it
+(`servers status`: dotfiles PR in review).
 
 ## Boundary (owner, 2026-11-21)
 
