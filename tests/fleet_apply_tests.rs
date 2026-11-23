@@ -336,3 +336,165 @@ fn a_stack_is_checked_by_its_compose_project_label() {
         r#"test -n "$(docker ps -q --filter label=com.docker.compose.project=acteble_cdn)""#
     );
 }
+
+/// A server that drifts until a command containing `fix` has run: every command
+/// containing `check` fails before that and succeeds after.
+struct Drifting {
+    check: &'static str,
+    fix: &'static str,
+    fixed: Mutex<bool>,
+    calls: Arc<Mutex<Vec<String>>>,
+}
+#[async_trait]
+impl RemoteShellPort for Drifting {
+    async fn run(&self, _: &str, command: &str, _: &[u8]) -> Result<ShellOutput, DomainError> {
+        self.calls.lock().unwrap().push(command.to_string());
+        let mut fixed = self.fixed.lock().unwrap();
+        if command.contains(self.fix) {
+            *fixed = true;
+        }
+        let drifted = command.contains(self.check) && !*fixed;
+        Ok(ShellOutput {
+            code: Some(i32::from(drifted)),
+            stdout: String::new(),
+            stderr: String::new(),
+        })
+    }
+}
+
+fn drifting_service(
+    check: &'static str,
+    fix: &'static str,
+) -> (FleetApplyService, Arc<Mutex<Vec<String>>>) {
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let s = FleetApplyService::new(
+        Arc::new(Inventory),
+        Arc::new(Probe("cloud-1")),
+        Arc::new(Drifting {
+            check,
+            fix,
+            fixed: Mutex::new(false),
+            calls: calls.clone(),
+        }),
+        Arc::new(Data(declared())),
+    );
+    (s, calls)
+}
+
+#[tokio::test]
+async fn apply_fixes_a_drifted_dir_then_rechecks_and_exits_0() {
+    let (s, calls) = drifting_service("stat -c %U /opt/acteble/edge", "mkdir -p /opt/acteble/edge");
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 0, "{:?}", r.lines);
+    assert!(
+        r.lines.contains(&"runtime dirs      applied".to_string()),
+        "{:?}",
+        r.lines
+    );
+    let calls = calls.lock().unwrap();
+    assert!(
+        calls
+            .iter()
+            .any(|c| c
+                == "sudo -n mkdir -p /opt/acteble/edge && sudo -n chown deploy /opt/acteble/edge"),
+        "{calls:?}"
+    );
+}
+
+#[tokio::test]
+async fn apply_that_does_not_heal_reports_fail_and_exits_1() {
+    let (s, _) = service("cloud-1", vec!["stat -c %U /opt/acteble/edge"]);
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 1, "{:?}", r.lines);
+    assert!(
+        r.lines
+            .contains(&"runtime dirs      fail (still drifted after apply)".to_string()),
+        "{:?}",
+        r.lines
+    );
+}
+
+#[tokio::test]
+async fn apply_whose_fix_fails_says_so_and_does_not_recheck() {
+    let (s, calls) = service(
+        "cloud-1",
+        vec!["stat -c %U /opt/acteble/edge", "mkdir -p /opt/acteble/edge"],
+    );
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 1, "{:?}", r.lines);
+    assert!(
+        r.lines
+            .contains(&"runtime dirs      fail (fix failed)".to_string()),
+        "{:?}",
+        r.lines
+    );
+    let rechecks = calls
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|c| c.contains("stat -c %U"))
+        .count();
+    assert_eq!(rechecks, 1);
+}
+
+#[tokio::test]
+async fn apply_creates_the_missing_edge_network() {
+    let (s, calls) = drifting_service(
+        "docker network inspect acteble_edge",
+        "docker network create acteble_edge",
+    );
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 0, "{:?}", r.lines);
+    assert!(
+        r.lines.contains(&"edge network   applied".to_string()),
+        "{:?}",
+        r.lines
+    );
+    assert!(
+        calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|c| c == "docker network create acteble_edge")
+    );
+}
+
+#[tokio::test]
+async fn apply_installs_the_missing_unattended_upgrades() {
+    let (s, calls) = drifting_service(
+        "dpkg -s unattended-upgrades",
+        "apt-get install -y unattended-upgrades",
+    );
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 0, "{:?}", r.lines);
+    assert!(
+        r.lines.contains(&"harden upgrades  applied".to_string()),
+        "{:?}",
+        r.lines
+    );
+    assert!(
+        calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|c| c == "sudo -n apt-get install -y unattended-upgrades")
+    );
+}
+
+#[tokio::test]
+async fn apply_installs_and_starts_the_missing_fail2ban() {
+    let (s, calls) = drifting_service(
+        "systemctl is-active --quiet fail2ban",
+        "apt-get install -y fail2ban",
+    );
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 0, "{:?}", r.lines);
+    assert!(
+        r.lines.contains(&"harden fail2ban  applied".to_string()),
+        "{:?}",
+        r.lines
+    );
+    assert!(calls.lock().unwrap().iter().any(|c| {
+        c == "sudo -n apt-get install -y fail2ban && sudo -n systemctl enable --now fail2ban"
+    }));
+}

@@ -61,6 +61,15 @@ impl FleetApplyService {
     /// Check every item of the bootstrap on one server and say what would change.
     /// Sends read-only commands only.
     pub async fn dry_run(&self, name: &str) -> Result<ApplyReport, DomainError> {
+        self.run(name, false).await
+    }
+
+    /// Check every item and, for each one that drifted, run its fix then check again.
+    pub async fn apply(&self, name: &str) -> Result<ApplyReport, DomainError> {
+        self.run(name, true).await
+    }
+
+    async fn run(&self, name: &str, write: bool) -> Result<ApplyReport, DomainError> {
         let report = |lines: Vec<String>, conforming| ApplyReport {
             name: name.to_string(),
             lines,
@@ -115,10 +124,35 @@ impl FleetApplyService {
                 .await
             {
                 Ok(o) if o.success() => lines.push(format!("{label} ok")),
-                Ok(_) => {
-                    conforming = false;
-                    lines.push(format!("{label} would apply"));
-                }
+                Ok(_) => match item.fix.as_ref().filter(|_| write) {
+                    Some(fix) => {
+                        let fixed = self
+                            .shell
+                            .run(&target, &fix.command, &fix.stdin)
+                            .await
+                            .is_ok_and(|o| o.success());
+                        if !fixed {
+                            conforming = false;
+                            lines.push(format!("{label} fail (fix failed)"));
+                            continue;
+                        }
+                        let healed = self
+                            .shell
+                            .run(&target, &item.check.command, &item.check.stdin)
+                            .await
+                            .is_ok_and(|o| o.success());
+                        if healed {
+                            lines.push(format!("{label} applied"));
+                        } else {
+                            conforming = false;
+                            lines.push(format!("{label} fail (still drifted after apply)"));
+                        }
+                    }
+                    None => {
+                        conforming = false;
+                        lines.push(format!("{label} would apply"));
+                    }
+                },
                 Err(e) => {
                     lines.push(format!("{label} fail ({e})"));
                     return Ok(report(lines, false));

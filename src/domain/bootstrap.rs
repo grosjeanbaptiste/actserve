@@ -29,6 +29,8 @@ pub struct Item {
     pub check: RemoteCommand,
     /// Declared but deliberately left alone.
     pub held: bool,
+    /// Makes the check pass; `None` while the step is not ported.
+    pub fix: Option<RemoteCommand>,
 }
 
 pub const SSHD_DROPIN: &str = "/etc/ssh/sshd_config.d/00-acteble.conf";
@@ -141,7 +143,16 @@ fn check(step: &'static str, name: &str, command: impl Into<String>) -> Item {
             stdin: Vec::new(),
         },
         held: false,
+        fix: None,
     }
+}
+
+fn with_fix(mut item: Item, command: &str) -> Item {
+    item.fix = Some(RemoteCommand {
+        command: command.to_string(),
+        stdin: Vec::new(),
+    });
+    item
 }
 
 fn docker_ps(project: &str) -> String {
@@ -176,14 +187,41 @@ pub fn plan(d: &Declared) -> Result<Vec<Item>, DomainError> {
     );
     logs.check.stdin = d.docker_daemon.clone().into_bytes();
 
+    let dirs_fix = dirs
+        .iter()
+        .map(|(path, owner)| format!("sudo -n mkdir -p {path} && sudo -n chown {owner} {path}"))
+        .collect::<Vec<_>>()
+        .join(" && ");
+    let mut dirs_item = check("runtime", "dirs", dirs_cmd);
+    dirs_item.fix = Some(RemoteCommand {
+        command: dirs_fix,
+        stdin: Vec::new(),
+    });
+
+    let mut network = check(
+        "edge",
+        "network",
+        "docker network inspect acteble_edge > /dev/null 2>&1",
+    );
+    network.fix = Some(RemoteCommand {
+        command: "docker network create acteble_edge".to_string(),
+        stdin: Vec::new(),
+    });
+
     let mut items = vec![
         sshd,
         check("harden", "ufw", format!("sudo -n sh -c '{ufw}'")),
-        check("harden", "fail2ban", "systemctl is-active --quiet fail2ban"),
-        check(
-            "harden",
-            "upgrades",
-            "dpkg -s unattended-upgrades > /dev/null 2>&1",
+        with_fix(
+            check("harden", "fail2ban", "systemctl is-active --quiet fail2ban"),
+            "sudo -n apt-get install -y fail2ban && sudo -n systemctl enable --now fail2ban",
+        ),
+        with_fix(
+            check(
+                "harden",
+                "upgrades",
+                "dpkg -s unattended-upgrades > /dev/null 2>&1",
+            ),
+            "sudo -n apt-get install -y unattended-upgrades",
         ),
         check(
             "runtime",
@@ -191,12 +229,8 @@ pub fn plan(d: &Declared) -> Result<Vec<Item>, DomainError> {
             "docker compose version > /dev/null 2>&1",
         ),
         logs,
-        check("runtime", "dirs", dirs_cmd),
-        check(
-            "edge",
-            "network",
-            "docker network inspect acteble_edge > /dev/null 2>&1",
-        ),
+        dirs_item,
+        network,
         check(
             "edge",
             "caddy",
