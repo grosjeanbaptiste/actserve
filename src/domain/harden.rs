@@ -23,9 +23,10 @@ pub enum SshdOutcome {
     },
 }
 
-/// One reported step: its label and what happened.
+/// One reported item of a step (`harden`, `runtime`, …) and what happened.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ItemReport {
+    pub step: &'static str,
     pub item: &'static str,
     pub outcome: ItemOutcome,
 }

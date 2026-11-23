@@ -14,7 +14,8 @@ use crate::adapters::outbound::system::{
 use crate::application::{
     fleet_audit_service::{self, FleetAuditService},
     fleet_status_service::{FleetStatusService, all_ok, render},
-    harden_service::{self, HardenService},
+    harden_service::{self, HardenRun, HardenService},
+    runtime_service::RuntimeService,
 };
 use crate::domain::errors::DomainError;
 
@@ -75,27 +76,22 @@ pub async fn run_audit(name: Option<&str>) -> CliResult {
 }
 
 const HARDEN_USAGE: &str = "usage: actserve harden NAME [--dry-run]";
+const RUNTIME_USAGE: &str = "usage: actserve runtime NAME [--dry-run]";
 
-/// Harden one server. Exit 0 done (or dry run), 1 a step failed or the
-/// declared data is invalid, 3 not the expected host, 2 usage or unknown name.
-pub async fn run_harden(args: &[String]) -> CliResult {
-    let (name, dry_run) = match args {
-        [n] if !n.starts_with('-') => (n.as_str(), false),
-        [n, f] if !n.starts_with('-') && f == "--dry-run" => (n.as_str(), true),
-        _ => {
-            eprintln!("{HARDEN_USAGE}");
-            return Ok(ExitCode::from(2));
-        }
-    };
-    let (inventory, ssh) = inventory_and_ssh()?;
-    let service = HardenService::new(
-        inventory,
-        Arc::new(SshHostnameProbe::new(ssh.clone())),
-        Arc::new(FileDeclaredData::new(state_root()?)),
-        Arc::new(SshRemoteShell::new(ssh.clone())),
-        Arc::new(SshSshdInstaller::new(ssh)),
-    );
-    match service.run(name, dry_run).await {
+/// `NAME [--dry-run]`; anything else is a usage error.
+fn name_and_flag(args: &[String]) -> Option<(&str, bool)> {
+    match args {
+        [n] if !n.starts_with('-') => Some((n.as_str(), false)),
+        [n, f] if !n.starts_with('-') && f == "--dry-run" => Some((n.as_str(), true)),
+        _ => None,
+    }
+}
+
+/// Prints a step's run and maps it to its exit code: 0 done (or dry run),
+/// 1 a step failed or the declared data is invalid, 3 not the expected host,
+/// 2 unknown name.
+fn finish(name: &str, run: Result<HardenRun, DomainError>) -> CliResult {
+    match run {
         Ok(run) => {
             print!("{}", harden_service::render(name, &run));
             Ok(ExitCode::from(harden_service::exit_code(&run)))
@@ -110,4 +106,37 @@ pub async fn run_harden(args: &[String]) -> CliResult {
         }
         Err(e) => Err(e.into()),
     }
+}
+
+/// Harden one server (`actserve harden NAME [--dry-run]`).
+pub async fn run_harden(args: &[String]) -> CliResult {
+    let Some((name, dry_run)) = name_and_flag(args) else {
+        eprintln!("{HARDEN_USAGE}");
+        return Ok(ExitCode::from(2));
+    };
+    let (inventory, ssh) = inventory_and_ssh()?;
+    let service = HardenService::new(
+        inventory,
+        Arc::new(SshHostnameProbe::new(ssh.clone())),
+        Arc::new(FileDeclaredData::new(state_root()?)),
+        Arc::new(SshRemoteShell::new(ssh.clone())),
+        Arc::new(SshSshdInstaller::new(ssh)),
+    );
+    finish(name, service.run(name, dry_run).await)
+}
+
+/// Docker, logs and stack directories of one server (`actserve runtime NAME [--dry-run]`).
+pub async fn run_runtime(args: &[String]) -> CliResult {
+    let Some((name, dry_run)) = name_and_flag(args) else {
+        eprintln!("{RUNTIME_USAGE}");
+        return Ok(ExitCode::from(2));
+    };
+    let (inventory, ssh) = inventory_and_ssh()?;
+    let service = RuntimeService::new(
+        inventory,
+        Arc::new(SshHostnameProbe::new(ssh.clone())),
+        Arc::new(FileDeclaredData::new(state_root()?)),
+        Arc::new(SshRemoteShell::new(ssh)),
+    );
+    finish(name, service.run(name, dry_run).await)
 }

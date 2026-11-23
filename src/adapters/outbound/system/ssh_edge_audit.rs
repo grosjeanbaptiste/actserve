@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use tokio::process::Command;
 
+use super::spawn_retry::retry_busy;
 use crate::domain::{
     errors::DomainError,
     fleet_audit::{AuditReport, AuditVerdict},
@@ -28,15 +29,17 @@ impl SshEdgeAudit {
 #[async_trait]
 impl EdgeAuditPort for SshEdgeAudit {
     async fn audit(&self, ssh_target: &str) -> Result<AuditReport, DomainError> {
-        let out = Command::new(&self.ssh)
-            .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
-            .args(["--", ssh_target, EDGE_AUDIT])
-            .output()
-            .await
-            .map_err(|e| DomainError::ExecutionFailed {
-                reason: format!("Cannot run {}", self.ssh.display()),
-                details: Some(e.to_string()),
-            })?;
+        let out = retry_busy(|| {
+            Command::new(&self.ssh)
+                .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"])
+                .args(["--", ssh_target, EDGE_AUDIT])
+                .output()
+        })
+        .await
+        .map_err(|e| DomainError::ExecutionFailed {
+            reason: format!("Cannot run {}", self.ssh.display()),
+            details: Some(e.to_string()),
+        })?;
         let verdict = match out.status.code() {
             Some(0) => AuditVerdict::Conforming,
             Some(1) => AuditVerdict::Deviation,

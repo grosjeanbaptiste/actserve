@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use tokio::process::Command;
 
+use super::spawn_retry::retry_busy;
 use crate::domain::errors::DomainError;
 use crate::ports::outbound::hostname_probe::HostnameProbePort;
 
@@ -22,15 +23,17 @@ impl SshHostnameProbe {
 #[async_trait]
 impl HostnameProbePort for SshHostnameProbe {
     async fn hostname(&self, ssh_target: &str) -> Result<String, DomainError> {
-        let out = Command::new(&self.ssh)
-            .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
-            .args(["--", ssh_target, "hostname"])
-            .output()
-            .await
-            .map_err(|e| DomainError::ExecutionFailed {
-                reason: format!("Cannot run {}", self.ssh.display()),
-                details: Some(e.to_string()),
-            })?;
+        let out = retry_busy(|| {
+            Command::new(&self.ssh)
+                .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5"])
+                .args(["--", ssh_target, "hostname"])
+                .output()
+        })
+        .await
+        .map_err(|e| DomainError::ExecutionFailed {
+            reason: format!("Cannot run {}", self.ssh.display()),
+            details: Some(e.to_string()),
+        })?;
         if !out.status.success() {
             return Err(DomainError::ExecutionFailed {
                 reason: format!("ssh {ssh_target} failed ({})", out.status),
