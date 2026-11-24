@@ -11,7 +11,7 @@ use crate::domain::{
     deploy::{GHCR_SECRET, ghcr_wrapped},
     edge_deploy::{EDGE_FILES, EDGE_SECRET, binary_script, prepare_command, start_command},
     errors::DomainError,
-    fleet::{FleetHost, HostStatus},
+    fleet::HostStatus,
     harden::{ItemOutcome, ItemReport},
     observe::{EDGE_DIR, EDGE_ENV_PATH},
     secret::SecretValue,
@@ -83,6 +83,20 @@ impl EdgeDeployService {
         if status != HostStatus::Ok {
             return Ok(HardenRun::Refused(status));
         }
+        let items = self
+            .deploy_verified(host.ssh_target(), edge_dir, dry_run)
+            .await?;
+        Ok(HardenRun::Done(items))
+    }
+
+    /// The deploy on a target whose host was already checked by the caller
+    /// (`deploy`, or the bootstrap through `ServiceStackDeploy`).
+    pub async fn deploy_verified(
+        &self,
+        target: &str,
+        edge_dir: &Path,
+        dry_run: bool,
+    ) -> Result<Vec<ItemReport>, DomainError> {
         let files: Vec<PathBuf> = EDGE_FILES.iter().map(|f| edge_dir.join(f)).collect();
         let missing = self.copy.missing(&files).await;
         if !missing.is_empty() {
@@ -97,14 +111,14 @@ impl EdgeDeployService {
             for item in ["prepare", "copy", "binary", "start"] {
                 push(&mut items, STEP, item, ItemOutcome::WouldApply);
             }
-            return Ok(HardenRun::Done(items));
+            return Ok(items);
         }
-        self.run(&mut items, &host, &files).await;
-        Ok(HardenRun::Done(items))
+        self.run(&mut items, target, &files).await;
+        Ok(items)
     }
 
     /// Both secrets are read before the server is touched; stops at the first failure.
-    async fn run(&self, items: &mut Vec<ItemReport>, host: &FleetHost, files: &[PathBuf]) {
+    async fn run(&self, items: &mut Vec<ItemReport>, target: &str, files: &[PathBuf]) {
         let (ghcr, env) = match self.read_secrets().await {
             Ok(both) => both,
             Err(e) => {
@@ -112,7 +126,6 @@ impl EdgeDeployService {
                 return;
             }
         };
-        let target = host.ssh_target();
         let prepared = self.shell.run(target, &prepare_command(), None).await;
         if !push(items, STEP, "prepare", outcome(prepared)) {
             return;

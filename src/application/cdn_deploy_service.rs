@@ -14,7 +14,7 @@ use crate::domain::{
     },
     deploy::{GHCR_SECRET, ghcr_wrapped},
     errors::DomainError,
-    fleet::{FleetHost, HostStatus},
+    fleet::HostStatus,
     harden::{ItemOutcome, ItemReport},
     observe::Stack,
     secret::SecretValue,
@@ -86,6 +86,20 @@ impl CdnDeployService {
         if status != HostStatus::Ok {
             return Ok(HardenRun::Refused(status));
         }
+        let items = self
+            .deploy_verified(host.ssh_target(), cdn_dir, dry_run)
+            .await?;
+        Ok(HardenRun::Done(items))
+    }
+
+    /// The deploy on a target whose host was already checked by the caller
+    /// (`deploy`, or the bootstrap through `ServiceStackDeploy`).
+    pub async fn deploy_verified(
+        &self,
+        target: &str,
+        cdn_dir: &Path,
+        dry_run: bool,
+    ) -> Result<Vec<ItemReport>, DomainError> {
         let file = cdn_dir.join(CDN_COMPOSE_FILE);
         if !self
             .copy
@@ -103,14 +117,14 @@ impl CdnDeployService {
             for item in ["prepare", "copy", "network", "start", "geo"] {
                 push(&mut items, STEP, item, ItemOutcome::WouldApply);
             }
-            return Ok(HardenRun::Done(items));
+            return Ok(items);
         }
-        self.run(&mut items, &host, &file).await;
-        Ok(HardenRun::Done(items))
+        self.run(&mut items, target, &file).await;
+        Ok(items)
     }
 
     /// Both secrets are read before the server is touched; stops at the first failure.
-    async fn run(&self, items: &mut Vec<ItemReport>, host: &FleetHost, file: &PathBuf) {
+    async fn run(&self, items: &mut Vec<ItemReport>, target: &str, file: &PathBuf) {
         let (ghcr, env) = match self.read_secrets().await {
             Ok(both) => both,
             Err(e) => {
@@ -118,7 +132,6 @@ impl CdnDeployService {
                 return;
             }
         };
-        let target = host.ssh_target();
         let prepared = self.shell.run(target, &prepare_command(), None).await;
         if !push(items, STEP, "prepare", outcome(prepared)) {
             return;
