@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 5a faite — 2026-11-24 (`edge-backup`)
+
+- `actserve edge-backup NAME [DIR]` : vérifie l'hôte (refusé : code 3, rien téléchargé), puis exécute sur le serveur le script qui trouve le conteneur Caddy du projet `acteble_edge`, lit son volume `/data` en lecture seule et écrit une archive `tar.gz` sur stdout ; elle est écrite octet pour octet dans `DIR/acteble-edge-certs-AAAAMMJJTHHMMSS.tar.gz` (`DIR` par défaut `~/Backups/acteble-edge`). Fichier 0600, dossier créé ou resserré à 0700, jamais d'écrasement, aucun fichier laissé si le transfert échoue (code 1, « transfer failed, nothing saved »).
+- Nouveaux : `domain/backup.rs`, `ports/outbound/remote_download.rs` + `SshRemoteDownload`, `application/edge_backup_service.rs`, `backup_cli.rs`. Faux ssh seulement (cible `fake-target.invalid`) ; jamais lancé sur le VPS réel. Le `SKILL.md` de dépôt est remis à jour (il désignait encore dotfiles pour les tranches 2 à 4).
+- Reste : `rotate` (5b, demande un port d'écriture de secrets), `edge-audit` autonome (6), `cdn-publish-geo` / `cdn-build-geo` (7), délégation depuis dotfiles (8).
+
 ## Tranche 4d-4 faite — 2026-11-24 (vrai `StackDeployPort`)
 
 - `bootstrap`, `apply`, `edge` et `stacks` démarrent maintenant l'edge et le cdn : `ServiceStackDeploy` (`application/stack_deployer.rs`) appelle `EdgeDeployService::deploy_verified` et `CdnDeployService::deploy_verified` (même déploiement que `edge-deploy` / `cdn-deploy`, sur une cible dont l'hôte est déjà vérifié par `StacksService`). Un échec d'étape, un secret verrouillé ou un fichier local manquant (`ACTEBLE_EDGE_DIR`, `ACTEBLE_CDN_DIR`) sortent en `Unavailable` avec le nom de l'étape ; toute autre pile (`api`) est refusée en nommant `actserve deploy`. Câblage CLI : `stack_wiring.rs`. `UnportedStackDeploy` n'est plus utilisé (conservé, à retirer dans une PR à part).

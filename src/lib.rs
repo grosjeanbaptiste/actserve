@@ -2,6 +2,7 @@
 
 pub mod adapters;
 pub mod application;
+pub mod backup_cli;
 pub mod caddy_cli;
 pub mod cdn_cli;
 pub mod deploy_cli;
