@@ -7,7 +7,11 @@ fn stage(name: &str, ssh_body: &str) -> (PathBuf, PathBuf) {
     let dir = std::env::temp_dir().join(format!("actserve-cb-{}-{name}", std::process::id()));
     let s = dir.join("servers/acteble");
     std::fs::create_dir_all(&s).unwrap();
-    std::fs::write(dir.join("servers.txt"), "acteble|api.acteble|host-1\n").unwrap();
+    std::fs::write(
+        dir.join("servers.txt"),
+        "acteble|fake-target.invalid|host-1\n",
+    )
+    .unwrap();
     for (f, c) in [
         ("sshd.conf", "PermitRootLogin no\n"),
         ("ports.txt", "22/tcp\n"),
@@ -28,6 +32,12 @@ fn run(dir: &Path, ssh: &Path, args: &[&str]) -> Output {
         .args(args)
         .env("DOTFILES_STATE_ROOT", dir)
         .env("DOTFILES_SSH", ssh)
+        // Nothing here may reach the network: scp and actesskey fail, and the local
+        // edge and cdn directories do not exist, so a deploy stops before any call.
+        .env("DOTFILES_SCP", "/usr/bin/false")
+        .env("ACTSERVE_ACTESSKEY", "/usr/bin/false")
+        .env("ACTEBLE_EDGE_DIR", dir.join("no-edge"))
+        .env("ACTEBLE_CDN_DIR", dir.join("no-cdn"))
         .output()
         .unwrap()
 }

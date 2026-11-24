@@ -297,3 +297,36 @@ async fn a_failing_start_fails_the_deploy_and_still_removes_the_env_file() {
         "shell ta [-] rm -f '/dev/shm/acteble-edge.env'"
     );
 }
+
+#[tokio::test]
+async fn a_verified_target_runs_the_same_steps_without_asking_the_inventory() {
+    let (s, log) = service(Opts {
+        host: "someone-else",
+        ..opts()
+    });
+    let reports = s.deploy_verified("ta", dir(), false).await.unwrap();
+    let got: Vec<_> = reports
+        .iter()
+        .map(|r| (r.item, r.outcome.clone()))
+        .collect();
+    assert_eq!(
+        got.iter().map(|(n, _)| *n).collect::<Vec<_>>(),
+        ["prepare", "copy", "binary", "start"]
+    );
+    assert!(got.iter().all(|(_, o)| *o == ItemOutcome::Applied));
+    assert!(log.all()[2].starts_with("shell ta "));
+}
+
+#[tokio::test]
+async fn a_verified_target_with_a_missing_file_is_a_validation_error() {
+    let (s, log) = service(Opts {
+        missing: vec!["/src/edge/Caddyfile".into()],
+        ..opts()
+    });
+    let e = s.deploy_verified("ta", dir(), false).await.unwrap_err();
+    assert!(
+        matches!(&e, DomainError::ValidationError(m) if m.contains("Caddyfile")),
+        "{e:?}"
+    );
+    assert!(log.all().is_empty());
+}

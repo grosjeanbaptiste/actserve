@@ -6,7 +6,11 @@ use std::process::{Command, Output};
 fn stage(name: &str, ssh_body: &str, stacks: &str) -> (PathBuf, PathBuf) {
     let dir = std::env::temp_dir().join(format!("actserve-cs-{}-{name}", std::process::id()));
     std::fs::create_dir_all(dir.join("servers/acteble")).unwrap();
-    std::fs::write(dir.join("servers.txt"), "acteble|api.acteble|host-1\n").unwrap();
+    std::fs::write(
+        dir.join("servers.txt"),
+        "acteble|fake-target.invalid|host-1\n",
+    )
+    .unwrap();
     std::fs::write(dir.join("servers/acteble/stacks.txt"), stacks).unwrap();
     let ssh = dir.join("ssh");
     std::fs::write(&ssh, format!("#!/bin/sh\n{ssh_body}\n")).unwrap();
@@ -19,6 +23,12 @@ fn run(dir: &Path, ssh: &Path, args: &[&str]) -> Output {
         .args(args)
         .env("DOTFILES_STATE_ROOT", dir)
         .env("DOTFILES_SSH", ssh)
+        // Nothing here may reach the network: scp and actesskey fail, and the local
+        // edge and cdn directories do not exist, so a deploy stops before any call.
+        .env("DOTFILES_SCP", "/usr/bin/false")
+        .env("ACTSERVE_ACTESSKEY", "/usr/bin/false")
+        .env("ACTEBLE_EDGE_DIR", dir.join("no-edge"))
+        .env("ACTEBLE_CDN_DIR", dir.join("no-cdn"))
         .output()
         .unwrap()
 }
@@ -40,7 +50,7 @@ fn an_edge_that_is_up_prints_ok_lines_and_exits_0() {
 }
 
 #[test]
-fn a_missing_caddy_fails_saying_the_deploy_is_not_ported_yet() {
+fn a_missing_caddy_fails_naming_the_edge_files_the_deploy_needs() {
     let (dir, ssh) = stage(
         "edge-down",
         &format!("FAIL=service=caddy\n{SSH}"),
@@ -49,7 +59,7 @@ fn a_missing_caddy_fails_saying_the_deploy_is_not_ported_yet() {
     let out = run(&dir, &ssh, &["edge", "acteble"]);
     assert_eq!(out.status.code(), Some(1), "{out:?}");
     assert!(
-        text(&out).contains("edge caddy     fail (") && text(&out).contains("not ported"),
+        text(&out).contains("edge caddy     fail (") && text(&out).contains("ACTEBLE_EDGE_DIR"),
         "{}",
         text(&out)
     );

@@ -10,7 +10,6 @@ use crate::adapters::outbound::system::{
     file_declared_data::FileDeclaredData, file_inventory::FileServerInventory,
     ssh_edge_audit::SshEdgeAudit, ssh_hostname_probe::SshHostnameProbe,
     ssh_remote_shell::SshRemoteShell, ssh_sshd_installer::SshSshdInstaller,
-    unported_stack_deploy::UnportedStackDeploy,
 };
 use crate::application::{
     bootstrap_service::BootstrapService,
@@ -21,6 +20,7 @@ use crate::application::{
     stacks_service::StacksService,
 };
 use crate::domain::errors::DomainError;
+use crate::stack_wiring::stack_deploy;
 
 type CliResult = Result<ExitCode, Box<dyn std::error::Error>>;
 
@@ -156,7 +156,7 @@ fn stacks_service(
         Arc::new(SshHostnameProbe::new(ssh.clone())),
         Arc::new(FileDeclaredData::new(state_root()?)),
         Arc::new(SshRemoteShell::new(ssh)),
-        Arc::new(UnportedStackDeploy),
+        stack_deploy()?,
     ))
 }
 
@@ -218,7 +218,7 @@ pub async fn run_bootstrap(verb: &str, args: &[String]) -> CliResult {
             probe.clone(),
             data,
             shell,
-            Arc::new(UnportedStackDeploy),
+            stack_deploy()?,
         )),
         Arc::new(FleetAuditService::new(
             inventory,

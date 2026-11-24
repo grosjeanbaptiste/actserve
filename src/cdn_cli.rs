@@ -14,7 +14,7 @@ use crate::fleet_cli::inventory_and_ssh;
 
 const USAGE: &str = "usage: actserve cdn-deploy NAME [--dry-run]";
 
-fn service() -> Result<CdnDeployService, Box<dyn std::error::Error>> {
+pub(crate) fn service() -> Result<CdnDeployService, Box<dyn std::error::Error>> {
     let (inventory, ssh) = inventory_and_ssh()?;
     let scp = std::env::var("DOTFILES_SCP").unwrap_or_else(|_| "scp".to_string());
     let key = std::env::var("ACTSERVE_ACTESSKEY").unwrap_or_else(|_| "actesskey".to_string());
@@ -27,7 +27,7 @@ fn service() -> Result<CdnDeployService, Box<dyn std::error::Error>> {
     ))
 }
 
-fn cdn_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub(crate) fn cdn_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
     Ok(std::env::var("ACTEBLE_CDN_DIR")
         .map(PathBuf::from)
         .or_else(|_| {

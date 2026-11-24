@@ -15,4 +15,5 @@ pub mod registrar_service;
 pub mod remote_env;
 pub mod runtime_service;
 pub mod server_service;
+pub mod stack_deployer;
 pub mod stacks_service;
