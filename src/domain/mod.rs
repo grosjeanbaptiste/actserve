@@ -1,6 +1,7 @@
 pub mod baseline;
 pub mod caddy;
 pub mod catalog;
+pub mod cdn;
 pub mod deploy;
 pub mod dirs_file;
 pub mod dns;
