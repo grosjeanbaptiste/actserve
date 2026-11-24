@@ -19,7 +19,7 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `acteble edge-status` | 4b done: `actserve edge-status NAME` (secret from actesskey on the server tmpfs, removed after; `SecretStorePort`, `with_remote_env`) | 4b done |
 | `acteble deploy`, `rollback` | 4c done: `actserve deploy NAME [--dry-run]`, `actserve rollback NAME [TAG] [--dry-run]` (`DeployService`, `ScpRemoteCopy`) | 4c done |
 | `acteble rotate jwt\|postgres\|minio\|all` | none; secrets belong to actesskey | 5 |
-| `acteble edge-backup` | none | 5 |
+| `acteble edge-backup` | 5a done: `actserve edge-backup NAME [DIR]` (`EdgeBackupService`, `SshRemoteDownload`: archive streamed byte for byte into a private 0600 file, nothing left on failure) | 5a done |
 | `acteble edge-audit` | none (`actserve audit` runs the same audit over ssh; the standalone command is missing) | 6 |
 | `acteble cdn-publish-geo`, `cdn-build-geo` (write to the CDN bucket) | none | 7 |
 | Real `StackDeployPort` (bootstrap and apply start the edge and the cdn) | 4d-4 done: `ServiceStackDeploy` runs the edge and cdn deploy services on the verified target; `UnportedStackDeploy` is unused (to remove in its own PR) | 4d-4 done |

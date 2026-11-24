@@ -3,6 +3,7 @@ pub mod caddy_deploy_service;
 pub mod cdn_deploy_service;
 pub mod deploy_service;
 pub mod dns_service;
+pub mod edge_backup_service;
 pub mod edge_deploy_service;
 pub mod edge_status_service;
 pub mod fleet_audit_service;

@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod baseline;
 pub mod caddy;
 pub mod catalog;
