@@ -1,6 +1,7 @@
 pub mod actesskey_secret_store;
 pub mod file_declared_data;
 pub mod file_inventory;
+pub mod scp_remote_copy;
 mod spawn_retry;
 pub mod ssh_edge_audit;
 pub mod ssh_executor;

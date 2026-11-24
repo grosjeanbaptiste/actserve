@@ -1,5 +1,6 @@
 pub mod baseline;
 pub mod catalog;
+pub mod deploy;
 pub mod dirs_file;
 pub mod dns;
 pub mod engines;

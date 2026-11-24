@@ -1,4 +1,5 @@
 pub mod bootstrap_service;
+pub mod deploy_service;
 pub mod dns_service;
 pub mod edge_status_service;
 pub mod fleet_audit_service;

@@ -9,6 +9,7 @@ pub mod hostname_probe;
 pub mod job_store;
 pub mod opentofu_engine;
 pub mod registrar_provider;
+pub mod remote_copy;
 pub mod remote_shell;
 pub mod remote_terminal;
 pub mod repo_catalog;
