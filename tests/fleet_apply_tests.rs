@@ -19,7 +19,6 @@ fn declared() -> Declared {
     Declared {
         sshd_conf: "PasswordAuthentication no\n".into(),
         ports: "# edge\n22/tcp\n443/tcp\n".into(),
-        docker_daemon: "{\"log-driver\":\"local\"}\n".into(),
         dirs: "/opt/acteble/edge|deploy\n".into(),
         stacks: "cdn|run\napi|held\n".into(),
     }
@@ -79,8 +78,7 @@ fn plan_lists_every_item_in_bootstrap_order_and_skips_held_stacks() {
             "harden ufw",
             "harden fail2ban",
             "harden upgrades",
-            "runtime docker",
-            "runtime logs",
+            "runtime podman",
             "runtime dirs",
             "edge network",
             "edge caddy",
@@ -104,7 +102,7 @@ fn plan_checks_carry_the_declared_file_and_every_port() {
     let ufw = &items[1].check.command;
     assert!(ufw.contains(r#"grep -qE "^443/tcp +ALLOW""#), "{ufw}");
     assert!(ufw.contains("deny (incoming)"), "{ufw}");
-    let dirs = &items[6].check.command;
+    let dirs = &items[5].check.command;
     assert!(
         dirs.contains(r#"test "$(stat -c %U /opt/acteble/edge)" = deploy"#),
         "{dirs}"
@@ -144,7 +142,6 @@ impl DeclaredDataPort for Data {
         Ok(match file {
             "sshd.conf" => d.sshd_conf.clone(),
             "ports.txt" => d.ports.clone(),
-            "docker-daemon.json" => d.docker_daemon.clone(),
             "dirs.txt" => d.dirs.clone(),
             "stacks.txt" => d.stacks.clone(),
             other => panic!("unexpected {other}"),
@@ -226,7 +223,7 @@ async fn dry_run_names_what_would_change_and_still_checks_the_rest() {
         r.lines
     );
     assert!(
-        r.lines.iter().any(|l| l.starts_with("runtime docker")),
+        r.lines.iter().any(|l| l.starts_with("runtime podman")),
         "{:?}",
         r.lines
     );
@@ -264,7 +261,7 @@ async fn dry_run_never_runs_a_mutating_command() {
             "ufw",
             "fail2ban",
             "dpkg",
-            "docker",
+            "podman --version",
             "stat",
             "is-active",
             "podman network",
@@ -499,6 +496,37 @@ async fn apply_installs_and_starts_the_missing_fail2ban() {
     assert!(calls.lock().unwrap().iter().any(|c| {
         c == "sudo -n apt-get install -y fail2ban && sudo -n systemctl enable --now fail2ban"
     }));
+}
+
+#[tokio::test]
+async fn apply_installs_the_missing_podman() {
+    let (s, calls) = drifting_service("podman --version", "apt-get install -y podman");
+    let r = s.apply("acteble").await.unwrap();
+    assert_eq!(r.exit_code(), 0, "{:?}", r.lines);
+    assert!(
+        r.lines.contains(&"runtime podman    applied".to_string()),
+        "{:?}",
+        r.lines
+    );
+    assert!(
+        calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|c| c == "sudo -n apt-get install -y podman")
+    );
+}
+
+#[test]
+fn plan_never_mentions_docker() {
+    for item in plan(&declared()).unwrap() {
+        let all = format!(
+            "{} {}",
+            item.check.command,
+            item.fix.map_or(String::new(), |f| f.command)
+        );
+        assert!(!all.contains("docker"), "{}: {all}", item.name);
+    }
 }
 
 #[test]

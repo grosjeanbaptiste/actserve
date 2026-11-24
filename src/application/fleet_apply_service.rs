@@ -52,7 +52,6 @@ impl FleetApplyService {
         Ok(Declared {
             sshd_conf: self.data.read(name, "sshd.conf").await?,
             ports: self.data.read(name, "ports.txt").await?,
-            docker_daemon: self.data.read(name, "docker-daemon.json").await?,
             dirs: self.data.read(name, "dirs.txt").await?,
             stacks: self.data.read(name, "stacks.txt").await?,
         })

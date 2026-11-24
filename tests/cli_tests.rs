@@ -18,7 +18,6 @@ impl Rig {
         for (f, text) in [
             ("sshd.conf", "PasswordAuthentication no\n"),
             ("ports.txt", "22/tcp\n443/tcp\n"),
-            ("docker-daemon.json", "{}\n"),
             ("dirs.txt", "/opt/acteble/edge|deploy\n"),
             ("stacks.txt", "cdn|run\napi|held\n"),
         ] {

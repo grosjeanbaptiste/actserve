@@ -45,7 +45,11 @@ linger on, units of `acteble_edge`, `acteble_cdn` and `actif` running, volumes
 copied, secrets as Podman secrets. Docker containers are stopped, not removed:
 the way back is `systemctl --user stop` the units, then `docker start`.
 
-Open: the `docker` and `logs` items still check Docker (`docker compose version`,
-`/etc/docker/daemon.json`) and have no writer; the units are installed by hand
-(deploy is slice 4); secrets are created from `.env`, not yet from actesskey;
-`cdn_publisher` and `geo_builder` are not ported; no reboot test yet.
+The bootstrap plan has no Docker left: the `runtime podman` item checks
+`podman --version` and installs it (`apt-get install -y podman`); the `logs` item
+and `docker-daemon.json` are gone (Quadlet units log to the journal).
+
+Open: the units are installed by hand (deploy is slice 4); secrets are created
+from `.env`, not yet from actesskey; `cdn_publisher` and `geo_builder` are not
+ported; the older catalog and registry (Docker Compose recipes, `RepoKind::DockerCompose`)
+still speak Docker. The VPS still holds the stopped Docker containers.

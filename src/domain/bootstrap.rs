@@ -9,7 +9,6 @@ use crate::domain::errors::DomainError;
 pub struct Declared {
     pub sshd_conf: String,
     pub ports: String,
-    pub docker_daemon: String,
     pub dirs: String,
     pub stacks: String,
 }
@@ -198,12 +197,6 @@ pub fn plan(d: &Declared) -> Result<Vec<Item>, DomainError> {
 
     let mut sshd = check("harden", "sshd", format!("sudo -n cmp -s - {SSHD_DROPIN}"));
     sshd.check.stdin = d.sshd_conf.clone().into_bytes();
-    let mut logs = check(
-        "runtime",
-        "logs",
-        "sudo -n cmp -s - /etc/docker/daemon.json",
-    );
-    logs.check.stdin = d.docker_daemon.clone().into_bytes();
 
     let dirs_fix = dirs
         .iter()
@@ -237,12 +230,10 @@ pub fn plan(d: &Declared) -> Result<Vec<Item>, DomainError> {
             ),
             "sudo -n apt-get install -y unattended-upgrades",
         ),
-        check(
-            "runtime",
-            "docker",
-            "docker compose version > /dev/null 2>&1",
+        with_fix(
+            check("runtime", "podman", "podman --version > /dev/null 2>&1"),
+            "sudo -n apt-get install -y podman",
         ),
-        logs,
         dirs_item,
         network,
         check(
