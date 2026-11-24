@@ -1,4 +1,5 @@
 pub mod baseline;
+pub mod caddy;
 pub mod catalog;
 pub mod deploy;
 pub mod dirs_file;
