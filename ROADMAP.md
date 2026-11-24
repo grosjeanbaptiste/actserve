@@ -20,6 +20,14 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `acteble deploy`, `rollback` | 4c done: `actserve deploy NAME [--dry-run]`, `actserve rollback NAME [TAG] [--dry-run]` (`DeployService`, `ScpRemoteCopy`) | 4c done |
 | `acteble rotate jwt\|postgres\|minio\|all` | none; secrets belong to actesskey | 5 |
 | `acteble edge-backup` | none | 5 |
+| `acteble edge-audit` | none (`actserve audit` runs the same audit over ssh; the standalone command is missing) | 6 |
+| `acteble cdn-publish-geo`, `cdn-build-geo` (write to the CDN bucket) | none | 7 |
+| Real `StackDeployPort` (bootstrap and apply start the edge and the cdn) | `UnportedStackDeploy` refuses and says so | 4d-4 |
+| Delegation: dotfiles calls actserve for every row above, then drops its own commands (one PR each, after a search of every caller) | only `servers audit` (dotfiles PR #62, not merged) | 8 |
+
+Done means (owner, 2026-11-24): every VPS feature of dotfiles runs end to end
+in actserve. Slice order: 4d-4, 5, 6, 7, then 8. A row is not finished until a
+parity check against the bash script is written down in `CONTEXT.md`.
 | DNS, TLS, WireGuard | present (domain, adapters, API) | verify |
 | `service start\|stop\|status` (local, no launchd) | out: local processes go to actparc / actautoma | - |
 
