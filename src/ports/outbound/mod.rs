@@ -1,5 +1,6 @@
 pub mod admin_registry;
 pub mod ansible_engine;
+pub mod caddyfile_source;
 pub mod crossplane_engine;
 pub mod declared_data;
 pub mod dns_provider;

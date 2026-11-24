@@ -26,7 +26,7 @@ pub fn ghcr_wrapped(script: &str) -> String {
     )
 }
 
-fn compose(extra: &str) -> String {
+pub(crate) fn compose(extra: &str) -> String {
     format!("docker compose {COMPOSE_BASE} --env-file {API_ENV_PATH} {extra}")
 }
 

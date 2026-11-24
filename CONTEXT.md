@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 4d-1 faite — 2026-11-24 (`deploy-caddy`)
+
+- `actserve deploy-caddy NAME [--dry-run]` : lit le `Caddyfile` de `origin/main` du dépôt `$ACTEBLE_API_DIR` (jamais l'arbre de travail ; `git` = `$ACTSERVE_GIT`, défaut `git`), lit le secret `acteble-api-prod` avant de toucher au serveur, sauvegarde le Caddyfile distant en `.bak`, écrit le nouveau en `.new` puis le déplace (un fichier à moitié écrit ne remplace jamais le vivant), recharge Caddy avec l'env en tmpfs (supprimé quoi qu'il arrive) ; si Caddy refuse, restaure la sauvegarde et sort en 1. `--dry-run` ne lance ni git, ni secret, ni ssh.
+- Nouveaux : `domain/caddy.rs`, `ports/outbound/caddyfile_source.rs` + `GitCaddyfileSource`, `application/caddy_deploy_service.rs`, `caddy_cli.rs`. Plus sûr que le bash : pas de fichier temporaire local, et un hôte refusé arrête tout (code 3).
+- Faux ssh, git et actesskey seulement ; jamais lancé sur le VPS réel. Reste de 4d : `cdn-deploy`, `edge-deploy`, `StackDeployPort` réel.
+
 ## Tranche 4c faite — 2026-11-24 (`deploy`, `rollback` de l'API)
 
 - `actserve deploy NAME [--dry-run]` : valide d'abord que les 4 fichiers (`docker-compose*.yml`, `Caddyfile`) existent dans `$ACTEBLE_API_DIR` (défaut `~/Source/Acteble/acteble_api`), lit les secrets `ghcr-read-packages` et `acteble-api-prod` AVANT de toucher au serveur, copie par scp (`$DOTFILES_SCP`), puis redémarre : env en tmpfs (supprimé quoi qu'il arrive), `docker login` ghcr avec le jeton sur stdin et `logout` toujours, `image tag :previous`, `pull`, `up -d`, `prune`. Arrêt au premier échec ; `--dry-run` ne lit aucun secret et n'exécute rien.

@@ -17,7 +17,7 @@ use crate::application::{
 use crate::domain::errors::DomainError;
 use crate::fleet_cli::inventory_and_ssh;
 
-type CliResult = Result<ExitCode, Box<dyn std::error::Error>>;
+pub(crate) type CliResult = Result<ExitCode, Box<dyn std::error::Error>>;
 
 const DEPLOY_USAGE: &str = "usage: actserve deploy NAME [--dry-run]";
 const ROLLBACK_USAGE: &str = "usage: actserve rollback NAME [TAG] [--dry-run]";
@@ -35,7 +35,7 @@ fn service() -> Result<DeployService, Box<dyn std::error::Error>> {
     ))
 }
 
-fn api_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub(crate) fn api_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
     Ok(std::env::var("ACTEBLE_API_DIR")
         .map(PathBuf::from)
         .or_else(|_| {
@@ -44,7 +44,7 @@ fn api_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
 }
 
 /// Exit 0 done, 1 a step failed or invalid input, 3 not the expected host, 2 unknown name.
-fn finish(name: &str, run: Result<HardenRun, DomainError>) -> CliResult {
+pub(crate) fn finish(name: &str, run: Result<HardenRun, DomainError>) -> CliResult {
     match run {
         Ok(run) => {
             print!("{}", harden_service::render(name, &run));
@@ -63,7 +63,7 @@ fn finish(name: &str, run: Result<HardenRun, DomainError>) -> CliResult {
 }
 
 /// Splits `--dry-run` from the other arguments; a lone dash-word is not a name or tag.
-fn split_flag(args: &[String]) -> Option<(Vec<&str>, bool)> {
+pub(crate) fn split_flag(args: &[String]) -> Option<(Vec<&str>, bool)> {
     let dry = args.iter().any(|a| a == "--dry-run");
     let rest: Vec<&str> = args
         .iter()
