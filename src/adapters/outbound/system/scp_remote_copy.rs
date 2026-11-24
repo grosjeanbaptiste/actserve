@@ -8,7 +8,7 @@ use super::spawn_retry::retry_busy;
 use crate::domain::errors::DomainError;
 use crate::ports::outbound::{remote_copy::RemoteCopyPort, remote_shell::RemoteOutput};
 
-/// Runs `scp -o BatchMode=yes -o ConnectTimeout=10 -- <files> <target>:<dir>/`.
+/// Runs `scp -o BatchMode=yes -o ConnectTimeout=10 -r -- <files> <target>:<dir>/` (`-r`: a directory is copied whole).
 pub struct ScpRemoteCopy {
     scp: PathBuf,
 }
@@ -40,7 +40,7 @@ impl RemoteCopyPort for ScpRemoteCopy {
         remote_dir: &str,
     ) -> Result<RemoteOutput, DomainError> {
         let mut cmd = Command::new(&self.scp);
-        cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "--"])
+        cmd.args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "-r", "--"])
             .args(files)
             .arg(format!("{ssh_target}:{remote_dir}/"))
             .stdin(Stdio::null())

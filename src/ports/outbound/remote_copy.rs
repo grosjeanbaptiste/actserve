@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::domain::errors::DomainError;
 use crate::ports::outbound::remote_shell::RemoteOutput;
 
-/// Copies local files to a directory of a remote host.
+/// Copies local files or directories to a directory of a remote host.
 #[async_trait]
 pub trait RemoteCopyPort: Send + Sync {
     /// The files of `files` that do not exist locally.

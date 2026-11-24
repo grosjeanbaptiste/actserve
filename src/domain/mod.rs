@@ -5,6 +5,7 @@ pub mod cdn;
 pub mod deploy;
 pub mod dirs_file;
 pub mod dns;
+pub mod edge_deploy;
 pub mod engines;
 pub mod errors;
 pub mod fleet;

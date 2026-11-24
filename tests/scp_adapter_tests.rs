@@ -32,7 +32,7 @@ async fn it_copies_the_files_to_the_remote_directory_with_options_ended() {
     assert_eq!(out.code, Some(0));
     assert_eq!(
         std::fs::read_to_string(format!("{}.args", scp.display())).unwrap(),
-        "-o BatchMode=yes -o ConnectTimeout=10 -- /a/x.yml /a/Caddyfile api.acteble:/opt/x/\n"
+        "-o BatchMode=yes -o ConnectTimeout=10 -r -- /a/x.yml /a/Caddyfile api.acteble:/opt/x/\n"
     );
 }
 
