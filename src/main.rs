@@ -43,6 +43,7 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
         Some("rollback") => return actserve::deploy_cli::run_rollback(&args[1..]).await,
         Some("deploy-caddy") => return actserve::caddy_cli::run_deploy_caddy(&args[1..]).await,
         Some("cdn-deploy") => return actserve::cdn_cli::run_cdn_deploy(&args[1..]).await,
+        Some("edge-deploy") => return actserve::edge_cli::run_edge_deploy(&args[1..]).await,
         Some("edge-status") => return actserve::observe_cli::run_edge_status(&args[1..]).await,
         _ => {}
     }

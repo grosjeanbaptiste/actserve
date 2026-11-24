@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 4d-3 faite — 2026-11-24 (`edge-deploy`)
+
+- `actserve edge-deploy NAME [--dry-run]` : valide que `Caddyfile`, `compose.yml` et `sites/` existent dans `$ACTEBLE_EDGE_DIR` (défaut `~/Source/Acteble/acteble_edge`), lit `ghcr-read-packages` et `acteble-edge-prod` AVANT de toucher au serveur, puis : `mkdir -p /opt/acteble/edge`, copie, binaire `/edge` sorti de `ghcr.io/acteble/acteble_edge:latest` (login ghcr déconnecté toujours, conteneur temporaire supprimé toujours, aucun socket monté), puis `./edge up --env-file` avec l'env en tmpfs supprimé quoi qu'il arrive. Arrêt au premier échec ; `--dry-run` ne lit aucun secret et n'exécute rien.
+- `ScpRemoteCopy` passe maintenant `-r` (un dossier est copié en entier) ; les tests des tranches 4c et 4d restent verts.
+- Nouveaux : `domain/edge_deploy.rs`, `application/edge_deploy_service.rs`, `edge_cli.rs`. Faux ssh, scp et actesskey seulement ; jamais lancé sur le VPS réel. Les trois commandes de 4d existent ; reste le vrai `StackDeployPort` (pour que `bootstrap` démarre l'edge et le cdn), puis la délégation depuis dotfiles.
+
 ## Tranche 4d-2 faite — 2026-11-24 (`cdn-deploy`)
 
 - `actserve cdn-deploy NAME [--dry-run]` : valide que `compose.yml` existe dans `$ACTEBLE_CDN_DIR` (défaut `~/Source/Acteble/acteble_cdn`), lit les secrets `ghcr-read-packages` et `acteble-cdn-prod` AVANT de toucher au serveur, puis : `mkdir -p /opt/acteble/cdn`, copie par scp, réseau `acteble_edge` créé seulement s'il manque (un échec de création n'est plus masqué, contrairement au bash), `pull` puis `up -d --remove-orphans` avec login ghcr (déconnexion toujours) et env en tmpfs, puis ouverture du préfixe `geo/` en lecture anonyme par un client mc jetable en lecture seule (10 essais). L'env est écrit puis supprimé pour chacune des deux étapes. Arrêt au premier échec ; `--dry-run` ne lit aucun secret et n'exécute rien.
