@@ -13,6 +13,13 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 4c faite — 2026-11-24 (`deploy`, `rollback` de l'API)
+
+- `actserve deploy NAME [--dry-run]` : valide d'abord que les 4 fichiers (`docker-compose*.yml`, `Caddyfile`) existent dans `$ACTEBLE_API_DIR` (défaut `~/Source/Acteble/acteble_api`), lit les secrets `ghcr-read-packages` et `acteble-api-prod` AVANT de toucher au serveur, copie par scp (`$DOTFILES_SCP`), puis redémarre : env en tmpfs (supprimé quoi qu'il arrive), `docker login` ghcr avec le jeton sur stdin et `logout` toujours, `image tag :previous`, `pull`, `up -d`, `prune`. Arrêt au premier échec ; `--dry-run` ne lit aucun secret et n'exécute rien.
+- `actserve rollback NAME [TAG] [--dry-run]` : redémarre sur `previous` (déjà sur le serveur) ou tire le tag demandé (`[A-Za-z0-9_.-]`, validé). Mêmes garanties.
+- Nouveaux : `domain/deploy.rs`, `ports/outbound/remote_copy.rs` + `ScpRemoteCopy`, `application/deploy_service.rs`, `deploy_cli.rs` ; `remote_env` gagne `with_remote_env_value` (valeur déjà lue, stdin pour la commande).
+- Faux ssh, scp et actesskey seulement ; jamais lancé sur le VPS réel (le propriétaire doit donner son accord). Reste de la tranche 4 (4d) : `deploy-caddy` (depuis `origin/main`, sauvegarde et restauration du Caddyfile), `cdn-deploy`, `edge-deploy`.
+
 ## Tranche 4b faite — 2026-11-23 (socle des secrets, `edge-status`)
 
 - `actserve edge-status NAME` : lit le secret `acteble-edge-prod` avec `actesskey get` (`$ACTSERVE_ACTESSKEY`, défaut `actesskey`), l'envoie sur stdin vers `/dev/shm/acteble-edge.env` (umask 077), lance `./edge status --env-file …`, puis supprime le fichier même si la commande échoue ; un fichier non supprimé ou non écrit est une erreur, jamais un silence. Hôte refusé avant la lecture du secret (code 3).

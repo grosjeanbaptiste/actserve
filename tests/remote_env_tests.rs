@@ -157,3 +157,29 @@ async fn an_unsafe_path_or_name_is_refused_before_anything_runs() {
     assert!(matches!(e, DomainError::ValidationError(_)));
     assert!(commands(&log).is_empty());
 }
+
+#[tokio::test]
+async fn a_value_already_read_is_written_and_the_command_gets_its_own_stdin() {
+    use actserve::application::remote_env::with_remote_env_value;
+    let (log, shell, _) = setup(vec![], Store(Err("never read")));
+    let value = SecretValue::new(VALUE.into());
+    with_remote_env_value(&shell, "t", &value, PATH, "do-it", Some("token"))
+        .await
+        .unwrap();
+    let calls = log.0.lock().unwrap();
+    assert_eq!(calls[0].1.as_deref(), Some(VALUE));
+    assert_eq!(calls[1], ("do-it".to_string(), Some("token".to_string())));
+    assert_eq!(calls[2].0, "rm -f '/dev/shm/x.env'");
+}
+
+#[tokio::test]
+async fn a_value_with_an_unsafe_path_runs_nothing() {
+    use actserve::application::remote_env::with_remote_env_value;
+    let (log, shell, _) = setup(vec![], Store(Err("never read")));
+    let value = SecretValue::new(VALUE.into());
+    let e = with_remote_env_value(&shell, "t", &value, "/tmp/x", "c", None)
+        .await
+        .unwrap_err();
+    assert!(matches!(e, DomainError::ValidationError(_)));
+    assert!(commands(&log).is_empty());
+}

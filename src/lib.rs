@@ -2,6 +2,7 @@
 
 pub mod adapters;
 pub mod application;
+pub mod deploy_cli;
 pub mod domain;
 pub mod fleet_cli;
 pub mod observe_cli;
