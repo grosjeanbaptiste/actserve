@@ -11,4 +11,5 @@ pub mod edge_cli;
 pub mod fleet_cli;
 pub mod observe_cli;
 pub mod ports;
+pub mod rotate_cli;
 pub mod stack_wiring;
