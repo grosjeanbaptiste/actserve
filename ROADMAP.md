@@ -65,7 +65,8 @@ One PR per command; `domain/deploy.rs` keeps the Docker scripts until the last u
 |---|---|
 | `ps`, `logs`, `edge-status`, `edge-audit` | session `remove-docker-from-vps`, branch `feat/podman-ps-audit` |
 | `cdn-build-geo` | done (`podman run` with `--secret`, `domain/podman.rs::ghcr_wrapped`) |
-| `cdn-deploy`, `edge-deploy`, `edge-backup`, `runtime`, `stacks` | to port, in this order |
+| `edge-backup` | done (`podman ps` on `systemd-acteble_edge-caddy`, `podman run --volumes-from`) |
+| `cdn-deploy` (branch `feat/podman-cdn-deploy`, other session), `edge-deploy`, `runtime`, `stacks` | `runtime` and bootstrap checks: `feat/podman-bootstrap` merged; the rest to port |
 | `deploy`, `rollback`, `rotate` (api) | wait for `acteble_api` branch `feat/podman-quadlet` to merge |
 | `cdn-publish-geo` | frozen: `publish.sh` left `acteble_cdn`; Podman version after the CDN branch merges |
 | Delegation from dotfiles (slice 8) | only for commands already ported and valid |
