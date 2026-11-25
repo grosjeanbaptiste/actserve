@@ -3,6 +3,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use actserve::domain::cdn::{CDN_HEALTH_SCRIPT, CDN_UNIT_FILES};
+
 fn script(path: &Path, body: &str) {
     std::fs::write(path, format!("#!/bin/sh\n{body}\n")).unwrap();
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
@@ -14,9 +16,11 @@ struct Env {
 impl Env {
     fn new(name: &str) -> Self {
         let dir = std::env::temp_dir().join(format!("actserve-cdn-{}-{name}", std::process::id()));
-        std::fs::create_dir_all(dir.join("cdn")).unwrap();
+        std::fs::create_dir_all(dir.join("cdn/quadlet")).unwrap();
         std::fs::write(dir.join("servers.txt"), "acteble|api.acteble|host-1\n").unwrap();
-        std::fs::write(dir.join("cdn/compose.yml"), "x").unwrap();
+        for f in CDN_UNIT_FILES.iter().chain([&CDN_HEALTH_SCRIPT]) {
+            std::fs::write(dir.join("cdn").join(f), "x").unwrap();
+        }
         script(&dir.join("ssh"), SSH);
         script(
             &dir.join("scp"),
@@ -65,6 +69,7 @@ fn a_deploy_runs_the_five_steps_and_prints_them() {
         "cdn-deploy prepare   applied\ncdn-deploy copy      applied\ncdn-deploy network   applied\ncdn-deploy start     applied\ncdn-deploy geo       applied\n"
     );
     let l = e.log();
+    assert!(l.contains("api.acteble:.config/containers/systemd/"), "{l}");
     assert!(l.contains("api.acteble:/opt/acteble/cdn/"), "{l}");
     assert!(l.contains("value-of-acteble-cdn-prod") && l.contains("value-of-ghcr-read-packages"));
     assert!(
@@ -84,9 +89,9 @@ fn a_dry_run_runs_nothing_and_exits_0() {
 }
 
 #[test]
-fn a_missing_compose_file_exits_1_naming_the_variable_and_runs_nothing() {
+fn a_missing_unit_file_exits_1_naming_the_variable_and_runs_nothing() {
     let e = Env::new("nofile");
-    std::fs::remove_file(e.dir.join("cdn/compose.yml")).unwrap();
+    std::fs::remove_file(e.dir.join("cdn/quadlet/acteble_cdn.network")).unwrap();
     let out = e.run(&["cdn-deploy", "acteble"], &[]);
     assert_eq!(out.status.code(), Some(1));
     assert!(text(&out.stderr).contains("ACTEBLE_CDN_DIR"), "{out:?}");

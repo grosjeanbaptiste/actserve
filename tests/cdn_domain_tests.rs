@@ -1,6 +1,7 @@
 //! The CDN deploy: names and the commands run on the server.
 use actserve::domain::cdn::{
-    CDN_ENV_PATH, CDN_SECRET, geo_script, network_command, prepare_command, start_script,
+    CDN_ENV_PATH, CDN_HEALTH_SCRIPT, CDN_SECRET, CDN_UNIT_DIR, CDN_UNIT_FILES, geo_script,
+    network_command, prepare_command, start_script,
 };
 
 #[test]
@@ -10,25 +11,79 @@ fn the_names_are_the_ones_of_the_bash_deploy() {
 }
 
 #[test]
-fn the_directory_is_created_idempotently() {
-    assert_eq!(prepare_command(), "mkdir -p '/opt/acteble/cdn'");
+fn the_directories_are_created_idempotently() {
+    assert_eq!(
+        prepare_command(),
+        "mkdir -p '/opt/acteble/cdn' && mkdir -p \"$HOME/.config/containers/systemd\""
+    );
 }
 
 #[test]
-fn the_shared_network_is_created_only_when_absent_and_a_failed_create_is_not_hidden() {
+fn the_units_are_the_quadlet_files_of_the_cdn_repository_and_land_in_the_user_unit_dir() {
+    assert_eq!(CDN_UNIT_DIR, ".config/containers/systemd");
+    assert_eq!(
+        CDN_UNIT_FILES,
+        [
+            "quadlet/acteble_cdn.network",
+            "quadlet/acteble_cdn_minio.volume",
+            "quadlet/acteble_cdn_geo_work.volume",
+            "quadlet/acteble_cdn-minio.container",
+            "quadlet/acteble_cdn-checkpoint.container",
+            "quadlet/acteble_cdn-publisher.container",
+            "quadlet/acteble_cdn-geo-builder.container",
+        ]
+    );
+    assert_eq!(CDN_HEALTH_SCRIPT, "quadlet/minio-health.sh");
+}
+
+#[test]
+fn the_shared_network_is_started_only_when_absent_after_the_units_are_loaded() {
     assert_eq!(
         network_command(),
-        "podman network exists acteble_edge || systemctl --user start acteble_edge-network.service"
+        "systemctl --user daemon-reload && { podman network exists acteble_edge || systemctl --user start acteble_edge-network.service; }"
     );
 }
 
 #[test]
-fn the_start_pulls_then_brings_the_stack_up_with_the_tmpfs_env() {
-    assert_eq!(
-        start_script(),
-        "cd '/opt/acteble/cdn'\n\
-         docker compose --env-file /dev/shm/acteble-cdn.env pull && docker compose --env-file /dev/shm/acteble-cdn.env up -d --remove-orphans"
+fn the_start_creates_the_podman_secrets_from_the_env_then_restarts_the_units() {
+    let s = start_script();
+    assert!(
+        s.starts_with("set -e\nset -a && . /dev/shm/acteble-cdn.env && set +a\n"),
+        "{s}"
     );
+    assert!(
+        s.contains("podman pull ghcr.io/acteble/acteble_cdn:latest\n"),
+        "{s}"
+    );
+    for (var, secret) in [
+        ("MINIO_ROOT_USER", "acteble_cdn_minio_root_user"),
+        ("MINIO_ROOT_PASSWORD", "acteble_cdn_minio_root_password"),
+        ("CDN_TOKEN_SECRET", "acteble_cdn_token_secret"),
+        (
+            "CDN_MANIFEST_PUBLISHER_KEY_ID",
+            "acteble_cdn_manifest_publisher_key_id",
+        ),
+    ] {
+        assert!(
+            s.contains(&format!("secret {secret} \"${var}\"\n")),
+            "{secret}: {s}"
+        );
+    }
+    assert!(
+        s.contains("[ -z \"$CDN_MANIFEST_SIGNING_KEY\" ] || secret acteble_cdn_manifest_signing_key \"$CDN_MANIFEST_SIGNING_KEY\"\n"),
+        "{s}"
+    );
+    assert!(
+        s.contains("secret() { printf %s \"$2\" | podman secret create --replace \"$1\" -; }\n"),
+        "{s}"
+    );
+    assert!(
+        s.trim_end().ends_with(
+            "systemctl --user daemon-reload\nsystemctl --user restart acteble_cdn-minio.service acteble_cdn-checkpoint.service"
+        ),
+        "{s}"
+    );
+    assert!(!s.contains("docker"), "{s}");
 }
 
 #[test]
@@ -42,7 +97,8 @@ fn the_geo_prefix_is_opened_by_a_throwaway_read_only_client_with_retries() {
         s.contains("MC_HOST_local=\"http://$MINIO_ROOT_USER:$MINIO_ROOT_PASSWORD@cdn-minio:9000\""),
         "{s}"
     );
-    assert!(s.contains("--network acteble_cdn"), "{s}");
+    assert!(s.contains("podman run --rm --network acteble_cdn"), "{s}");
+    assert!(!s.contains("docker"), "{s}");
     assert!(s.contains("--cap-drop ALL --read-only --tmpfs /tmp"), "{s}");
     assert!(s.contains("cgr.dev/chainguard/minio-client@sha256:10388d580a724f356b94c9b2631b5a179039cabe8c76e9b37d86ed007d569b05"), "{s}");
     assert!(

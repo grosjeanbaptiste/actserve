@@ -20,6 +20,11 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Partage : `ps`, `logs`, `edge-status`, `edge-audit` sont sur la branche `feat/podman-ps-audit` de la session `remove-docker-from-vps`. Plan et ordre dans `ROADMAP.md`.
 - Preuve : suite 492 verts, clippy `-D warnings` et fmt propres, mutants 17 testés, 0 survivant. Rien lancé sur le VPS réel ni sur le magasin de secrets. Les scripts sont vérifiés par les tests de chaîne ; leur exécution réelle sous Podman n'est pas essayée.
 
+## Podman : `edge-backup` — 2026-11-25
+
+- `BACKUP_SCRIPT` (`src/domain/backup.rs`) trouve le conteneur `systemd-acteble_edge-caddy` par `podman ps -q --filter name=^systemd-acteble_edge-caddy$` (échec s'il n'y en a pas), lit son volume `/data` en lecture seule par `podman run --rm --volumes-from "$c":ro --entrypoint tar` avec l'image donnée par `podman inspect`, et écrit un tar gzip sur stdout. Aucune commande Docker. Source des noms : message de la session `remove-docker-from-vps` et unité `acteble_edge-caddy.container`.
+- Preuve : suite 495 verts, clippy `-D warnings` et fmt propres. Pas de mutant dans le diff (une constante). Rouge vu : 4 tests échouaient sur l'ancien script. Non lancé sur le VPS réel : `edge-backup` lit les clés privées des certificats, il reste au propriétaire de donner le go.
+
 ## Retrait de `UnportedStackDeploy` — 2026-11-25
 
 Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_tests.rs`). Recherche des appelants : seuls `mod.rs`, son test et ces docs le citaient ; `stack_wiring.rs` utilise `ServiceStackDeploy`. Les mentions plus bas dans ce fichier sont historiques.
@@ -61,6 +66,11 @@ Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_t
 - `actserve edge-deploy NAME [--dry-run]` : valide que `Caddyfile`, `compose.yml` et `sites/` existent dans `$ACTEBLE_EDGE_DIR` (défaut `~/Source/Acteble/acteble_edge`), lit `ghcr-read-packages` et `acteble-edge-prod` AVANT de toucher au serveur, puis : `mkdir -p /opt/acteble/edge`, copie, binaire `/edge` sorti de `ghcr.io/acteble/acteble_edge:latest` (login ghcr déconnecté toujours, conteneur temporaire supprimé toujours, aucun socket monté), puis `./edge up --env-file` avec l'env en tmpfs supprimé quoi qu'il arrive. Arrêt au premier échec ; `--dry-run` ne lit aucun secret et n'exécute rien.
 - `ScpRemoteCopy` passe maintenant `-r` (un dossier est copié en entier) ; les tests des tranches 4c et 4d restent verts.
 - Nouveaux : `domain/edge_deploy.rs`, `application/edge_deploy_service.rs`, `edge_cli.rs`. Faux ssh, scp et actesskey seulement ; jamais lancé sur le VPS réel. Les trois commandes de 4d existent ; reste le vrai `StackDeployPort` (pour que `bootstrap` démarre l'edge et le cdn), puis la délégation depuis dotfiles.
+
+## `cdn-deploy` en Podman + Quadlet — 2026-11-25
+
+- Remplace `compose.yml` : valide les 7 fichiers `quadlet/*` et `quadlet/minio-health.sh` de `$ACTEBLE_CDN_DIR`, les copie (unités dans `~/.config/containers/systemd`, script dans `/opt/acteble/cdn`), puis `systemctl --user daemon-reload` et le réseau `acteble_edge` (démarré par son unité s'il manque). L'étape `start` fait `podman login ghcr.io` (déconnexion toujours), `podman pull`, crée les secrets Podman (`acteble_cdn_*`) depuis l'env en tmpfs (la clé de signature seulement si elle est présente), puis `systemctl --user restart` de MinIO et du checkpoint. L'étape `geo` utilise `podman run`. Les étapes et leurs noms ne changent pas.
+- Jamais lancé sur le VPS réel. `cdn_publisher` et `geo_builder` sont copiés mais pas démarrés par ce déploiement. `ghcr_wrapped` (Docker) reste pour `deploy`, `edge-deploy` et `geo-build`, pas encore migrés.
 
 ## Tranche 4d-2 faite — 2026-11-24 (`cdn-deploy`)
 

@@ -133,7 +133,8 @@ async fn the_cdn_is_started_by_the_cdn_deploy() {
     assert_eq!(d.start("ta", "cdn").await.unwrap(), DeployOutcome::Started);
     let l = log.all();
     assert!(
-        l.iter().any(|c| c.contains("/src/cdn/compose.yml")),
+        l.iter()
+            .any(|c| c.contains("/src/cdn/quadlet/acteble_cdn-minio.container")),
         "{l:?}"
     );
     assert!(!l.iter().any(|c| c.contains("/src/edge")));
