@@ -16,6 +16,7 @@ pub mod geo_build;
 pub mod harden;
 pub mod observe;
 pub mod orchestration;
+pub mod podman;
 pub mod ports_file;
 pub mod registrar;
 pub mod registry;
