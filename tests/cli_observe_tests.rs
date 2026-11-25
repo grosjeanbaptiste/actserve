@@ -79,7 +79,11 @@ fn logs_take_a_service_and_exit_with_the_ssh_code() {
     let (dir, ssh) = stage("logs-svc", &format!("RC=130\n{SSH}"));
     let out = run(&dir, &ssh, &["logs", "acteble", "api", "db"]);
     assert_eq!(out.status.code(), Some(130));
-    assert!(calls(&ssh).contains("acteble_api-db.service -f -n 100"), "{}", calls(&ssh));
+    assert!(
+        calls(&ssh).contains("acteble_api-db.service -f -n 100"),
+        "{}",
+        calls(&ssh)
+    );
 }
 
 #[test]

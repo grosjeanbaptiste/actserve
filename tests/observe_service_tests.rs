@@ -100,9 +100,7 @@ async fn logs_attach_a_terminal_with_the_default_service() {
     let run = s.logs("a", Stack::Cdn, None).await.unwrap();
     assert_eq!(
         calls.0.lock().unwrap().as_slice(),
-        [
-            "tty ta journalctl --user -u acteble_cdn-checkpoint.service -f -n 100"
-        ]
+        ["tty ta journalctl --user -u acteble_cdn-checkpoint.service -f -n 100"]
     );
     assert_eq!(exit_code(&run), 0);
     assert_eq!(render("a", &run), "");
