@@ -1,5 +1,5 @@
 //! The geo build on the CDN host: stages and the commands run on the server.
-use crate::domain::{cdn::CDN_ENV_PATH, errors::DomainError, observe::Stack};
+use crate::domain::{cdn::CDN_ENV_PATH, errors::DomainError};
 
 /// Name of the detached build container (kept from `acteble cdn-build-geo`).
 pub const GEO_BUILD_NAME: &str = "acteble-geo-build";
@@ -37,12 +37,38 @@ impl GeoStage {
     }
 }
 
-/// Pull the builder image, then start it detached (it keeps running if the link drops).
+const GEO_IMAGE: &str = "ghcr.io/acteble/acteble_geo:latest";
+/// Same limits as `acteble_cdn-geo-builder.container` of the CDN repository.
+const RUN_FLAGS: &str = "--network acteble_cdn --cap-drop ALL --security-opt no-new-privileges --memory 2800m --ulimit nofile=262144:262144 -v acteble_cdn_geo_work:/srv/acteble_cdn/geo-out";
+const STORAGE_ENV: &str = "-e APP__STORAGE__MINIO__ENDPOINT=cdn-minio:9000 -e APP__STORAGE__MINIO__BUCKET=acteble-files -e APP__STORAGE__MINIO__SECURE=false -e APP__STORAGE__MINIO__REGION=us-east-1";
+const SIGNING_SECRET: &str = "acteble_cdn_manifest_signing_key";
+
+fn secret_flags() -> String {
+    [
+        (
+            "acteble_cdn_minio_root_user",
+            "APP__STORAGE__MINIO__ACCESS_KEY",
+        ),
+        (
+            "acteble_cdn_minio_root_password",
+            "APP__STORAGE__MINIO__SECRET_KEY",
+        ),
+        (SIGNING_SECRET, "GEO_MANIFEST_SIGNING_KEY"),
+        (SIGNING_SECRET, "CDN_MANIFEST_SIGNING_KEY"),
+    ]
+    .map(|(name, target)| format!("--secret {name},type=env,target={target}"))
+    .join(" ")
+}
+
+/// Rootless Podman, no Docker. The env file (on the server tmpfs) holds the signing key,
+/// which becomes a podman secret; the image is pulled, the build starts detached (it
+/// keeps running if the link drops). No value is ever an argument.
 pub fn build_script(stage: GeoStage) -> String {
-    let run = format!("docker compose --env-file {CDN_ENV_PATH} --profile tools");
     format!(
-        "cd '{dir}'\n{run} pull geo_builder && {run} run -d --name {GEO_BUILD_NAME} geo_builder --stage {stage}",
-        dir = Stack::Cdn.dir(),
+        "set -a && . {CDN_ENV_PATH} && set +a\n\
+         printf %s \"${SIGNING_KEY}\" | podman secret create --replace {SIGNING_SECRET} - >/dev/null || exit 1\n\
+         podman pull {GEO_IMAGE} && podman run -d --name {GEO_BUILD_NAME} {RUN_FLAGS} {STORAGE_ENV} {secrets} {GEO_IMAGE} --stage {stage}",
+        secrets = secret_flags(),
         stage = stage.as_str(),
     )
 }
@@ -50,7 +76,7 @@ pub fn build_script(stage: GeoStage) -> String {
 /// Streams the build's logs, waits for its exit, removes the container, exits with its status.
 pub fn follow_command() -> String {
     format!(
-        "docker logs -f {GEO_BUILD_NAME}; rc=$(docker wait {GEO_BUILD_NAME}); docker rm {GEO_BUILD_NAME} >/dev/null; exit $rc"
+        "podman logs -f {GEO_BUILD_NAME}; rc=$(podman wait {GEO_BUILD_NAME}); podman rm {GEO_BUILD_NAME} >/dev/null; exit $rc"
     )
 }
 
