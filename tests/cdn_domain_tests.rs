@@ -18,7 +18,7 @@ fn the_directory_is_created_idempotently() {
 fn the_shared_network_is_created_only_when_absent_and_a_failed_create_is_not_hidden() {
     assert_eq!(
         network_command(),
-        "docker network inspect acteble_edge > /dev/null 2>&1 || docker network create acteble_edge > /dev/null"
+        "podman network exists acteble_edge || systemctl --user start acteble_edge-network.service"
     );
 }
 

@@ -106,10 +106,9 @@ struct Rig {
     audit: Arc<Audit>,
 }
 
-const GOOD: [(&str, &str); 6] = [
+const GOOD: [(&str, &str); 5] = [
     ("sshd.conf", "PermitRootLogin no\n"),
     ("ports.txt", "22/tcp\n"),
-    ("docker-daemon.json", "{}\n"),
     ("dirs.txt", "/opt/a|admin\n"),
     ("stacks.txt", "cdn|run\napi|held\n"),
     ("unused", ""),
@@ -199,8 +198,7 @@ async fn a_server_in_its_declared_state_passes_all_six_steps_and_exits_0() {
             "harden ufw",
             "harden fail2ban",
             "harden upgrades",
-            "runtime docker",
-            "runtime logs",
+            "runtime podman",
             "runtime dirs",
             "edge network",
             "edge caddy",
@@ -222,8 +220,8 @@ async fn a_server_in_its_declared_state_passes_all_six_steps_and_exits_0() {
 async fn a_failing_step_stops_the_run_before_the_next_step_and_the_audit() {
     for (rule, last, must_not) in [
         ("id -u", "reach reach", "systemctl is-active"),
-        ("systemctl is-active", "harden fail2ban", "compose version"),
-        ("compose version", "runtime docker", "network inspect"),
+        ("systemctl is-active", "harden fail2ban", "podman --version"),
+        ("podman --version", "runtime podman", "network exists"),
     ] {
         let r = rig(
             "h1",
@@ -244,7 +242,7 @@ async fn a_failing_step_stops_the_run_before_the_next_step_and_the_audit() {
 async fn a_failing_network_creation_stops_before_the_audit() {
     let r = rig(
         "h1",
-        vec![("network inspect", 1), ("network create", 1)],
+        vec![("network exists", 1), ("start acteble_edge-network", 1)],
         AuditVerdict::Conforming,
         &[],
     );
@@ -278,7 +276,7 @@ async fn a_dry_run_applies_nothing_and_does_not_audit() {
         ("id -u", 0),
         ("cmp -s", 1),
         ("compose version", 1),
-        ("network inspect", 1),
+        ("network exists", 1),
         ("acteble_cdn", 1),
     ];
     let r = rig("h1", rules, AuditVerdict::Deviation, &[]);
@@ -291,7 +289,7 @@ async fn a_dry_run_applies_nothing_and_does_not_audit() {
     );
     assert_eq!(exit_code(&run), 0);
     assert_eq!(*r.audit.1.lock().unwrap(), 0);
-    assert!(!called(&r, "network create"));
+    assert!(!called(&r, "systemctl --user start"));
 }
 
 #[tokio::test]
@@ -317,7 +315,7 @@ async fn a_missing_file_another_host_and_an_unknown_name_make_no_remote_call() {
         "h1",
         vec![],
         AuditVerdict::Conforming,
-        &[("docker-daemon.json", "<absent>")],
+        &[("stacks.txt", "<absent>")],
     );
     assert!(r.svc.run("a", false).await.is_err());
     assert!(matches!(

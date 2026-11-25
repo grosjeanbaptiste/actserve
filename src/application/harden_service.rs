@@ -166,12 +166,5 @@ fn line(r: &ItemReport) -> String {
         ItemOutcome::Held => "skipped (held back)".to_string(),
         ItemOutcome::Failed(m) => format!("fail ({m})"),
     };
-    let note = match (r.item, &r.outcome) {
-        ("logs", ItemOutcome::Applied) => format!(
-            "{} logs: installed; it takes effect at the next restart of Docker, containers keep running\n",
-            r.step
-        ),
-        _ => String::new(),
-    };
-    format!("{label}{status}\n{note}")
+    format!("{label}{status}\n")
 }

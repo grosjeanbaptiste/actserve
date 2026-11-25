@@ -128,7 +128,7 @@ async fn an_edge_that_is_up_is_checked_and_never_touched() {
             .lock()
             .unwrap()
             .iter()
-            .any(|c| c.contains("network create"))
+            .any(|c| c.contains("start acteble_edge-network"))
     );
 }
 
@@ -136,7 +136,7 @@ async fn an_edge_that_is_up_is_checked_and_never_touched() {
 async fn a_missing_network_is_created_then_a_missing_caddy_is_started_by_the_deploy() {
     let r = rig(
         "h1",
-        vec![("network inspect", 1), ("service=caddy", 1)],
+        vec![("network exists", 1), ("acteble_edge-caddy", 1)],
         STACKS,
         DeployOutcome::Started,
     );
@@ -149,7 +149,7 @@ async fn a_missing_network_is_created_then_a_missing_caddy_is_started_by_the_dep
             .lock()
             .unwrap()
             .iter()
-            .any(|c| c == "docker network create acteble_edge > /dev/null")
+            .any(|c| c == "systemctl --user start acteble_edge-network.service")
     );
 }
 
@@ -157,7 +157,7 @@ async fn a_missing_network_is_created_then_a_missing_caddy_is_started_by_the_dep
 async fn a_deploy_that_cannot_start_is_a_failure_with_its_reason() {
     let r = rig(
         "h1",
-        vec![("service=caddy", 1)],
+        vec![("acteble_edge-caddy", 1)],
         STACKS,
         DeployOutcome::Unavailable("not ported yet".into()),
     );
@@ -170,7 +170,7 @@ async fn a_deploy_that_cannot_start_is_a_failure_with_its_reason() {
 async fn a_failing_network_creation_stops_before_caddy() {
     let r = rig(
         "h1",
-        vec![("network inspect", 1), ("network create", 1)],
+        vec![("network exists", 1), ("start acteble_edge-network", 1)],
         STACKS,
         DeployOutcome::Started,
     );
@@ -184,7 +184,7 @@ async fn a_failing_network_creation_stops_before_caddy() {
             .lock()
             .unwrap()
             .iter()
-            .any(|c| c.contains("service=caddy"))
+            .any(|c| c.contains("acteble_edge-caddy"))
     );
 }
 
@@ -193,8 +193,8 @@ async fn a_dry_run_starts_nothing() {
     let r = rig(
         "h1",
         vec![
-            ("network inspect", 1),
-            ("service=caddy", 1),
+            ("network exists", 1),
+            ("acteble_edge-caddy", 1),
             ("acteble_cdn", 1),
         ],
         STACKS,
@@ -214,7 +214,7 @@ async fn a_dry_run_starts_nothing() {
             .lock()
             .unwrap()
             .iter()
-            .any(|c| c.contains("network create"))
+            .any(|c| c.contains("start acteble_edge-network"))
     );
 }
 
@@ -288,7 +288,7 @@ async fn bad_stacks_another_host_and_unknown_names_make_no_remote_call() {
 async fn edge_render_names_the_step() {
     let r = rig(
         "h1",
-        vec![("network inspect", 1)],
+        vec![("network exists", 1)],
         STACKS,
         DeployOutcome::Started,
     );

@@ -7,7 +7,6 @@ fn stage(name: &str, ssh_body: &str, dirs: &str) -> (PathBuf, PathBuf) {
     let dir = std::env::temp_dir().join(format!("actserve-cr-{}-{name}", std::process::id()));
     std::fs::create_dir_all(dir.join("servers/acteble")).unwrap();
     std::fs::write(dir.join("servers.txt"), "acteble|api.acteble|host-1\n").unwrap();
-    std::fs::write(dir.join("servers/acteble/docker-daemon.json"), "{}\n").unwrap();
     std::fs::write(dir.join("servers/acteble/dirs.txt"), dirs).unwrap();
     let ssh = dir.join("ssh");
     std::fs::write(&ssh, format!("#!/bin/sh\n{ssh_body}\n")).unwrap();
@@ -36,24 +35,24 @@ fn a_server_with_its_runtime_prints_ok_lines_and_exits_0() {
     assert_eq!(out.status.code(), Some(0), "{out:?}");
     assert_eq!(
         String::from_utf8_lossy(&out.stdout),
-        "runtime docker    ok\nruntime logs      ok\nruntime dirs      ok\n"
+        "runtime podman    ok\nruntime dirs      ok\n"
     );
 }
 
 #[test]
 fn a_dry_run_says_would_apply() {
-    let (dir, ssh) = stage("dry", &format!("FAIL=cmp\n{SSH}"), "/opt/a|admin\n");
+    let (dir, ssh) = stage("dry", &format!("FAIL=stat\n{SSH}"), "/opt/a|admin\n");
     let out = run(&dir, &ssh, &["runtime", "acteble", "--dry-run"]);
     assert_eq!(out.status.code(), Some(0), "{out:?}");
-    assert!(String::from_utf8_lossy(&out.stdout).contains("runtime logs      would apply\n"));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("runtime dirs      would apply\n"));
 }
 
 #[test]
 fn a_failing_item_exits_1() {
-    let (dir, ssh) = stage("fail", &format!("FAIL=docker\n{SSH}"), "/opt/a|admin\n");
+    let (dir, ssh) = stage("fail", &format!("FAIL=podman\n{SSH}"), "/opt/a|admin\n");
     let out = run(&dir, &ssh, &["runtime", "acteble"]);
     assert_eq!(out.status.code(), Some(1), "{out:?}");
-    assert!(String::from_utf8_lossy(&out.stdout).starts_with("runtime docker    fail ("));
+    assert!(String::from_utf8_lossy(&out.stdout).starts_with("runtime podman    fail ("));
 }
 
 #[test]

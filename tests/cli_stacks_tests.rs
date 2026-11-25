@@ -53,7 +53,7 @@ fn an_edge_that_is_up_prints_ok_lines_and_exits_0() {
 fn a_missing_caddy_fails_naming_the_edge_files_the_deploy_needs() {
     let (dir, ssh) = stage(
         "edge-down",
-        &format!("FAIL=service=caddy\n{SSH}"),
+        &format!("FAIL=acteble_edge-caddy\n{SSH}"),
         "cdn|run\n",
     );
     let out = run(&dir, &ssh, &["edge", "acteble"]);
@@ -69,7 +69,7 @@ fn a_missing_caddy_fails_naming_the_edge_files_the_deploy_needs() {
 fn an_edge_dry_run_says_would_apply_and_exits_0() {
     let (dir, ssh) = stage(
         "edge-dry",
-        &format!("FAIL=service=caddy\n{SSH}"),
+        &format!("FAIL=acteble_edge-caddy\n{SSH}"),
         "cdn|run\n",
     );
     let out = run(&dir, &ssh, &["edge", "acteble", "--dry-run"]);
