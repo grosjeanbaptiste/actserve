@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::application::{
     fleet_status_service::probe_status,
     harden_service::HardenRun,
-    item_runner::{failed, find_host, push},
+    item_runner::{describe, failed, find_host, push},
     remote_env::with_remote_env_value,
 };
 use crate::domain::{
@@ -38,16 +38,6 @@ pub struct CdnDeployService {
     shell: Arc<dyn RemoteShellPort>,
     copy: Arc<dyn RemoteCopyPort>,
     secrets: Arc<dyn SecretStorePort>,
-}
-
-fn describe(e: &DomainError) -> String {
-    match e {
-        DomainError::ExecutionFailed {
-            reason,
-            details: Some(d),
-        } => format!("{reason}: {d}"),
-        other => other.to_string(),
-    }
 }
 
 fn outcome(ran: Result<RemoteOutput, DomainError>) -> ItemOutcome {
