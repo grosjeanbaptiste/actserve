@@ -24,6 +24,10 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 
 `domain/deploy.rs::ghcr_podman_wrapped` (PR #35) et `domain/podman.rs::ghcr_wrapped` (PR #34) faisaient le même travail. Il ne reste que `podman::ghcr_wrapped` ; `cdn_deploy_service` l'utilise, et son test d'égalité exacte est dans `tests/podman_domain_tests.rs`. Suite 498 verts, clippy et fmt propres. `deploy::ghcr_wrapped` (Docker) reste pour `deploy`, `rollback` et `edge-deploy` jusqu'à leur portage.
 
+## Podman : `edge-deploy` — 2026-11-25
+
+Cinq items : `prepare`, `copy` (`Caddyfile`, `sites/`, `quadlet/` de `ACTEBLE_EDGE_DIR`), `units` (copie dans `~/.config/containers/systemd`), `binary` (`podman pull/create/cp/rm` sous `podman::ghcr_wrapped`), `start` (`install -m 600` du `.env` tmpfs vers `/opt/acteble/edge/.env`, lu par `EnvironmentFile=` de l'unité, puis `./edge up --runtime podman`). Le binaire `edge` du VPS ne connaît `--runtime podman` qu'après la fusion de `acteble_edge` `feat/podman-runtime` et la reconstruction de son image : avant, `start` échoue bruyamment. Choix : actserve ne génère pas `sites-enabled` (responsabilité de `edge`). Non lancé sur le VPS (go du propriétaire requis).
+
 ## Podman : `edge-backup` — 2026-11-25
 
 - `BACKUP_SCRIPT` (`src/domain/backup.rs`) trouve le conteneur `systemd-acteble_edge-caddy` par `podman ps -q --filter name=^systemd-acteble_edge-caddy$` (échec s'il n'y en a pas), lit son volume `/data` en lecture seule par `podman run --rm --volumes-from "$c":ro --entrypoint tar` avec l'image donnée par `podman inspect`, et écrit un tar gzip sur stdout. Aucune commande Docker. Source des noms : message de la session `remove-docker-from-vps` et unité `acteble_edge-caddy.container`.

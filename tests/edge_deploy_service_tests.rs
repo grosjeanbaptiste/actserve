@@ -137,38 +137,45 @@ fn names(run: &HardenRun) -> Vec<&'static str> {
 async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     let (s, log) = service(opts());
     let run = s.deploy("a", dir(), false).await.unwrap();
-    assert_eq!(names(&run), ["prepare", "copy", "binary", "start"]);
+    assert_eq!(names(&run), ["prepare", "copy", "units", "binary", "start"]);
     assert!(items(&run).iter().all(|(_, o)| *o == ItemOutcome::Applied));
     assert_eq!(exit_code(&run), 0);
     let l = log.all();
     assert_eq!(l[0], "secret ghcr-read-packages");
     assert_eq!(l[1], "secret acteble-edge-prod");
-    assert_eq!(l[2], "shell ta [-] mkdir -p '/opt/acteble/edge'");
+    assert_eq!(
+        l[2],
+        "shell ta [-] mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\""
+    );
     assert_eq!(
         l[3],
-        "copy ta /src/edge/Caddyfile,/src/edge/compose.yml,/src/edge/sites -> /opt/acteble/edge"
+        "copy ta /src/edge/Caddyfile,/src/edge/sites,/src/edge/quadlet -> /opt/acteble/edge"
     );
-    assert!(
-        l[4].starts_with("shell ta [value-of-ghcr-read-packages] docker login ghcr.io"),
-        "{}",
-        l[4]
-    );
-    assert!(
-        l[4].contains("docker cp $id:/edge /opt/acteble/edge/edge"),
-        "{}",
-        l[4]
-    );
-    assert!(l[4].contains("docker logout ghcr.io"));
     assert_eq!(
-        l[5],
+        l[4],
+        "shell ta [-] cp '/opt/acteble/edge/quadlet'/* \"$HOME/.config/containers/systemd/\""
+    );
+    assert!(
+        l[5].starts_with("shell ta [value-of-ghcr-read-packages] podman login ghcr.io"),
+        "{}",
+        l[5]
+    );
+    assert!(
+        l[5].contains("podman cp $id:/edge /opt/acteble/edge/edge"),
+        "{}",
+        l[5]
+    );
+    assert!(l[5].contains("podman logout ghcr.io") && !l[5].contains("docker"));
+    assert_eq!(
+        l[6],
         "shell ta [value-of-acteble-edge-prod] umask 077 && cat > '/dev/shm/acteble-edge.env'"
     );
     assert_eq!(
-        l[6],
-        "shell ta [-] cd '/opt/acteble/edge' && ./edge up --env-file /dev/shm/acteble-edge.env"
+        l[7],
+        "shell ta [-] install -m 600 /dev/shm/acteble-edge.env '/opt/acteble/edge/.env' && cd '/opt/acteble/edge' && ./edge up --runtime podman --env-file /opt/acteble/edge/.env"
     );
-    assert_eq!(l[7], "shell ta [-] rm -f '/dev/shm/acteble-edge.env'");
-    assert_eq!(l.len(), 8);
+    assert_eq!(l[8], "shell ta [-] rm -f '/dev/shm/acteble-edge.env'");
+    assert_eq!(l.len(), 9);
 }
 
 #[tokio::test]
@@ -177,7 +184,7 @@ async fn a_dry_run_touches_nothing_and_reads_no_secret() {
     let run = s.deploy("a", dir(), true).await.unwrap();
     assert_eq!(
         render("a", &run),
-        "edge-deploy prepare   would apply\nedge-deploy copy      would apply\nedge-deploy binary    would apply\nedge-deploy start     would apply\n"
+        "edge-deploy prepare   would apply\nedge-deploy copy      would apply\nedge-deploy units     would apply\nedge-deploy binary    would apply\nedge-deploy start     would apply\n"
     );
     assert!(log.all().is_empty());
 }
@@ -236,7 +243,7 @@ async fn a_locked_secret_stops_before_the_server_is_touched() {
 
 #[tokio::test]
 async fn each_failing_step_stops_the_ones_after_it() {
-    let cases: [(Opts, &str, usize); 3] = [
+    let cases: [(Opts, &str, usize); 4] = [
         (
             Opts {
                 shell: vec![("mkdir", 1)],
@@ -255,11 +262,19 @@ async fn each_failing_step_stops_the_ones_after_it() {
         ),
         (
             Opts {
-                shell: vec![("docker login", 1)],
+                shell: vec![("cp '/opt", 1)],
+                ..opts()
+            },
+            "units",
+            3,
+        ),
+        (
+            Opts {
+                shell: vec![("podman login", 1)],
                 ..opts()
             },
             "binary",
-            3,
+            4,
         ),
     ];
     for (o, failing, count) in cases {
@@ -288,7 +303,7 @@ async fn a_failing_start_fails_the_deploy_and_still_removes_the_env_file() {
     let run = s.deploy("a", dir(), false).await.unwrap();
     let got = items(&run);
     assert!(
-        matches!(&got[3], ("start", ItemOutcome::Failed(m)) if m.contains("boom")),
+        matches!(&got[4], ("start", ItemOutcome::Failed(m)) if m.contains("boom")),
         "{got:?}"
     );
     assert_eq!(exit_code(&run), 1);
@@ -311,10 +326,11 @@ async fn a_verified_target_runs_the_same_steps_without_asking_the_inventory() {
         .collect();
     assert_eq!(
         got.iter().map(|(n, _)| *n).collect::<Vec<_>>(),
-        ["prepare", "copy", "binary", "start"]
+        ["prepare", "copy", "units", "binary", "start"]
     );
     assert!(got.iter().all(|(_, o)| *o == ItemOutcome::Applied));
     assert!(log.all()[2].starts_with("shell ta "));
+    assert!(log.all().iter().all(|l| !l.contains("docker")));
 }
 
 #[tokio::test]

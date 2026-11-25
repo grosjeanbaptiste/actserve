@@ -8,12 +8,15 @@ use crate::application::{
     remote_env::with_remote_env_value,
 };
 use crate::domain::{
-    deploy::{GHCR_SECRET, ghcr_wrapped},
-    edge_deploy::{EDGE_FILES, EDGE_SECRET, binary_script, prepare_command, start_command},
+    deploy::GHCR_SECRET,
+    edge_deploy::{
+        EDGE_FILES, EDGE_SECRET, binary_script, prepare_command, start_command, units_command,
+    },
     errors::DomainError,
     fleet::HostStatus,
     harden::{ItemOutcome, ItemReport},
     observe::{EDGE_DIR, EDGE_ENV_PATH},
+    podman::ghcr_wrapped,
     secret::SecretValue,
 };
 use crate::ports::outbound::{
@@ -98,7 +101,7 @@ impl EdgeDeployService {
         }
         let mut items = Vec::new();
         if dry_run {
-            for item in ["prepare", "copy", "binary", "start"] {
+            for item in ["prepare", "copy", "units", "binary", "start"] {
                 push(&mut items, STEP, item, ItemOutcome::WouldApply);
             }
             return Ok(items);
@@ -122,6 +125,10 @@ impl EdgeDeployService {
         }
         let copied = self.copy.copy(target, files, EDGE_DIR).await;
         if !push(items, STEP, "copy", outcome(copied)) {
+            return;
+        }
+        let installed = self.shell.run(target, &units_command(), None).await;
+        if !push(items, STEP, "units", outcome(installed)) {
             return;
         }
         let binary = ghcr_wrapped(&binary_script());
