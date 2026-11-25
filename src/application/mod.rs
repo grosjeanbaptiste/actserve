@@ -8,6 +8,7 @@ pub mod edge_deploy_service;
 pub mod edge_status_service;
 pub mod fleet_audit_service;
 pub mod fleet_status_service;
+pub mod geo_build_service;
 pub mod harden_service;
 pub mod item_runner;
 pub mod observe_service;

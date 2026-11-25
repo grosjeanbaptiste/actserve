@@ -9,6 +9,7 @@ pub mod deploy_cli;
 pub mod domain;
 pub mod edge_cli;
 pub mod fleet_cli;
+pub mod geo_build_cli;
 pub mod observe_cli;
 pub mod ports;
 pub mod rotate_cli;
