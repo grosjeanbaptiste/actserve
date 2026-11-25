@@ -29,6 +29,15 @@ fn the_script_status_is_the_one_returned_not_the_logouts() {
 }
 
 #[test]
+fn the_wrapped_script_is_exactly_login_script_logout() {
+    assert_eq!(
+        ghcr_wrapped("echo hi"),
+        "podman login ghcr.io -u 'grosjeanbaptiste' --password-stdin >/dev/null || exit 1\n\
+         (\necho hi\n)\nrc=$?\npodman logout ghcr.io >/dev/null 2>&1\nexit $rc"
+    );
+}
+
+#[test]
 fn no_docker_command_is_left() {
     assert!(!ghcr_wrapped("x").contains("docker"));
 }
