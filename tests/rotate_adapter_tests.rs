@@ -69,6 +69,22 @@ async fn a_failing_writer_says_why_and_never_shows_a_value() {
 }
 
 #[tokio::test]
+async fn a_writer_that_exits_without_reading_is_reported_by_its_exit_code() {
+    let dir = stage("w-early");
+    let bin = fake(&dir, "echo 'refused early' >&2; exit 4");
+    let big = "x".repeat(1 << 20);
+    let e = ActesskeySecretWriter::new(bin)
+        .set_values("acteble-api-prod", &pairs(&[("A_KEY", &big)]))
+        .await
+        .unwrap_err();
+    let DomainError::ExecutionFailed { reason, details } = &e else {
+        panic!("{e:?}")
+    };
+    assert!(reason.contains("exited 4"), "{reason}");
+    assert!(details.as_deref().unwrap().contains("refused early"));
+}
+
+#[tokio::test]
 async fn the_writer_refuses_what_kv_set_could_misread_before_running_anything() {
     let dir = stage("w-bad");
     let bin = fake(&dir, &format!("touch '{}/ran'", dir.display()));
