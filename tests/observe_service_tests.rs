@@ -71,12 +71,12 @@ fn service(probe: Probe, shell: Option<i32>, tty: Option<i32>) -> (ObserveServic
 }
 
 #[tokio::test]
-async fn ps_runs_compose_ps_and_returns_the_answer() {
+async fn ps_runs_podman_ps_and_returns_the_answer() {
     let (s, calls) = service(Probe(Ok("h1")), Some(0), None);
     let run = s.ps("a", Stack::Cdn).await.unwrap();
     assert_eq!(
         calls.0.lock().unwrap().as_slice(),
-        ["shell ta cd '/opt/acteble/cdn' && docker compose ps"]
+        ["shell ta podman ps --filter name=systemd-acteble_cdn"]
     );
     assert_eq!(exit_code(&run), 0);
     assert_eq!(render("a", &run), "NAME\napi\n");
@@ -101,7 +101,7 @@ async fn logs_attach_a_terminal_with_the_default_service() {
     assert_eq!(
         calls.0.lock().unwrap().as_slice(),
         [
-            "tty ta cd '/opt/acteble/cdn' && docker compose logs --follow --tail=100 'cdn_checkpoint'"
+            "tty ta journalctl --user -u acteble_cdn-checkpoint.service -f -n 100"
         ]
     );
     assert_eq!(exit_code(&run), 0);
@@ -112,7 +112,7 @@ async fn logs_attach_a_terminal_with_the_default_service() {
 async fn logs_of_a_named_service_exit_with_the_terminal_code() {
     let (s, calls) = service(Probe(Ok("h1")), None, Some(130));
     let run = s.logs("a", Stack::Api, Some("db")).await.unwrap();
-    assert!(calls.0.lock().unwrap()[0].ends_with("'db'"));
+    assert!(calls.0.lock().unwrap()[0].ends_with("acteble_api-db.service -f -n 100"));
     assert_eq!(exit_code(&run), 130);
 }
 

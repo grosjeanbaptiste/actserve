@@ -50,7 +50,7 @@ fn edge_status_writes_the_env_runs_the_edge_and_removes_the_env() {
     let l = log(&ssh);
     let (w, s, r) = (
         l.find("cat > '/dev/shm/acteble-edge.env'").unwrap(),
-        l.find("./edge status --env-file /dev/shm/acteble-edge.env")
+        l.find("./edge status --runtime podman --env-file /dev/shm/acteble-edge.env")
             .unwrap(),
         l.find("rm -f '/dev/shm/acteble-edge.env'").unwrap(),
     );
