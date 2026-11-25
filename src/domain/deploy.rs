@@ -5,7 +5,7 @@ pub const API_SECRET: &str = "acteble-api-prod";
 pub const API_ENV_PATH: &str = "/dev/shm/acteble-api.env";
 pub const GHCR_SECRET: &str = "ghcr-read-packages";
 pub(crate) const GHCR_USER: &str = "grosjeanbaptiste";
-const IMAGE_REPO: &str = "ghcr.io/acteble/acteble_api";
+pub(crate) const IMAGE_REPO: &str = "ghcr.io/acteble/acteble_api";
 const COMPOSE_BASE: &str =
     "-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml";
 

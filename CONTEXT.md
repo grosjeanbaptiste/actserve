@@ -1,4 +1,4 @@
-# actserve — état au 2026-11-23
+# actserve — état au 2026-11-25
 
 ## Rôle
 
@@ -161,3 +161,12 @@ actserve doit reprendre toute l'administration du VPS et de son réseau que `dot
 ## Décisions
 
 - 2026-11-18 — renommage servai → actserve (commit 1b1339d).
+
+## Podman : `deploy`, `rollback`, `rotate` (api) — 2026-11-25
+
+- `actserve deploy NAME` : items `prepare` (`mkdir` de `/opt/acteble/api` et du dossier des unités de l'utilisateur), `copy` (les 10 fichiers de `server/quadlet` de `ACTEBLE_API_DIR` vers `~/.config/containers/systemd`), `restart` (sous `podman::ghcr_wrapped`, avec l'env prod sur le tmpfs : `podman tag` de `:latest` en `:previous`, `podman pull`, 16 secrets Podman par `podman secret create --replace` (valeur sur stdin), `api.env` des réglages en 0600, `daemon-reload`, `start` des unités postgres, redis, minio et pg-backup, `restart` de l'API). Un item `secrets` échoue avant tout appel serveur si l'env `acteble-api-prod` manque d'une clé requise (liste dans `domain/api_podman.rs`).
+- `actserve rollback NAME [TAG]` : `podman tag :TAG :latest` (après `podman pull` si TAG n'est pas `previous`), puis `restart` de l'API. Seul le jeton ghcr est lu.
+- `rotate` redéploie par `deploy` ; ses tests suivent.
+- Choix : le script lit l'env avec `sed`, jamais en le sourçant (une valeur comme `PLAY_INTEGRITY_SA_JSON` contient espaces, guillemets et `;`). Les 16 secrets sont tous requis, y compris ceux que Compose laissait optionnels (`REVENUECAT_SECRET_API_KEY`, `PLAY_INTEGRITY_SA_JSON`, `AGE_ATTESTATION_SIGNING_KEY`, `CDN_TOKEN_SECRET`) : les unités les référencent par `Secret=`, et un secret Podman vide n'est pas vérifié.
+- Non vérifié : les unités viennent de `acteble_api` `feat/podman-quadlet` (non fusionnée) ; leurs tests bats parlent de Podman « rootful », alors qu'actserve suppose l'utilisateur ssh sans sudo (`systemctl --user`). Rien lancé sur le VPS. Le helper `outcome` vit dans `item_runner.rs` (la copie d'`edge_deploy_service` est retirée ; `cdn_deploy_service` et `caddy_deploy_service` gardent la leur).
+- Preuve : suite 520 verts, clippy `-D warnings` et fmt propres, mutants 44 testés, 1 survivant (garde de guillemets de `value`) tué par `only_a_matching_pair_of_quotes_is_removed`.

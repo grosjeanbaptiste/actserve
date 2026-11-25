@@ -68,6 +68,6 @@ One PR per command; `domain/deploy.rs` keeps the Docker scripts until the last u
 | `edge-backup` | done (`podman ps` on `systemd-acteble_edge-caddy`, `podman run --volumes-from`) |
 | `edge-deploy` | done (5 items: prepare, copy `Caddyfile` `sites/` `quadlet/`, units into `~/.config/containers/systemd`, binary by `podman pull/create/cp`, start by `./edge up --runtime podman`; needs the edge image built from `acteble_edge` `feat/podman-runtime`) |
 | `cdn-deploy`, `runtime`, `stacks` | merged (#35, `feat/podman-bootstrap`) |
-| `deploy`, `rollback`, `rotate` (api) | wait for `acteble_api` branch `feat/podman-quadlet` to merge |
+| `deploy`, `rollback`, `rotate` (api) | done on the units of `acteble_api` branch `feat/podman-quadlet` (not merged yet, so no real run before it is): `deploy` has items `prepare`, `copy` (10 files of `server/quadlet`), `restart` (secrets by `podman secret create --replace`, `api.env` for the settings, units started, API restarted); `rollback` retags `:TAG` as `:latest` and restarts, ghcr token only. `rotate` redeploys through `deploy`. `domain/deploy.rs` keeps `deploy_script`, `rollback_script`, `API_COMPOSE_FILES` until a search of callers allows removing them |
 | `cdn-publish-geo` | frozen: `publish.sh` left `acteble_cdn`; Podman version after the CDN branch merges |
 | Delegation from dotfiles (slice 8) | only for commands already ported and valid |

@@ -4,18 +4,19 @@ use std::sync::Arc;
 use crate::application::{
     fleet_status_service::probe_status,
     harden_service::HardenRun,
-    item_runner::{describe, failed, find_host, push},
+    item_runner::{describe, find_host, outcome, push},
     remote_env::with_remote_env_value,
 };
 use crate::domain::{
-    deploy::{
-        API_COMPOSE_FILES, API_ENV_PATH, API_SECRET, GHCR_SECRET, deploy_script, ghcr_wrapped,
-        rollback_script,
+    api_podman::{
+        API_UNIT_DIR, API_UNIT_FILES, missing_env_keys, prepare_command, rollback_script,
+        start_script,
     },
+    deploy::{API_ENV_PATH, API_SECRET, GHCR_SECRET},
     errors::DomainError,
     fleet::{FleetHost, HostStatus},
     harden::{ItemOutcome, ItemReport},
-    observe::Stack,
+    podman::ghcr_wrapped,
     secret::SecretValue,
 };
 use crate::ports::outbound::{
@@ -23,10 +24,10 @@ use crate::ports::outbound::{
     secret_store::SecretStorePort, server_inventory::ServerInventoryPort,
 };
 
-/// Deploys and rolls back the API on a server: files by copy, the image by
-/// compose, the prod env from the secret store on the server's tmpfs for the
-/// restart only. Same contract as `HardenService`: stops at the first failure,
-/// `dry_run` changes nothing, a host that is not the expected one is refused.
+/// Deploys and rolls back the API on a server: the Quadlet units by copy, the image by Podman,
+/// the prod env from the secret store on the server's tmpfs for the restart only (its values go
+/// into Podman secrets). Same contract as `HardenService`: stops at the first failure, `dry_run`
+/// changes nothing, a host that is not the expected one is refused.
 pub struct DeployService {
     inventory: Arc<dyn ServerInventoryPort>,
     probe: Arc<dyn HostnameProbePort>,
@@ -63,7 +64,7 @@ impl DeployService {
         })
     }
 
-    /// Copy the compose files and the Caddyfile of `api_dir`, then pull and restart.
+    /// Copy the Quadlet units of `api_dir`, then pull, create the secrets and restart.
     pub async fn deploy(
         &self,
         name: &str,
@@ -74,7 +75,7 @@ impl DeployService {
             Ok(host) => host,
             Err(status) => return Ok(HardenRun::Refused(status)),
         };
-        let files: Vec<PathBuf> = API_COMPOSE_FILES.iter().map(|f| api_dir.join(f)).collect();
+        let files: Vec<PathBuf> = API_UNIT_FILES.iter().map(|f| api_dir.join(f)).collect();
         let missing = self.copy.missing(&files).await;
         if !missing.is_empty() {
             let list: Vec<_> = missing.iter().map(|p| p.display().to_string()).collect();
@@ -85,31 +86,50 @@ impl DeployService {
         }
         let mut items = Vec::new();
         if dry_run {
-            push(&mut items, "deploy", "copy", ItemOutcome::WouldApply);
-            push(&mut items, "deploy", "restart", ItemOutcome::WouldApply);
-            return Ok(HardenRun::Done(items));
-        }
-        let Some((ghcr, env)) = self.read_secrets(&mut items, "deploy").await else {
-            return Ok(HardenRun::Done(items));
-        };
-        let copied = self
-            .copy
-            .copy(host.ssh_target(), &files, Stack::Api.dir())
-            .await?;
-        let outcome = if copied.code == Some(0) {
-            ItemOutcome::Applied
+            for item in ["prepare", "copy", "restart"] {
+                push(&mut items, "deploy", item, ItemOutcome::WouldApply);
+            }
         } else {
-            ItemOutcome::Failed(failed(&copied))
-        };
-        if push(&mut items, "deploy", "copy", outcome) {
-            let script = ghcr_wrapped(&deploy_script());
-            self.restart(&mut items, "deploy", &host, (&ghcr, &env), &script)
-                .await;
+            self.run_deploy(&mut items, &host, &files).await;
         }
         Ok(HardenRun::Done(items))
     }
 
-    /// Restart the API on `tag` (`previous` by default at the CLI).
+    /// Both secrets are read, and the env checked, before the server is touched.
+    async fn run_deploy(&self, items: &mut Vec<ItemReport>, host: &FleetHost, files: &[PathBuf]) {
+        let Some((ghcr, env)) = self.read_secrets(items).await else {
+            return;
+        };
+        let keys = missing_env_keys(env.expose());
+        if !keys.is_empty() {
+            let reason = format!("missing from {API_SECRET}: {}", keys.join(", "));
+            push(items, "deploy", "secrets", ItemOutcome::Failed(reason));
+            return;
+        }
+        let target = host.ssh_target();
+        let prepared = self.shell.run(target, &prepare_command(), None).await;
+        if !push(items, "deploy", "prepare", outcome(prepared)) {
+            return;
+        }
+        let copied = self.copy.copy(target, files, API_UNIT_DIR).await;
+        if !push(items, "deploy", "copy", outcome(copied)) {
+            return;
+        }
+        let script = ghcr_wrapped(&start_script());
+        let started = with_remote_env_value(
+            &*self.shell,
+            target,
+            &env,
+            API_ENV_PATH,
+            &script,
+            Some(ghcr.expose()),
+        )
+        .await;
+        push(items, "deploy", "restart", outcome(started));
+    }
+
+    /// Restart the API on `tag` (`previous` by default at the CLI). Needs the ghcr token only:
+    /// the secrets and settings of the last deploy stay in Podman.
     pub async fn rollback(
         &self,
         name: &str,
@@ -126,15 +146,22 @@ impl DeployService {
             push(&mut items, "rollback", "restart", ItemOutcome::WouldApply);
             return Ok(HardenRun::Done(items));
         }
-        if let Some(secrets) = self.read_secrets(&mut items, "rollback").await {
-            self.restart(
-                &mut items,
-                "rollback",
-                &host,
-                (&secrets.0, &secrets.1),
-                &script,
-            )
-            .await;
+        match self.secrets.get(GHCR_SECRET).await {
+            Ok(ghcr) => {
+                let ran = self
+                    .shell
+                    .run(host.ssh_target(), &script, Some(ghcr.expose()))
+                    .await;
+                push(&mut items, "rollback", "restart", outcome(ran));
+            }
+            Err(e) => {
+                push(
+                    &mut items,
+                    "rollback",
+                    "secrets",
+                    ItemOutcome::Failed(describe(&e)),
+                );
+            }
         }
         Ok(HardenRun::Done(items))
     }
@@ -143,7 +170,6 @@ impl DeployService {
     async fn read_secrets(
         &self,
         items: &mut Vec<ItemReport>,
-        step: &'static str,
     ) -> Option<(SecretValue, SecretValue)> {
         let read = async {
             let ghcr = self.secrets.get(GHCR_SECRET).await?;
@@ -153,34 +179,14 @@ impl DeployService {
         match read.await {
             Ok(both) => Some(both),
             Err(e) => {
-                push(items, step, "secrets", ItemOutcome::Failed(describe(&e)));
+                push(
+                    items,
+                    "deploy",
+                    "secrets",
+                    ItemOutcome::Failed(describe(&e)),
+                );
                 None
             }
         }
-    }
-
-    async fn restart(
-        &self,
-        items: &mut Vec<ItemReport>,
-        step: &'static str,
-        host: &FleetHost,
-        (ghcr, env): (&SecretValue, &SecretValue),
-        script: &str,
-    ) {
-        let outcome = match with_remote_env_value(
-            &*self.shell,
-            host.ssh_target(),
-            env,
-            API_ENV_PATH,
-            script,
-            Some(ghcr.expose()),
-        )
-        .await
-        {
-            Ok(out) if out.code == Some(0) => ItemOutcome::Applied,
-            Ok(out) => ItemOutcome::Failed(failed(&out)),
-            Err(e) => ItemOutcome::Failed(describe(&e)),
-        };
-        push(items, step, "restart", outcome);
     }
 }

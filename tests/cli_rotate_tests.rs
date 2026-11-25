@@ -1,4 +1,7 @@
 //! `actserve rotate` through the real binary: ssh, scp, actesskey and machine are scripts.
+mod common;
+
+use actserve::domain::api_podman::API_UNIT_FILES;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -21,14 +24,12 @@ impl Env {
             "acteble|fake-target.invalid|host-1\n",
         )
         .unwrap();
-        for f in [
-            "docker-compose.yml",
-            "docker-compose.prod.yml",
-            "docker-compose.ghcr.yml",
-            "Caddyfile",
-        ] {
-            std::fs::write(dir.join("api").join(f), "x").unwrap();
+        for f in API_UNIT_FILES {
+            let path = dir.join("api").join(f);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, "x").unwrap();
         }
+        std::fs::write(dir.join("prod.env"), common::full_api_env()).unwrap();
         script(&dir.join("ssh"), SSH);
         script(&dir.join("scp"), "echo \"scp $*\" >> \"$LOG\"");
         script(
@@ -48,7 +49,8 @@ impl Env {
             .env("ACTSERVE_MACHINE", self.dir.join("machine"))
             .env("ACTEBLE_API_DIR", self.dir.join("api"))
             .env("LOG", self.dir.join("log"))
-            .env("KV", self.dir.join("kv"));
+            .env("KV", self.dir.join("kv"))
+            .env("PROD_ENV", self.dir.join("prod.env"));
         for (k, v) in extra {
             c.env(k, v);
         }
@@ -69,7 +71,7 @@ cat >> "$LOG"
 case "$*" in *psql*) echo "psql: role missing" >&2; exit ${PSQL_RC:-0};; esac
 exit 0"#;
 const ACTESSKEY: &str = r#"case "$1" in
-  get) printf 'value-of-%s\n' "$2";;
+  get) if [ "$2" = acteble-api-prod ]; then cat "$PROD_ENV"; else printf 'value-of-%s\n' "$2"; fi;;
   kv-set) echo "actesskey kv-set $2" >> "$LOG"; cat >> "$KV";;
 esac"#;
 
@@ -85,7 +87,7 @@ fn a_dry_run_prints_the_plan_and_changes_nothing() {
     assert_eq!(
         text(&out.stdout),
         "rotate database  would apply\nrotate secret    would apply\nrotate persist   would apply\n\
-         deploy copy      would apply\ndeploy restart   would apply\n"
+         deploy prepare   would apply\ndeploy copy      would apply\ndeploy restart   would apply\n"
     );
     assert_eq!(e.log(), "");
     assert_eq!(e.kv(), "");
@@ -129,7 +131,7 @@ fn a_jwt_rotation_writes_one_key_persists_and_redeploys_without_printing_it() {
     assert_eq!(out.status.code(), Some(0), "{out:?}");
     assert_eq!(
         text(&out.stdout),
-        "rotate secret    applied\nrotate persist   applied\ndeploy copy      applied\ndeploy restart   applied\n"
+        "rotate secret    applied\nrotate persist   applied\ndeploy prepare   applied\ndeploy copy      applied\ndeploy restart   applied\n"
     );
     let kv = e.kv();
     let (key, value) = kv.trim_end().split_once('\t').unwrap();
