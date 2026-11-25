@@ -18,7 +18,7 @@ fn stage(name: &str, ssh_body: &str, dirs: &str) -> (PathBuf, PathBuf) {
 fn run(dir: &Path, ssh: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_actserve"))
         .args(args)
-        .env("DOTFILES_STATE_ROOT", dir)
+        .env("ACTCONF_STATE_ROOT", dir)
         .env("DOTFILES_SSH", ssh)
         .output()
         .unwrap()

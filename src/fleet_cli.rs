@@ -1,6 +1,6 @@
 //! The server commands of the binary: `actserve status [NAME]` and
 //! `actserve audit NAME` and
-//! `actserve harden NAME [--dry-run]`. The inventory is `$DOTFILES_STATE_ROOT/servers.txt`
+//! `actserve harden NAME [--dry-run]`. The inventory is `$ACTCONF_STATE_ROOT/servers.txt`
 //! (default `~/machine`), ssh is `$DOTFILES_SSH` (default `ssh`).
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -25,9 +25,9 @@ use crate::stack_wiring::stack_deploy;
 type CliResult = Result<ExitCode, Box<dyn std::error::Error>>;
 
 fn state_root() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    Ok(std::env::var("DOTFILES_STATE_ROOT")
-        .map(PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| PathBuf::from(h).join("machine")))?)
+    // One source of truth for every tool: actconf decides the root (ACTCONF_STATE_ROOT, then the
+    // deprecated DOTFILES_STATE_ROOT, then ~/machine).
+    Ok(actconf::state_root(&|name| std::env::var_os(name))?)
 }
 
 pub(crate) fn inventory_and_ssh()

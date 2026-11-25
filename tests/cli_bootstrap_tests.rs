@@ -30,7 +30,7 @@ fn stage(name: &str, ssh_body: &str) -> (PathBuf, PathBuf) {
 fn run(dir: &Path, ssh: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_actserve"))
         .args(args)
-        .env("DOTFILES_STATE_ROOT", dir)
+        .env("ACTCONF_STATE_ROOT", dir)
         .env("DOTFILES_SSH", ssh)
         // Nothing here may reach the network: scp and actesskey fail, and the local
         // edge and cdn directories do not exist, so a deploy stops before any call.
