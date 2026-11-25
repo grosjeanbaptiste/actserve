@@ -14,6 +14,7 @@ pub mod observe_service;
 pub mod orchestration_service;
 pub mod registrar_service;
 pub mod remote_env;
+pub mod rotate_service;
 pub mod runtime_service;
 pub mod server_service;
 pub mod stack_deployer;

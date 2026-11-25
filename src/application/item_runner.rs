@@ -19,6 +19,18 @@ pub fn failed(out: &RemoteOutput) -> String {
     format!("exit {code}: {}", out.stderr.trim())
 }
 
+/// `DomainError`'s Display drops the details of `ExecutionFailed`; the operator
+/// needs them (ssh's own message, the tool's exit and stderr).
+pub fn describe(e: &DomainError) -> String {
+    match e {
+        DomainError::ExecutionFailed {
+            reason,
+            details: Some(d),
+        } => format!("{reason}: {d}"),
+        other => other.to_string(),
+    }
+}
+
 /// Check; when it fails, apply (or report `WouldApply` in a dry run).
 pub async fn check_apply(
     shell: &dyn RemoteShellPort,
