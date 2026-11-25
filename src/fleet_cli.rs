@@ -55,9 +55,10 @@ pub async fn run_status(name: Option<&str>) -> CliResult {
 
 /// Audit one server. Exit 0 conforming, 1 deviation or not the expected
 /// host, 3 unreadable, 2 unknown name or no name.
-pub async fn run_audit(name: Option<&str>) -> CliResult {
+/// `verb` is `audit` or `edge-audit` (the name `acteble` used): same audit, usage names the verb typed.
+pub async fn run_audit(verb: &str, name: Option<&str>) -> CliResult {
     let Some(name) = name else {
-        eprintln!("usage: actserve audit NAME");
+        eprintln!("usage: actserve {verb} NAME");
         return Ok(ExitCode::from(2));
     };
     let (inventory, ssh) = inventory_and_ssh()?;

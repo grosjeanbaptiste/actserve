@@ -13,14 +13,15 @@ description: Manage the owner's VPS: check, audit, bootstrap, deploy, roll back,
 |---|---|---|
 | List servers | `dotfiles servers list` | dotfiles (inventory `~/machine/servers.txt`) |
 | Is the VPS up and the right host | `actserve status [NAME]` | actserve |
-| Audit (ssh, ports, ufw, updates, fail2ban, containers) | `actserve audit NAME` | actserve |
+| Audit (ssh, ports, ufw, updates, fail2ban, containers) | `actserve audit NAME` or `actserve edge-audit NAME` (same audit) | actserve |
 | Bring a server to its declared state | `actserve bootstrap NAME [--dry-run]`, `apply NAME [--dry-run]` (steps alone: `harden`, `runtime`, `edge`, `stacks`) | actserve |
 | Deploy API, Caddy, CDN, edge | `actserve deploy\|deploy-caddy\|cdn-deploy\|edge-deploy NAME [--dry-run]` | actserve |
 | Roll back the API | `actserve rollback NAME [TAG] [--dry-run]` | actserve |
 | Containers, logs, edge status | `actserve ps NAME api\|cdn`, `logs NAME api\|cdn [SERVICE]`, `edge-status NAME` | actserve |
 | Save the edge certificates (private keys, local 0600 archive) | `actserve edge-backup NAME [DIR]` (default `~/Backups/acteble-edge`) | actserve |
-| Rotate a credential | `dotfiles acteble rotate jwt\|postgres\|minio\|all` | dotfiles, slice 5 (next) |
-| Standalone edge audit, cdn geo publish and build | `dotfiles acteble edge-audit`, `cdn-publish-geo`, `cdn-build-geo` | dotfiles, slices 6 and 7 |
+| Rotate a credential, then redeploy | `actserve rotate NAME jwt\|postgres\|minio\|all [--dry-run] [--yes]` (a real run needs `--yes`; `$ACTEBLE_DB_USER`, default `acteble_prod`) | actserve |
+| Geo build on the CDN host (detached, logs followed) | `actserve cdn-build-geo NAME [--stage catalog\|tree\|publish\|all] [--dry-run]` | actserve |
+| Cdn geo publish (local script through an ssh tunnel) | `dotfiles acteble cdn-publish-geo` | dotfiles, slice 7b |
 
 ## Rules
 

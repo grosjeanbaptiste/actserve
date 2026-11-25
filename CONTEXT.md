@@ -13,6 +13,27 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 7a faite — 2026-11-25 (`cdn-build-geo`)
+
+- `actserve cdn-build-geo NAME [--stage S] [--dry-run]` : `src/domain/geo_build.rs`, `src/application/geo_build_service.rs`, `src/geo_build_cli.rs`. Tests : `geo_build_domain_tests` (9), `geo_build_service_tests` (15), `cli_cdn_build_geo_tests` (10).
+- Parité avec `cmd_cdn_build_geo` : mêmes commandes distantes (`compose --profile tools pull geo_builder`, `run -d --name acteble-geo-build`, `docker logs -f`, `docker wait`, `docker rm`), env sur le tmpfs `/dev/shm/acteble-cdn.env` retiré avant le suivi. Écarts voulus : le nom du serveur est obligatoire ; le hostname est vérifié d'abord (autre hôte : code 3) ; la clé de signature est contrôlée avec les deux secrets avant tout appel serveur ; pas d'option `-n` ni `--help` (seulement `--dry-run`) ; un build tué par signal est un échec ; le dry-run ne lit aucun secret.
+- Preuve : suite 483 verts avant ajout du cas `--wat`, clippy `-D warnings` et fmt propres, mutants 32 testés, 0 survivant (un survivant tué par un test d'usage). Rien lancé sur le VPS réel ni sur le magasin de secrets.
+- Reste de la tranche 7 : `cdn-publish-geo` (7b).
+
+## Tranche 6 faite — 2026-11-25 (`edge-audit`)
+
+- `actserve edge-audit NAME` est le verbe `acteble edge-audit` : même service que `audit` (`run_audit(verb, name)`), l'usage nomme le verbe tapé. Source : `src/fleet_cli.rs`, `src/main.rs`, `tests/cli_edge_audit_tests.rs` (6 tests).
+- Parité avec `cmd_edge_audit` (bash) : même commande distante (`cd /opt/acteble/edge && sudo -n ./edge audit`). Écarts voulus : le nom du serveur est obligatoire (le bash visait `$SSH_HOST`) ; le hostname est vérifié avant (autre hôte : code 1, aucun audit lancé) ; codes 0/1/3 au lieu du code ssh brut.
+- Preuve : suite 449 verts, clippy `-D warnings` et fmt propres, mutants 4 testés (3 pris, 1 non viable). Rien lancé sur le VPS réel.
+
+## Tranche 5b faite — 2026-11-25 (`rotate`)
+
+- `actserve rotate NAME jwt|postgres|minio|all [--dry-run] [--yes]` : un run réel exige `--yes` (sinon code 1, rien lancé). Ordre : hôte vérifié (refusé : code 3) ; utilisateur de base valide (`$ACTEBLE_DB_USER`, défaut `acteble_prod`) ; deploy à blanc (fichiers API présents) ; lecture des deux secrets (ghcr, `acteble-api-prod`) ; tirage des valeurs (`/dev/urandom`, jamais de repli plus faible) ; si postgres : `ALTER USER` via psql sur stdin avec `ON_ERROR_STOP` (secret intact et rien déployé si ça échoue) ; `actesskey kv-set acteble-api-prod` ; `machine autocommit` ; redéploiement. Tailles : jwt base64 de 64 octets, postgres hex de 32, minio user hex de 12, minio mot de passe hex de 32.
+- Écarts avec `acteble-rotate.sh`, tous volontaires : le mot de passe passe par stdin et non par la ligne de commande ssh ; psql avec `ON_ERROR_STOP` (sans lui, une erreur SQL sur stdin sortirait en 0) ; fichiers locaux et secrets contrôlés avant le changement de la base ; une persistance échouée est signalée (code 1) mais n'empêche pas le redéploiement, car la base et le secret ont déjà changé ; aucune valeur affichée, les erreurs masquent les nouvelles valeurs (`***`) ; `--yes` explicite au lieu d'une question interactive.
+- Nouveaux : `domain/encoding.rs`, `domain/rotate.rs`, ports `random`, `secret_writer`, `state_persist`, adaptateurs `OsRandom`, `ActesskeySecretWriter`, `MachineStatePersist`, `application/rotate_service.rs`, `rotate_cli.rs`. Faux ssh/scp/actesskey/machine seulement ; jamais lancé sur le VPS réel ni sur le vrai magasin de secrets.
+- Mutants : 106 testés en 4 parties, 0 survivant (un survivant sur `BrokenPipe` tué par un test). Dette : `describe` existe maintenant dans `item_runner.rs` et reste dupliqué dans `deploy_service.rs` et `fleet_status_service.rs` (à fusionner dans sa propre PR).
+- Reste : `edge-audit` autonome (6), `cdn-publish-geo` / `cdn-build-geo` (7), délégation depuis dotfiles puis retrait (8), retrait de `UnportedStackDeploy`.
+
 ## Tranche 5a faite — 2026-11-24 (`edge-backup`)
 
 - `actserve edge-backup NAME [DIR]` : vérifie l'hôte (refusé : code 3, rien téléchargé), puis exécute sur le serveur le script qui trouve le conteneur Caddy du projet `acteble_edge`, lit son volume `/data` en lecture seule et écrit une archive `tar.gz` sur stdout ; elle est écrite octet pour octet dans `DIR/acteble-edge-certs-AAAAMMJJTHHMMSS.tar.gz` (`DIR` par défaut `~/Backups/acteble-edge`). Fichier 0600, dossier créé ou resserré à 0700, jamais d'écrasement, aucun fichier laissé si le transfert échoue (code 1, « transfer failed, nothing saved »).

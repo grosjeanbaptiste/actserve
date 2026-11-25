@@ -1,7 +1,10 @@
 pub mod actesskey_secret_store;
+pub mod actesskey_secret_writer;
 pub mod file_declared_data;
 pub mod file_inventory;
 pub mod git_caddyfile_source;
+pub mod machine_state_persist;
+pub mod os_random;
 pub mod scp_remote_copy;
 mod spawn_retry;
 pub mod ssh_edge_audit;

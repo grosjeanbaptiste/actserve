@@ -29,7 +29,9 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("status") => return fleet_cli::run_status(args.get(1).map(String::as_str)).await,
-        Some("audit") => return fleet_cli::run_audit(args.get(1).map(String::as_str)).await,
+        Some(verb @ ("audit" | "edge-audit")) => {
+            return fleet_cli::run_audit(verb, args.get(1).map(String::as_str)).await;
+        }
         Some(verb @ ("bootstrap" | "apply")) => {
             return fleet_cli::run_bootstrap(verb, &args[1..]).await;
         }
@@ -41,8 +43,12 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
         Some("logs") => return actserve::observe_cli::run_logs(&args[1..]).await,
         Some("deploy") => return actserve::deploy_cli::run_deploy(&args[1..]).await,
         Some("rollback") => return actserve::deploy_cli::run_rollback(&args[1..]).await,
+        Some("rotate") => return actserve::rotate_cli::run_rotate(&args[1..]).await,
         Some("edge-backup") => return actserve::backup_cli::run_edge_backup(&args[1..]).await,
         Some("deploy-caddy") => return actserve::caddy_cli::run_deploy_caddy(&args[1..]).await,
+        Some("cdn-build-geo") => {
+            return actserve::geo_build_cli::run_cdn_build_geo(&args[1..]).await;
+        }
         Some("cdn-deploy") => return actserve::cdn_cli::run_cdn_deploy(&args[1..]).await,
         Some("edge-deploy") => return actserve::edge_cli::run_edge_deploy(&args[1..]).await,
         Some("edge-status") => return actserve::observe_cli::run_edge_status(&args[1..]).await,
