@@ -13,6 +13,13 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 7a faite — 2026-11-25 (`cdn-build-geo`)
+
+- `actserve cdn-build-geo NAME [--stage S] [--dry-run]` : `src/domain/geo_build.rs`, `src/application/geo_build_service.rs`, `src/geo_build_cli.rs`. Tests : `geo_build_domain_tests` (9), `geo_build_service_tests` (15), `cli_cdn_build_geo_tests` (10).
+- Parité avec `cmd_cdn_build_geo` : mêmes commandes distantes (`compose --profile tools pull geo_builder`, `run -d --name acteble-geo-build`, `docker logs -f`, `docker wait`, `docker rm`), env sur le tmpfs `/dev/shm/acteble-cdn.env` retiré avant le suivi. Écarts voulus : le nom du serveur est obligatoire ; le hostname est vérifié d'abord (autre hôte : code 3) ; la clé de signature est contrôlée avec les deux secrets avant tout appel serveur ; pas d'option `-n` ni `--help` (seulement `--dry-run`) ; un build tué par signal est un échec ; le dry-run ne lit aucun secret.
+- Preuve : suite 483 verts avant ajout du cas `--wat`, clippy `-D warnings` et fmt propres, mutants 32 testés, 0 survivant (un survivant tué par un test d'usage). Rien lancé sur le VPS réel ni sur le magasin de secrets.
+- Reste de la tranche 7 : `cdn-publish-geo` (7b).
+
 ## Tranche 6 faite — 2026-11-25 (`edge-audit`)
 
 - `actserve edge-audit NAME` est le verbe `acteble edge-audit` : même service que `audit` (`run_audit(verb, name)`), l'usage nomme le verbe tapé. Source : `src/fleet_cli.rs`, `src/main.rs`, `tests/cli_edge_audit_tests.rs` (6 tests).

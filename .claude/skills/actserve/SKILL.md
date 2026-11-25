@@ -20,7 +20,8 @@ description: Manage the owner's VPS: check, audit, bootstrap, deploy, roll back,
 | Containers, logs, edge status | `actserve ps NAME api\|cdn`, `logs NAME api\|cdn [SERVICE]`, `edge-status NAME` | actserve |
 | Save the edge certificates (private keys, local 0600 archive) | `actserve edge-backup NAME [DIR]` (default `~/Backups/acteble-edge`) | actserve |
 | Rotate a credential, then redeploy | `actserve rotate NAME jwt\|postgres\|minio\|all [--dry-run] [--yes]` (a real run needs `--yes`; `$ACTEBLE_DB_USER`, default `acteble_prod`) | actserve |
-| Cdn geo publish and build | `dotfiles acteble cdn-publish-geo`, `cdn-build-geo` | dotfiles, slice 7 |
+| Geo build on the CDN host (detached, logs followed) | `actserve cdn-build-geo NAME [--stage catalog\|tree\|publish\|all] [--dry-run]` | actserve |
+| Cdn geo publish (local script through an ssh tunnel) | `dotfiles acteble cdn-publish-geo` | dotfiles, slice 7b |
 
 ## Rules
 

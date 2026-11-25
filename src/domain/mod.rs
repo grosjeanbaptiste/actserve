@@ -12,6 +12,7 @@ pub mod engines;
 pub mod errors;
 pub mod fleet;
 pub mod fleet_audit;
+pub mod geo_build;
 pub mod harden;
 pub mod observe;
 pub mod orchestration;
