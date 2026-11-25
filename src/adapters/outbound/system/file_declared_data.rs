@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::domain::errors::DomainError;
 use crate::ports::outbound::declared_data::DeclaredDataPort;
 
-/// Reads `$DOTFILES_STATE_ROOT/servers/<name>/<file>`.
+/// Reads `$ACTCONF_STATE_ROOT/servers/<name>/<file>`.
 pub struct FileDeclaredData {
     root: PathBuf,
 }

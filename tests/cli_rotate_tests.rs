@@ -41,7 +41,7 @@ impl Env {
     fn run(&self, args: &[&str], extra: &[(&str, &str)]) -> Output {
         let mut c = Command::new(env!("CARGO_BIN_EXE_actserve"));
         c.args(args)
-            .env("DOTFILES_STATE_ROOT", &self.dir)
+            .env("ACTCONF_STATE_ROOT", &self.dir)
             .env("DOTFILES_SSH", self.dir.join("ssh"))
             .env("DOTFILES_SCP", self.dir.join("scp"))
             .env("ACTSERVE_ACTESSKEY", self.dir.join("actesskey"))
