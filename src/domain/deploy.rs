@@ -26,14 +26,6 @@ pub fn ghcr_wrapped(script: &str) -> String {
     )
 }
 
-/// The same, through Podman: the services are Quadlet units, so the pulls are Podman's.
-pub fn ghcr_podman_wrapped(script: &str) -> String {
-    format!(
-        "podman login ghcr.io -u '{GHCR_USER}' --password-stdin >/dev/null || exit 1\n\
-         (\n{script}\n)\nrc=$?\npodman logout ghcr.io >/dev/null 2>&1\nexit $rc"
-    )
-}
-
 pub(crate) fn compose(extra: &str) -> String {
     format!("docker compose {COMPOSE_BASE} --env-file {API_ENV_PATH} {extra}")
 }
