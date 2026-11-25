@@ -20,7 +20,7 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `acteble deploy`, `rollback` | 4c done: `actserve deploy NAME [--dry-run]`, `actserve rollback NAME [TAG] [--dry-run]` (`DeployService`, `ScpRemoteCopy`) | 4c done |
 | `acteble rotate jwt\|postgres\|minio\|all` | 5b done: `actserve rotate NAME TARGET [--dry-run] [--yes]` (`RotateService`: host, files and both secrets checked first; live DB password changed first through psql on stdin, secret untouched if it fails; `actesskey kv-set`; `machine autocommit`; redeploy; no value printed) | 5b done |
 | `acteble edge-backup` | 5a done: `actserve edge-backup NAME [DIR]` (`EdgeBackupService`, `SshRemoteDownload`: archive streamed byte for byte into a private 0600 file, nothing left on failure) | 5a done |
-| `acteble edge-audit` | none (`actserve audit` runs the same audit over ssh; the standalone command is missing) | 6 |
+| `acteble edge-audit` | 6 done: `actserve edge-audit NAME` (verb of `acteble`, same `FleetAuditService` as `audit`: host check, `sudo -n ./edge audit`, exit 0/1/3, 2 unknown) | 6 done |
 | `acteble cdn-publish-geo`, `cdn-build-geo` (write to the CDN bucket) | none | 7 |
 | Real `StackDeployPort` (bootstrap and apply start the edge and the cdn) | 4d-4 done: `ServiceStackDeploy` runs the edge and cdn deploy services on the verified target; `UnportedStackDeploy` is unused (to remove in its own PR) | 4d-4 done |
 | Delegation: dotfiles calls actserve for every row above, then drops its own commands (one PR each, after a search of every caller) | only `servers audit` (dotfiles PR #62, not merged) | 8 |
