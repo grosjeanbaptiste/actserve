@@ -1,7 +1,7 @@
 use actserve::domain::dirs_file::{DeclaredDir, parse_dirs};
 use actserve::domain::errors::DomainError;
 use actserve::domain::runtime::{
-    DOCKER_APPLY, DOCKER_CHECK, LOGS_APPLY, LOGS_CHECK, dirs_apply_command, dirs_check_command,
+    PODMAN_APPLY, PODMAN_CHECK, dirs_apply_command, dirs_check_command,
 };
 
 fn dir(path: &str, owner: &str) -> DeclaredDir {
@@ -72,16 +72,11 @@ fn dirs_check_compares_every_owner_and_apply_creates_then_chowns_each() {
 }
 
 #[test]
-fn the_fixed_commands_match_the_bash_tool() {
-    assert_eq!(DOCKER_CHECK, "docker compose version > /dev/null 2>&1");
+fn the_fixed_commands_install_and_check_podman() {
+    assert_eq!(PODMAN_CHECK, "podman --version > /dev/null 2>&1");
     assert_eq!(
-        DOCKER_APPLY,
-        "sudo -n sh -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin'"
-    );
-    assert_eq!(LOGS_CHECK, "sudo -n cmp -s - /etc/docker/daemon.json");
-    assert_eq!(
-        LOGS_APPLY,
-        "sudo -n sh -c 'mkdir -p /etc/docker && cat > /etc/docker/daemon.json.new && mv /etc/docker/daemon.json.new /etc/docker/daemon.json'"
+        PODMAN_APPLY,
+        "sudo -n sh -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y podman'"
     );
 }
 

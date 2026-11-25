@@ -100,7 +100,7 @@ Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_t
 
 ## Tranche 3b faite — 2026-11-23
 
-- `actserve runtime NAME [--dry-run]` : hôte vérifié, `docker-daemon.json` et `dirs.txt` (chemins absolus sans `..`, propriétaires valides) validés avant tout appel distant, puis docker, logs (installé, effectif au prochain redémarrage de Docker, rien n'est redémarré), dirs. Moteur commun check-puis-apply : `application/item_runner.rs`, partagé avec `harden`.
+- `actserve runtime NAME [--dry-run]` : hôte vérifié, `dirs.txt` (chemins absolus sans `..`, propriétaires valides) validé avant tout appel distant, puis podman (installé par apt), dirs. Plus d'item Docker ni `logs` (2026-11-25) : les services sont des unités Quadlet rootless qui journalisent dans le journal. Moteur commun check-puis-apply : `application/item_runner.rs`, partagé avec `harden`.
 - Faux ssh seulement ; jamais lancé sur le VPS réel. Mutants tous attrapés (un timeout sur la branche `main`).
 - Reste : edge, stacks, composition `bootstrap`/`apply`.
 

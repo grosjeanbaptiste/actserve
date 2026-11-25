@@ -49,21 +49,18 @@ fn unknown_names_unknown_modes_and_missing_modes_are_reported_in_one_pass() {
 }
 
 #[test]
-fn the_commands_match_the_bash_tool() {
-    assert_eq!(
-        NETWORK_CHECK,
-        "docker network inspect acteble_edge > /dev/null 2>&1"
-    );
+fn the_commands_go_through_podman_and_the_user_systemd_units() {
+    assert_eq!(NETWORK_CHECK, "podman network exists acteble_edge");
     assert_eq!(
         NETWORK_APPLY,
-        "docker network create acteble_edge > /dev/null"
+        "systemctl --user start acteble_edge-network.service"
     );
     assert_eq!(
         CADDY_CHECK,
-        r#"test -n "$(docker ps -q --filter label=com.docker.compose.project=acteble_edge --filter label=com.docker.compose.service=caddy)""#
+        "systemctl --user is-active --quiet acteble_edge-caddy.service"
     );
     assert_eq!(
         cdn_check_command(),
-        r#"test -n "$(docker ps -q --filter label=com.docker.compose.project=acteble_cdn)""#
+        "systemctl --user is-active --quiet acteble_cdn-minio.service && systemctl --user is-active --quiet acteble_cdn-checkpoint.service"
     );
 }

@@ -146,7 +146,7 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     assert_eq!(l[2], "shell ta [-] mkdir -p '/opt/acteble/cdn'");
     assert_eq!(l[3], "copy ta /src/cdn/compose.yml -> /opt/acteble/cdn");
     assert!(
-        l[4].contains("docker network create acteble_edge"),
+        l[4].contains("systemctl --user start acteble_edge-network.service"),
         "{}",
         l[4]
     );
@@ -254,7 +254,7 @@ async fn each_failing_step_stops_the_ones_after_it() {
         ),
         (
             Opts {
-                shell: vec![("network inspect", 1)],
+                shell: vec![("network exists", 1)],
                 ..opts()
             },
             "network",
