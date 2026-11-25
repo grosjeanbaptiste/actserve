@@ -22,7 +22,7 @@ pub(crate) type CliResult = Result<ExitCode, Box<dyn std::error::Error>>;
 const DEPLOY_USAGE: &str = "usage: actserve deploy NAME [--dry-run]";
 const ROLLBACK_USAGE: &str = "usage: actserve rollback NAME [TAG] [--dry-run]";
 
-fn service() -> Result<DeployService, Box<dyn std::error::Error>> {
+pub(crate) fn service() -> Result<DeployService, Box<dyn std::error::Error>> {
     let (inventory, ssh) = inventory_and_ssh()?;
     let scp = std::env::var("DOTFILES_SCP").unwrap_or_else(|_| "scp".to_string());
     let key = std::env::var("ACTSERVE_ACTESSKEY").unwrap_or_else(|_| "actesskey".to_string());
