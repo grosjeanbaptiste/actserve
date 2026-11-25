@@ -8,6 +8,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # actessh and actesskey are private git dependencies (ssh://git@github.com/…): the git CLI
+  # uses the ssh-agent loaded below.
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 jobs:
   test:
@@ -16,6 +19,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # Secret ACT_DEPS_DEPLOY_KEYS: the read-only deploy keys of actessh and actesskey, one
+      # private key after the other (webfactory/ssh-agent loads them all).
+      - name: Load the deploy keys of the private dependencies
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ACT_DEPS_DEPLOY_KEYS }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
