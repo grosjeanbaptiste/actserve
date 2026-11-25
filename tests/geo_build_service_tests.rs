@@ -149,12 +149,11 @@ async fn a_build_starts_detached_then_follows_and_reports_both() {
     let all = log.all();
     assert!(
         all.iter()
-            .any(|l| l.starts_with("attach ta docker logs -f acteble-geo-build"))
+            .any(|l| l.starts_with("attach ta podman logs -f acteble-geo-build"))
     );
-    assert!(
-        all.iter()
-            .any(|l| l.contains("geo_builder --stage all") && l.contains("docker login ghcr.io"))
-    );
+    assert!(all.iter().any(
+        |l| l.contains("acteble_geo:latest --stage all") && l.contains("podman login ghcr.io")
+    ));
 }
 
 #[tokio::test]

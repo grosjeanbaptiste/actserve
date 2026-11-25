@@ -13,8 +13,7 @@ use crate::ports::outbound::{
     remote_shell::RemoteShellPort, server_inventory::ServerInventoryPort,
 };
 
-/// Step 3 of the bootstrap: Docker with Compose, bounded container logs, the
-/// stack directories. Same contract as `HardenService`.
+/// Step 3 of the bootstrap: Podman and the stack directories. Same contract as `HardenService`.
 pub struct RuntimeService {
     inventory: Arc<dyn ServerInventoryPort>,
     probe: Arc<dyn HostnameProbePort>,
@@ -41,7 +40,6 @@ impl RuntimeService {
     /// the first failed item. With `dry_run` nothing is applied.
     pub async fn run(&self, name: &str, dry_run: bool) -> Result<HardenRun, DomainError> {
         let host = find_host(&*self.inventory, name).await?;
-        let json = self.data.read(name, "docker-daemon.json").await?;
         let dirs = parse_dirs("dirs.txt", &self.data.read(name, "dirs.txt").await?)?;
         let status = probe_status(&*self.probe, &host).await;
         if status != HostStatus::Ok {
@@ -49,26 +47,15 @@ impl RuntimeService {
         }
         let (t, sh) = (host.ssh_target(), &*self.shell);
         let mut items = Vec::new();
-        let docker = check_apply(
+        let podman = check_apply(
             sh,
             t,
-            Cmd(runtime::DOCKER_CHECK, None),
-            Cmd(runtime::DOCKER_APPLY, None),
+            Cmd(runtime::PODMAN_CHECK, None),
+            Cmd(runtime::PODMAN_APPLY, None),
             dry_run,
         )
         .await?;
-        if !push(&mut items, "runtime", "docker", docker) {
-            return Ok(HardenRun::Done(items));
-        }
-        let logs = check_apply(
-            sh,
-            t,
-            Cmd(runtime::LOGS_CHECK, Some(&json)),
-            Cmd(runtime::LOGS_APPLY, Some(&json)),
-            dry_run,
-        )
-        .await?;
-        if !push(&mut items, "runtime", "logs", logs) {
+        if !push(&mut items, "runtime", "podman", podman) {
             return Ok(HardenRun::Done(items));
         }
         let dirs_out = if dirs.is_empty() {

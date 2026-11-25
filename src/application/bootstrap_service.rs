@@ -69,9 +69,7 @@ impl BootstrapService {
     /// file never surfaces after step 2 already changed the server.
     async fn validate(&self, name: &str) -> Result<(), DomainError> {
         find_host(&*self.inventory, name).await?;
-        for file in ["sshd.conf", "docker-daemon.json"] {
-            self.data.read(name, file).await?;
-        }
+        self.data.read(name, "sshd.conf").await?;
         parse_ports("ports.txt", &self.data.read(name, "ports.txt").await?)?;
         parse_dirs("dirs.txt", &self.data.read(name, "dirs.txt").await?)?;
         parse_stacks("stacks.txt", &self.data.read(name, "stacks.txt").await?)?;

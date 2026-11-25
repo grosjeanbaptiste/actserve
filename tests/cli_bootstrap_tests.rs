@@ -15,7 +15,6 @@ fn stage(name: &str, ssh_body: &str) -> (PathBuf, PathBuf) {
     for (f, c) in [
         ("sshd.conf", "PermitRootLogin no\n"),
         ("ports.txt", "22/tcp\n"),
-        ("docker-daemon.json", "{}\n"),
         ("dirs.txt", "/opt/a|admin\n"),
         ("stacks.txt", "cdn|run\napi|held\n"),
     ] {
@@ -88,12 +87,12 @@ fn a_failing_step_exits_1_and_nothing_after_it_is_printed() {
 
 #[test]
 fn a_dry_run_prints_no_audit_and_exits_0() {
-    let (dir, ssh) = stage("dry", &format!("FAIL=compose\n{SSH}"));
+    let (dir, ssh) = stage("dry", &format!("FAIL=podman\n{SSH}"));
     let out = run(&dir, &ssh, &["bootstrap", "acteble", "--dry-run"]);
     assert_eq!(out.status.code(), Some(0), "{out:?}");
     let t = text(&out);
     assert!(
-        t.contains("runtime docker    would apply\n") && !t.contains("audit"),
+        t.contains("runtime podman    would apply\n") && !t.contains("audit"),
         "{t}"
     );
 }

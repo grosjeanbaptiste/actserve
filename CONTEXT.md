@@ -13,6 +13,13 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Podman à la place de Docker — 2026-11-25 (`cdn-build-geo`)
+
+- Décision du propriétaire : option A, Podman rootless avec Quadlet partout. Source : état du VPS relevé en lecture seule (units `acteble_edge-caddy`, `acteble_cdn-minio`, `acteble_cdn-checkpoint`, `actif-api` actifs, `docker` absent) et message de la session `remove-docker-from-vps`.
+- `cdn-build-geo` ne lance plus que `podman` : `podman login ghcr.io` (`domain/podman.rs::ghcr_wrapped`), secret `acteble_cdn_manifest_signing_key` créé depuis l'env sur tmpfs (valeur sur stdin), `podman pull`, `podman run -d --name acteble-geo-build` avec `--secret` pour les trois valeurs, puis `podman logs -f`, `podman wait`, `podman rm`. Mêmes limites que l'unité Quadlet `acteble_cdn-geo-builder.container` (réseau `acteble_cdn`, `--cap-drop ALL`, 2800 Mo, `nofile` 262144, volume `acteble_cdn_geo_work`).
+- Partage : `ps`, `logs`, `edge-status`, `edge-audit` sont sur la branche `feat/podman-ps-audit` de la session `remove-docker-from-vps`. Plan et ordre dans `ROADMAP.md`.
+- Preuve : suite 492 verts, clippy `-D warnings` et fmt propres, mutants 17 testés, 0 survivant. Rien lancé sur le VPS réel ni sur le magasin de secrets. Les scripts sont vérifiés par les tests de chaîne ; leur exécution réelle sous Podman n'est pas essayée.
+
 ## Retrait de `UnportedStackDeploy` — 2026-11-25
 
 Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_tests.rs`). Recherche des appelants : seuls `mod.rs`, son test et ces docs le citaient ; `stack_wiring.rs` utilise `ServiceStackDeploy`. Les mentions plus bas dans ce fichier sont historiques.
@@ -100,7 +107,7 @@ Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_t
 
 ## Tranche 3b faite — 2026-11-23
 
-- `actserve runtime NAME [--dry-run]` : hôte vérifié, `docker-daemon.json` et `dirs.txt` (chemins absolus sans `..`, propriétaires valides) validés avant tout appel distant, puis docker, logs (installé, effectif au prochain redémarrage de Docker, rien n'est redémarré), dirs. Moteur commun check-puis-apply : `application/item_runner.rs`, partagé avec `harden`.
+- `actserve runtime NAME [--dry-run]` : hôte vérifié, `dirs.txt` (chemins absolus sans `..`, propriétaires valides) validé avant tout appel distant, puis podman (installé par apt), dirs. Plus d'item Docker ni `logs` (2026-11-25) : les services sont des unités Quadlet rootless qui journalisent dans le journal. Moteur commun check-puis-apply : `application/item_runner.rs`, partagé avec `harden`.
 - Faux ssh seulement ; jamais lancé sur le VPS réel. Mutants tous attrapés (un timeout sur la branche `main`).
 - Reste : edge, stacks, composition `bootstrap`/`apply`.
 

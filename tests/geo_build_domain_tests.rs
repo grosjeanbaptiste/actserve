@@ -18,14 +18,91 @@ fn another_stage_is_refused_naming_the_four() {
     }
 }
 
+const IMAGE: &str = "ghcr.io/acteble/acteble_geo:latest";
+
 #[test]
-fn the_build_script_pulls_then_runs_detached_with_the_stage() {
+fn the_script_sources_the_env_then_makes_the_signing_secret_then_pulls_then_runs() {
     let s = build_script(GeoStage::Tree);
-    assert!(s.starts_with("cd '/opt/acteble/cdn'\n"), "{s}");
-    let run = "docker compose --env-file /dev/shm/acteble-cdn.env --profile tools";
-    let pull = format!("{run} pull geo_builder");
-    let up = format!("{run} run -d --name {GEO_BUILD_NAME} geo_builder --stage tree");
-    assert!(s.contains(&format!("{pull} && {up}")), "{s}");
+    let at = |p: &str| s.find(p).unwrap_or_else(|| panic!("{p}: {s}"));
+    let source = at("set -a && . /dev/shm/acteble-cdn.env && set +a");
+    let secret = at(
+        "printf %s \"$CDN_MANIFEST_SIGNING_KEY\" | podman secret create --replace acteble_cdn_manifest_signing_key - >/dev/null",
+    );
+    let pull = at(&format!("podman pull {IMAGE}"));
+    let run = at(&format!("podman run -d --name {GEO_BUILD_NAME} "));
+    assert!(source < secret && secret < pull && pull < run, "{s}");
+}
+
+#[test]
+fn a_failed_secret_or_pull_stops_before_the_build_starts() {
+    let s = build_script(GeoStage::All);
+    assert!(s.contains("- >/dev/null || exit 1\n"), "{s}");
+    assert!(
+        s.contains(&format!("podman pull {IMAGE} && podman run")),
+        "{s}"
+    );
+}
+
+#[test]
+fn the_container_is_confined_like_its_quadlet_unit() {
+    let s = build_script(GeoStage::All);
+    for flag in [
+        "--network acteble_cdn",
+        "--cap-drop ALL",
+        "--security-opt no-new-privileges",
+        "--memory 2800m",
+        "--ulimit nofile=262144:262144",
+        "-v acteble_cdn_geo_work:/srv/acteble_cdn/geo-out",
+    ] {
+        assert!(s.contains(flag), "{flag}: {s}");
+    }
+}
+
+#[test]
+fn the_store_and_signing_values_come_from_podman_secrets_never_an_argument() {
+    let s = build_script(GeoStage::All);
+    for secret in [
+        "--secret acteble_cdn_minio_root_user,type=env,target=APP__STORAGE__MINIO__ACCESS_KEY",
+        "--secret acteble_cdn_minio_root_password,type=env,target=APP__STORAGE__MINIO__SECRET_KEY",
+        "--secret acteble_cdn_manifest_signing_key,type=env,target=GEO_MANIFEST_SIGNING_KEY",
+        "--secret acteble_cdn_manifest_signing_key,type=env,target=CDN_MANIFEST_SIGNING_KEY",
+    ] {
+        assert!(s.contains(secret), "{secret}: {s}");
+    }
+}
+
+#[test]
+fn the_storage_settings_point_at_the_cdn_minio() {
+    let s = build_script(GeoStage::All);
+    for e in [
+        "-e APP__STORAGE__MINIO__ENDPOINT=cdn-minio:9000",
+        "-e APP__STORAGE__MINIO__BUCKET=acteble-files",
+        "-e APP__STORAGE__MINIO__SECURE=false",
+        "-e APP__STORAGE__MINIO__REGION=us-east-1",
+    ] {
+        assert!(s.contains(e), "{e}: {s}");
+    }
+}
+
+#[test]
+fn the_image_and_the_stage_end_the_run_command() {
+    for st in [
+        GeoStage::Catalog,
+        GeoStage::Tree,
+        GeoStage::Publish,
+        GeoStage::All,
+    ] {
+        let s = build_script(st);
+        assert!(
+            s.ends_with(&format!("{IMAGE} --stage {}", st.as_str())),
+            "{s}"
+        );
+    }
+}
+
+#[test]
+fn the_script_has_no_docker_command() {
+    assert!(!build_script(GeoStage::All).contains("docker"));
 }
 
 #[test]
@@ -37,7 +114,7 @@ fn the_build_name_is_the_one_of_the_bash_command() {
 fn following_streams_the_logs_waits_and_removes_the_container() {
     assert_eq!(
         follow_command(),
-        "docker logs -f acteble-geo-build; rc=$(docker wait acteble-geo-build); docker rm acteble-geo-build >/dev/null; exit $rc"
+        "podman logs -f acteble-geo-build; rc=$(podman wait acteble-geo-build); podman rm acteble-geo-build >/dev/null; exit $rc"
     );
 }
 

@@ -44,7 +44,7 @@ impl Env {
 const SSH: &str = r#"case "$*" in *" hostname") echo host-1; exit 0;; esac
 echo "ssh $*" >> "$LOG"
 cat >> "$LOG" < /dev/null
-case "$*" in *"docker logs -f"*) echo "build-line"; exit ${BUILD_RC:-0};; esac
+case "$*" in *"podman logs -f"*) echo "build-line"; exit ${BUILD_RC:-0};; esac
 case "$*" in *"--stage"*) exit ${START_RC:-0};; esac
 exit 0"#;
 
@@ -102,7 +102,7 @@ fn a_failed_start_exits_1_and_does_not_follow() {
     let e = Env::new("start");
     let out = e.run(&["cdn-build-geo", "acteble"], &[("START_RC", "1")]);
     assert_eq!(out.status.code(), Some(1));
-    assert!(!e.log().contains("docker logs -f"));
+    assert!(!e.log().contains("podman logs -f"));
 }
 
 #[test]

@@ -1,13 +1,14 @@
 //! The edge and the stacks of a server (steps 4 and 5 of the bootstrap).
 use crate::domain::errors::DomainError;
 
-pub const NETWORK_CHECK: &str = "docker network inspect acteble_edge > /dev/null 2>&1";
-pub const NETWORK_APPLY: &str = "docker network create acteble_edge > /dev/null";
-pub const CADDY_CHECK: &str = r#"test -n "$(docker ps -q --filter label=com.docker.compose.project=acteble_edge --filter label=com.docker.compose.service=caddy)""#;
+pub const NETWORK_CHECK: &str = "podman network exists acteble_edge";
+/// The network is a Quadlet unit of the edge: starting it creates the network.
+pub const NETWORK_APPLY: &str = "systemctl --user start acteble_edge-network.service";
+pub const CADDY_CHECK: &str = "systemctl --user is-active --quiet acteble_edge-caddy.service";
 
-/// Succeeds when a container of the cdn compose project is running.
+/// Succeeds when the units of the cdn stack (the object store and the checkpoint) are active.
 pub fn cdn_check_command() -> &'static str {
-    r#"test -n "$(docker ps -q --filter label=com.docker.compose.project=acteble_cdn)""#
+    "systemctl --user is-active --quiet acteble_cdn-minio.service && systemctl --user is-active --quiet acteble_cdn-checkpoint.service"
 }
 
 /// Result of asking for a stack or the edge to be started.

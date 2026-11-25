@@ -8,11 +8,12 @@ use crate::application::{
 };
 use crate::domain::{
     cdn::{CDN_ENV_PATH, CDN_SECRET},
-    deploy::{GHCR_SECRET, ghcr_wrapped},
+    deploy::GHCR_SECRET,
     errors::DomainError,
     fleet::HostStatus,
     geo_build::{GeoStage, SIGNING_KEY, build_script, env_has_value, follow_command},
     harden::{ItemOutcome, ItemReport},
+    podman::ghcr_wrapped,
     secret::SecretValue,
 };
 use crate::ports::outbound::{

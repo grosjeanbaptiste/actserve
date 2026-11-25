@@ -52,3 +52,20 @@ owning `servers.txt`.
 
 No silent failure, `--dry-run` on every mutating action, nothing removed,
 secrets via actesskey never printed, 100 % TDD with failure-path tests.
+
+## Podman, no Docker (owner, 2026-11-25: "option A")
+
+The VPS runs rootless Podman with Quadlet units only (Docker purged, `remove-docker-from-vps`).
+Every actserve command that runs `docker` on it moves to `podman` and `systemctl --user`, over the
+plain ssh login user (no sudo, no XDG_RUNTIME_DIR; secrets by `podman secret create`, value on stdin).
+Names: unit `acteble_<stack>-<service>.service`, container `systemd-acteble_<stack>-<service>`.
+One PR per command; `domain/deploy.rs` keeps the Docker scripts until the last user is ported.
+
+| Command | State |
+|---|---|
+| `ps`, `logs`, `edge-status`, `edge-audit` | session `remove-docker-from-vps`, branch `feat/podman-ps-audit` |
+| `cdn-build-geo` | done (`podman run` with `--secret`, `domain/podman.rs::ghcr_wrapped`) |
+| `cdn-deploy`, `edge-deploy`, `edge-backup`, `runtime`, `stacks` | to port, in this order |
+| `deploy`, `rollback`, `rotate` (api) | wait for `acteble_api` branch `feat/podman-quadlet` to merge |
+| `cdn-publish-geo` | frozen: `publish.sh` left `acteble_cdn`; Podman version after the CDN branch merges |
+| Delegation from dotfiles (slice 8) | only for commands already ported and valid |

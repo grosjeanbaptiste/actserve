@@ -78,7 +78,6 @@ impl RemoteShellPort for Shell {
 }
 
 const DIRS: &str = "/opt/a|admin\n";
-const JSON: &str = "{}\n";
 
 fn rig(
     probe: &'static str,
@@ -89,10 +88,7 @@ fn rig(
         rules,
         calls: Mutex::new(vec![]),
     });
-    let data = Data(HashMap::from([
-        ("dirs.txt", dirs),
-        ("docker-daemon.json", JSON),
-    ]));
+    let data = Data(HashMap::from([("dirs.txt", dirs)]));
     let svc = RuntimeService::new(
         Arc::new(Inventory),
         Arc::new(Probe(probe)),
@@ -123,32 +119,40 @@ fn mutating(s: &Shell) -> Vec<String> {
 async fn a_server_with_the_runtime_in_place_is_checked_and_never_changed() {
     let (svc, shell) = rig("h1", vec![], DIRS);
     let run = svc.run("a", false).await.unwrap();
-    assert_eq!(
-        outcomes(&run),
-        [ItemOutcome::Ok, ItemOutcome::Ok, ItemOutcome::Ok]
-    );
+    assert_eq!(outcomes(&run), [ItemOutcome::Ok, ItemOutcome::Ok]);
     assert!(mutating(&shell).is_empty());
     assert_eq!(exit_code(&run), 0);
 }
 
 #[tokio::test]
-async fn the_logs_file_is_checked_and_installed_with_the_declared_json_on_stdin() {
-    let (svc, shell) = rig("h1", vec![("cmp -s", 1)], DIRS);
+async fn a_missing_podman_is_installed_with_apt() {
+    let (svc, shell) = rig("h1", vec![("podman --version", 1)], DIRS);
     let run = svc.run("a", false).await.unwrap();
-    assert_eq!(outcomes(&run)[1], ItemOutcome::Applied);
-    let calls = shell.calls.lock().unwrap();
-    let check = calls.iter().find(|c| c.0.contains("cmp -s")).unwrap();
-    assert_eq!(check.1.as_deref(), Some(JSON));
-    let apply = calls
-        .iter()
-        .find(|c| c.0.contains("daemon.json.new"))
-        .unwrap();
-    assert_eq!(apply.1.as_deref(), Some(JSON));
+    assert_eq!(outcomes(&run)[0], ItemOutcome::Applied);
+    assert!(
+        mutating(&shell)
+            .iter()
+            .any(|c| c.contains("apt-get install -y podman"))
+    );
 }
 
 #[tokio::test]
-async fn a_failing_docker_install_stops_before_logs_and_dirs() {
-    let (svc, shell) = rig("h1", vec![("compose version", 1), ("apt-get", 100)], DIRS);
+async fn the_runtime_never_touches_docker() {
+    let (svc, shell) = rig("h1", vec![("podman --version", 1)], DIRS);
+    svc.run("a", false).await.unwrap();
+    assert!(
+        !shell
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|c| c.0.contains("docker"))
+    );
+}
+
+#[tokio::test]
+async fn a_failing_podman_install_stops_before_dirs() {
+    let (svc, shell) = rig("h1", vec![("podman --version", 1), ("apt-get", 100)], DIRS);
     let run = svc.run("a", false).await.unwrap();
     let o = outcomes(&run);
     assert!(
@@ -162,7 +166,7 @@ async fn a_failing_docker_install_stops_before_logs_and_dirs() {
             .lock()
             .unwrap()
             .iter()
-            .any(|c| c.0.contains("cmp -s"))
+            .any(|c| c.0.contains("stat -c"))
     );
 }
 
@@ -170,26 +174,18 @@ async fn a_failing_docker_install_stops_before_logs_and_dirs() {
 async fn directories_with_the_wrong_owner_are_fixed() {
     let (svc, shell) = rig("h1", vec![("stat -c", 1)], DIRS);
     let run = svc.run("a", false).await.unwrap();
-    assert_eq!(outcomes(&run)[2], ItemOutcome::Applied);
+    assert_eq!(outcomes(&run)[1], ItemOutcome::Applied);
     assert_eq!(mutating(&shell).len(), 1);
     assert!(mutating(&shell)[0].contains("install -d -o admin -g admin /opt/a"));
 }
 
 #[tokio::test]
 async fn a_dry_run_applies_nothing() {
-    let (svc, shell) = rig(
-        "h1",
-        vec![("compose version", 1), ("cmp -s", 1), ("stat -c", 1)],
-        DIRS,
-    );
+    let (svc, shell) = rig("h1", vec![("podman --version", 1), ("stat -c", 1)], DIRS);
     let run = svc.run("a", true).await.unwrap();
     assert_eq!(
         outcomes(&run),
-        [
-            ItemOutcome::WouldApply,
-            ItemOutcome::WouldApply,
-            ItemOutcome::WouldApply
-        ]
+        [ItemOutcome::WouldApply, ItemOutcome::WouldApply]
     );
     assert!(mutating(&shell).is_empty());
     assert_eq!(exit_code(&run), 0);
@@ -199,7 +195,7 @@ async fn a_dry_run_applies_nothing() {
 async fn no_declared_directory_is_ok_without_a_remote_call() {
     let (svc, shell) = rig("h1", vec![], "# none\n");
     let run = svc.run("a", false).await.unwrap();
-    assert_eq!(outcomes(&run)[2], ItemOutcome::Ok);
+    assert_eq!(outcomes(&run)[1], ItemOutcome::Ok);
     assert!(
         !shell
             .calls
@@ -230,11 +226,11 @@ async fn bad_data_or_another_host_means_no_remote_call() {
 }
 
 #[tokio::test]
-async fn render_names_the_step_and_notes_when_logs_wait_for_a_restart() {
-    let (svc, _) = rig("h1", vec![("cmp -s", 1)], DIRS);
+async fn render_names_the_step_and_has_no_logs_item() {
+    let (svc, _) = rig("h1", vec![], DIRS);
     let run = svc.run("a", false).await.unwrap();
     assert_eq!(
         render("a", &run),
-        "runtime docker    ok\nruntime logs      applied\nruntime logs: installed; it takes effect at the next restart of Docker, containers keep running\nruntime dirs      ok\n"
+        "runtime podman    ok\nruntime dirs      ok\n"
     );
 }
