@@ -67,6 +67,11 @@ Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_t
 - `ScpRemoteCopy` passe maintenant `-r` (un dossier est copié en entier) ; les tests des tranches 4c et 4d restent verts.
 - Nouveaux : `domain/edge_deploy.rs`, `application/edge_deploy_service.rs`, `edge_cli.rs`. Faux ssh, scp et actesskey seulement ; jamais lancé sur le VPS réel. Les trois commandes de 4d existent ; reste le vrai `StackDeployPort` (pour que `bootstrap` démarre l'edge et le cdn), puis la délégation depuis dotfiles.
 
+## `cdn-deploy` en Podman + Quadlet — 2026-11-25
+
+- Remplace `compose.yml` : valide les 7 fichiers `quadlet/*` et `quadlet/minio-health.sh` de `$ACTEBLE_CDN_DIR`, les copie (unités dans `~/.config/containers/systemd`, script dans `/opt/acteble/cdn`), puis `systemctl --user daemon-reload` et le réseau `acteble_edge` (démarré par son unité s'il manque). L'étape `start` fait `podman login ghcr.io` (déconnexion toujours), `podman pull`, crée les secrets Podman (`acteble_cdn_*`) depuis l'env en tmpfs (la clé de signature seulement si elle est présente), puis `systemctl --user restart` de MinIO et du checkpoint. L'étape `geo` utilise `podman run`. Les étapes et leurs noms ne changent pas.
+- Jamais lancé sur le VPS réel. `cdn_publisher` et `geo_builder` sont copiés mais pas démarrés par ce déploiement. `ghcr_wrapped` (Docker) reste pour `deploy`, `edge-deploy` et `geo-build`, pas encore migrés.
+
 ## Tranche 4d-2 faite — 2026-11-24 (`cdn-deploy`)
 
 - `actserve cdn-deploy NAME [--dry-run]` : valide que `compose.yml` existe dans `$ACTEBLE_CDN_DIR` (défaut `~/Source/Acteble/acteble_cdn`), lit les secrets `ghcr-read-packages` et `acteble-cdn-prod` AVANT de toucher au serveur, puis : `mkdir -p /opt/acteble/cdn`, copie par scp, réseau `acteble_edge` créé seulement s'il manque (un échec de création n'est plus masqué, contrairement au bash), `pull` puis `up -d --remove-orphans` avec login ghcr (déconnexion toujours) et env en tmpfs, puis ouverture du préfixe `geo/` en lecture anonyme par un client mc jetable en lecture seule (10 essais). L'env est écrit puis supprimé pour chacune des deux étapes. Arrêt au premier échec ; `--dry-run` ne lit aucun secret et n'exécute rien.

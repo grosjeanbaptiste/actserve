@@ -62,7 +62,7 @@ impl RemoteShellPort for Shell {
         })
     }
 }
-struct Copy(Arc<Log>, Vec<PathBuf>, i32);
+struct Copy(Arc<Log>, Vec<PathBuf>, i32, Option<&'static str>);
 #[async_trait]
 impl RemoteCopyPort for Copy {
     async fn missing(&self, _: &[PathBuf]) -> Vec<PathBuf> {
@@ -71,8 +71,13 @@ impl RemoteCopyPort for Copy {
     async fn copy(&self, t: &str, f: &[PathBuf], d: &str) -> Result<RemoteOutput, DomainError> {
         let names: Vec<_> = f.iter().map(|p| p.display().to_string()).collect();
         self.0.push(format!("copy {t} {} -> {d}", names.join(",")));
+        let code = if self.3.is_some_and(|only| d == only) {
+            1
+        } else {
+            self.2
+        };
         Ok(RemoteOutput {
-            code: Some(self.2),
+            code: Some(code),
             stdout: String::new(),
             stderr: "scp boom".into(),
         })
@@ -98,6 +103,7 @@ struct Opts {
     shell: Vec<(&'static str, i32)>,
     missing: Vec<PathBuf>,
     copy_rc: i32,
+    copy_fail_dest: Option<&'static str>,
     locked: Vec<&'static str>,
 }
 fn opts() -> Opts {
@@ -106,6 +112,7 @@ fn opts() -> Opts {
         shell: vec![],
         missing: vec![],
         copy_rc: 0,
+        copy_fail_dest: None,
         locked: vec![],
     }
 }
@@ -115,7 +122,7 @@ fn service(o: Opts) -> (CdnDeployService, Arc<Log>) {
         Arc::new(Inventory),
         Arc::new(Probe(o.host)),
         Arc::new(Shell(log.clone(), o.shell)),
-        Arc::new(Copy(log.clone(), o.missing, o.copy_rc)),
+        Arc::new(Copy(log.clone(), o.missing, o.copy_rc, o.copy_fail_dest)),
         Arc::new(Store(log.clone(), o.locked)),
     );
     (s, log)
@@ -143,31 +150,41 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     let l = log.all();
     assert_eq!(l[0], "secret ghcr-read-packages");
     assert_eq!(l[1], "secret acteble-cdn-prod");
-    assert_eq!(l[2], "shell ta [-] mkdir -p '/opt/acteble/cdn'");
-    assert_eq!(l[3], "copy ta /src/cdn/compose.yml -> /opt/acteble/cdn");
-    assert!(
-        l[4].contains("systemctl --user start acteble_edge-network.service"),
-        "{}",
-        l[4]
+    assert_eq!(
+        l[2],
+        "shell ta [-] mkdir -p '/opt/acteble/cdn' && mkdir -p \"$HOME/.config/containers/systemd\""
     );
     assert_eq!(
-        l[5],
+        l[3],
+        "copy ta /src/cdn/quadlet/acteble_cdn.network,/src/cdn/quadlet/acteble_cdn_minio.volume,/src/cdn/quadlet/acteble_cdn_geo_work.volume,/src/cdn/quadlet/acteble_cdn-minio.container,/src/cdn/quadlet/acteble_cdn-checkpoint.container,/src/cdn/quadlet/acteble_cdn-publisher.container,/src/cdn/quadlet/acteble_cdn-geo-builder.container -> .config/containers/systemd"
+    );
+    assert_eq!(
+        l[4],
+        "copy ta /src/cdn/quadlet/minio-health.sh -> /opt/acteble/cdn"
+    );
+    assert!(
+        l[5].contains("systemctl --user start acteble_edge-network.service"),
+        "{}",
+        l[5]
+    );
+    assert_eq!(
+        l[6],
         "shell ta [value-of-acteble-cdn-prod] umask 077 && cat > '/dev/shm/acteble-cdn.env'"
     );
     assert!(
-        l[6].starts_with("shell ta [value-of-ghcr-read-packages] docker login ghcr.io"),
+        l[7].starts_with("shell ta [value-of-ghcr-read-packages] podman login ghcr.io"),
         "{}",
-        l[6]
+        l[7]
     );
-    assert!(l[6].contains("up -d --remove-orphans"));
-    assert_eq!(l[7], "shell ta [-] rm -f '/dev/shm/acteble-cdn.env'");
+    assert!(l[7].contains("systemctl --user restart acteble_cdn-minio.service"));
+    assert_eq!(l[8], "shell ta [-] rm -f '/dev/shm/acteble-cdn.env'");
     assert_eq!(
-        l[8],
+        l[9],
         "shell ta [value-of-acteble-cdn-prod] umask 077 && cat > '/dev/shm/acteble-cdn.env'"
     );
-    assert!(l[9].contains("anonymous set download"), "{}", l[9]);
-    assert_eq!(l[10], "shell ta [-] rm -f '/dev/shm/acteble-cdn.env'");
-    assert_eq!(l.len(), 11);
+    assert!(l[10].contains("anonymous set download"), "{}", l[10]);
+    assert_eq!(l[11], "shell ta [-] rm -f '/dev/shm/acteble-cdn.env'");
+    assert_eq!(l.len(), 12);
 }
 
 #[tokio::test]
@@ -182,15 +199,15 @@ async fn a_dry_run_touches_nothing_and_reads_no_secret() {
 }
 
 #[tokio::test]
-async fn a_missing_compose_file_is_a_validation_error_in_both_modes_and_runs_nothing() {
+async fn a_missing_unit_file_is_a_validation_error_in_both_modes_and_runs_nothing() {
     for dry in [false, true] {
         let (s, log) = service(Opts {
-            missing: vec!["/src/cdn/compose.yml".into()],
+            missing: vec!["/src/cdn/quadlet/acteble_cdn.network".into()],
             ..opts()
         });
         let e = s.deploy("a", dir(), dry).await.unwrap_err();
         assert!(
-            matches!(&e, DomainError::ValidationError(m) if m.contains("compose.yml") && m.contains("ACTEBLE_CDN_DIR")),
+            matches!(&e, DomainError::ValidationError(m) if m.contains("acteble_cdn.network") && m.contains("ACTEBLE_CDN_DIR")),
             "{e:?}"
         );
         assert!(log.all().is_empty());
@@ -272,16 +289,32 @@ async fn each_failing_step_stops_the_ones_after_it() {
         );
         assert_eq!(exit_code(&run), 1);
         assert!(
-            !log.all().iter().any(|l| l.contains("docker login")),
+            !log.all().iter().any(|l| l.contains("podman login")),
             "{failing}"
         );
     }
 }
 
 #[tokio::test]
+async fn a_failing_health_script_copy_fails_the_copy_step_and_stops_before_the_network() {
+    let (s, log) = service(Opts {
+        copy_fail_dest: Some("/opt/acteble/cdn"),
+        ..opts()
+    });
+    let run = s.deploy("a", dir(), false).await.unwrap();
+    let got = items(&run);
+    assert_eq!(got.len(), 2, "{got:?}");
+    assert!(
+        matches!(&got[1], ("copy", ItemOutcome::Failed(_))),
+        "{got:?}"
+    );
+    assert!(!log.all().iter().any(|l| l.contains("network exists")));
+}
+
+#[tokio::test]
 async fn a_failing_start_skips_the_geo_step_and_still_removes_the_env_file() {
     let (s, log) = service(Opts {
-        shell: vec![("docker login", 1)],
+        shell: vec![("podman login", 1)],
         ..opts()
     });
     let run = s.deploy("a", dir(), false).await.unwrap();
@@ -336,7 +369,7 @@ async fn a_verified_target_runs_the_same_steps_without_asking_the_inventory() {
 #[tokio::test]
 async fn a_verified_target_with_a_missing_file_is_a_validation_error() {
     let (s, log) = service(Opts {
-        missing: vec!["/src/cdn/compose.yml".into()],
+        missing: vec!["/src/cdn/quadlet/acteble_cdn.network".into()],
         ..opts()
     });
     let e = s.deploy_verified("ta", dir(), false).await.unwrap_err();

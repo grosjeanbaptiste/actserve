@@ -9,10 +9,10 @@ use crate::application::{
 };
 use crate::domain::{
     cdn::{
-        CDN_COMPOSE_FILE, CDN_ENV_PATH, CDN_SECRET, geo_script, network_command, prepare_command,
-        start_script,
+        CDN_ENV_PATH, CDN_HEALTH_SCRIPT, CDN_SECRET, CDN_UNIT_DIR, CDN_UNIT_FILES, geo_script,
+        network_command, prepare_command, start_script,
     },
-    deploy::{GHCR_SECRET, ghcr_wrapped},
+    deploy::{GHCR_SECRET, ghcr_podman_wrapped},
     errors::DomainError,
     fleet::HostStatus,
     harden::{ItemOutcome, ItemReport},
@@ -29,9 +29,9 @@ use crate::ports::outbound::{
 
 const STEP: &str = "cdn-deploy";
 
-/// Deploys the CDN stack: compose file by copy, shared network, images and
-/// stack from the secret store's env on the server's tmpfs, then the geo
-/// prefix opened. Same contract as `DeployService`.
+/// Deploys the CDN stack: Quadlet units by copy, shared network, image pull, Podman secrets and
+/// units restart from the secret store's env on the server's tmpfs, then the geo prefix opened.
+/// Same contract as `DeployService`.
 pub struct CdnDeployService {
     inventory: Arc<dyn ServerInventoryPort>,
     probe: Arc<dyn HostnameProbePort>,
@@ -90,13 +90,10 @@ impl CdnDeployService {
         cdn_dir: &Path,
         dry_run: bool,
     ) -> Result<Vec<ItemReport>, DomainError> {
-        let file = cdn_dir.join(CDN_COMPOSE_FILE);
-        if !self
-            .copy
-            .missing(std::slice::from_ref(&file))
-            .await
-            .is_empty()
-        {
+        let units: Vec<PathBuf> = CDN_UNIT_FILES.iter().map(|f| cdn_dir.join(f)).collect();
+        let script = cdn_dir.join(CDN_HEALTH_SCRIPT);
+        let wanted: Vec<PathBuf> = units.iter().cloned().chain([script.clone()]).collect();
+        if let Some(file) = self.copy.missing(&wanted).await.first() {
             return Err(DomainError::ValidationError(format!(
                 "cdn-deploy: {} not found (set ACTEBLE_CDN_DIR)",
                 file.display()
@@ -109,12 +106,18 @@ impl CdnDeployService {
             }
             return Ok(items);
         }
-        self.run(&mut items, target, &file).await;
+        self.run(&mut items, target, &units, &script).await;
         Ok(items)
     }
 
     /// Both secrets are read before the server is touched; stops at the first failure.
-    async fn run(&self, items: &mut Vec<ItemReport>, target: &str, file: &PathBuf) {
+    async fn run(
+        &self,
+        items: &mut Vec<ItemReport>,
+        target: &str,
+        units: &[PathBuf],
+        script: &Path,
+    ) {
         let (ghcr, env) = match self.read_secrets().await {
             Ok(both) => both,
             Err(e) => {
@@ -126,10 +129,13 @@ impl CdnDeployService {
         if !push(items, STEP, "prepare", outcome(prepared)) {
             return;
         }
-        let copied = self
-            .copy
-            .copy(target, std::slice::from_ref(file), Stack::Cdn.dir())
-            .await;
+        let mut copied = self.copy.copy(target, units, CDN_UNIT_DIR).await;
+        if copied.as_ref().is_ok_and(|o| o.code == Some(0)) {
+            copied = self
+                .copy
+                .copy(target, &[script.to_path_buf()], Stack::Cdn.dir())
+                .await;
+        }
         if !push(items, STEP, "copy", outcome(copied)) {
             return;
         }
@@ -137,7 +143,7 @@ impl CdnDeployService {
         if !push(items, STEP, "network", outcome(network)) {
             return;
         }
-        let start = ghcr_wrapped(&start_script());
+        let start = ghcr_podman_wrapped(&start_script());
         let started = self
             .with_env(target, &env, &start, Some(ghcr.expose()))
             .await;
