@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::item_runner::describe;
 use crate::domain::{
     errors::DomainError,
     fleet::{FleetHost, HostStatus},
@@ -17,18 +18,6 @@ pub struct HostReport {
 /// True only when the fleet is not empty and every host answered as expected.
 pub fn all_ok(reports: &[HostReport]) -> bool {
     !reports.is_empty() && reports.iter().all(|r| r.status == HostStatus::Ok)
-}
-
-/// `DomainError`'s Display drops the details of `ExecutionFailed`; ssh's own
-/// message (refused, timeout, key) is what the operator needs.
-fn describe(e: &DomainError) -> String {
-    match e {
-        DomainError::ExecutionFailed {
-            reason,
-            details: Some(d),
-        } => format!("{reason}: {d}"),
-        other => other.to_string(),
-    }
 }
 
 pub struct FleetStatusService {
