@@ -13,6 +13,12 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Tranche 6 faite — 2026-11-25 (`edge-audit`)
+
+- `actserve edge-audit NAME` est le verbe `acteble edge-audit` : même service que `audit` (`run_audit(verb, name)`), l'usage nomme le verbe tapé. Source : `src/fleet_cli.rs`, `src/main.rs`, `tests/cli_edge_audit_tests.rs` (6 tests).
+- Parité avec `cmd_edge_audit` (bash) : même commande distante (`cd /opt/acteble/edge && sudo -n ./edge audit`). Écarts voulus : le nom du serveur est obligatoire (le bash visait `$SSH_HOST`) ; le hostname est vérifié avant (autre hôte : code 1, aucun audit lancé) ; codes 0/1/3 au lieu du code ssh brut.
+- Preuve : suite 449 verts, clippy `-D warnings` et fmt propres, mutants 4 testés (3 pris, 1 non viable). Rien lancé sur le VPS réel.
+
 ## Tranche 5b faite — 2026-11-25 (`rotate`)
 
 - `actserve rotate NAME jwt|postgres|minio|all [--dry-run] [--yes]` : un run réel exige `--yes` (sinon code 1, rien lancé). Ordre : hôte vérifié (refusé : code 3) ; utilisateur de base valide (`$ACTEBLE_DB_USER`, défaut `acteble_prod`) ; deploy à blanc (fichiers API présents) ; lecture des deux secrets (ghcr, `acteble-api-prod`) ; tirage des valeurs (`/dev/urandom`, jamais de repli plus faible) ; si postgres : `ALTER USER` via psql sur stdin avec `ON_ERROR_STOP` (secret intact et rien déployé si ça échoue) ; `actesskey kv-set acteble-api-prod` ; `machine autocommit` ; redéploiement. Tailles : jwt base64 de 64 octets, postgres hex de 32, minio user hex de 12, minio mot de passe hex de 32.

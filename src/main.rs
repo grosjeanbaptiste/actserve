@@ -29,7 +29,9 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("status") => return fleet_cli::run_status(args.get(1).map(String::as_str)).await,
-        Some("audit") => return fleet_cli::run_audit(args.get(1).map(String::as_str)).await,
+        Some(verb @ ("audit" | "edge-audit")) => {
+            return fleet_cli::run_audit(verb, args.get(1).map(String::as_str)).await;
+        }
         Some(verb @ ("bootstrap" | "apply")) => {
             return fleet_cli::run_bootstrap(verb, &args[1..]).await;
         }
