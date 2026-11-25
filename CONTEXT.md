@@ -13,6 +13,10 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Tranche 1 (branche `feat/server-status`) : `actserve status [NAME]` lit `$DOTFILES_STATE_ROOT/servers.txt` (défaut `~/machine`), sonde `ssh -o BatchMode=yes <cible> hostname` (`$DOTFILES_SSH`), affiche ok / unreachable / wrong-host, sort 0 seulement si tout est ok. 97 tests verts, clippy et fmt propres. Mesuré sur le VPS réel le 2026-11-21 : `acteble: ok`.
 - Comparé à `dotfiles servers status` le 2026-11-21 : même verdict (`acteble` ok), format de ligne différent (`nom: ok` contre colonnes). Pas de mutation testing lancé.
 
+## Retrait de `UnportedStackDeploy` — 2026-11-25
+
+Fichier, module et test retirés (`unported_stack_deploy.rs`, `unported_deploy_tests.rs`). Recherche des appelants : seuls `mod.rs`, son test et ces docs le citaient ; `stack_wiring.rs` utilise `ServiceStackDeploy`. Les mentions plus bas dans ce fichier sont historiques.
+
 ## Tranche 7a faite — 2026-11-25 (`cdn-build-geo`)
 
 - `actserve cdn-build-geo NAME [--stage S] [--dry-run]` : `src/domain/geo_build.rs`, `src/application/geo_build_service.rs`, `src/geo_build_cli.rs`. Tests : `geo_build_domain_tests` (9), `geo_build_service_tests` (15), `cli_cdn_build_geo_tests` (10).
@@ -32,7 +36,7 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - Écarts avec `acteble-rotate.sh`, tous volontaires : le mot de passe passe par stdin et non par la ligne de commande ssh ; psql avec `ON_ERROR_STOP` (sans lui, une erreur SQL sur stdin sortirait en 0) ; fichiers locaux et secrets contrôlés avant le changement de la base ; une persistance échouée est signalée (code 1) mais n'empêche pas le redéploiement, car la base et le secret ont déjà changé ; aucune valeur affichée, les erreurs masquent les nouvelles valeurs (`***`) ; `--yes` explicite au lieu d'une question interactive.
 - Nouveaux : `domain/encoding.rs`, `domain/rotate.rs`, ports `random`, `secret_writer`, `state_persist`, adaptateurs `OsRandom`, `ActesskeySecretWriter`, `MachineStatePersist`, `application/rotate_service.rs`, `rotate_cli.rs`. Faux ssh/scp/actesskey/machine seulement ; jamais lancé sur le VPS réel ni sur le vrai magasin de secrets.
 - Mutants : 106 testés en 4 parties, 0 survivant (un survivant sur `BrokenPipe` tué par un test). Dette : `describe` existe maintenant dans `item_runner.rs` et reste dupliqué dans `deploy_service.rs` et `fleet_status_service.rs` (à fusionner dans sa propre PR).
-- Reste : `edge-audit` autonome (6), `cdn-publish-geo` / `cdn-build-geo` (7), délégation depuis dotfiles puis retrait (8), retrait de `UnportedStackDeploy`.
+- Reste : `edge-audit` autonome (6), `cdn-publish-geo` / `cdn-build-geo` (7), délégation depuis dotfiles puis retrait (8).
 
 ## Tranche 5a faite — 2026-11-24 (`edge-backup`)
 
