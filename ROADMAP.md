@@ -18,7 +18,7 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `acteble status`, `logs`, `cdn-status`, `cdn-logs` | 4a done: `actserve ps NAME api\|cdn`, `actserve logs NAME api\|cdn [SERVICE]` (`ObserveService`, `SshTerminal`) | 4a done |
 | `acteble edge-status` | 4b done: `actserve edge-status NAME` (secret from actesskey on the server tmpfs, removed after; `SecretStorePort`, `with_remote_env`) | 4b done |
 | `acteble deploy`, `rollback` | 4c done: `actserve deploy NAME [--dry-run]`, `actserve rollback NAME [TAG] [--dry-run]` (`DeployService`, `ScpRemoteCopy`) | 4c done |
-| `acteble rotate jwt\|postgres\|minio\|all` | none; secrets belong to actesskey | 5 |
+| `acteble rotate jwt\|postgres\|minio\|all` | 5b done: `actserve rotate NAME TARGET [--dry-run] [--yes]` (`RotateService`: host, files and both secrets checked first; live DB password changed first through psql on stdin, secret untouched if it fails; `actesskey kv-set`; `machine autocommit`; redeploy; no value printed) | 5b done |
 | `acteble edge-backup` | 5a done: `actserve edge-backup NAME [DIR]` (`EdgeBackupService`, `SshRemoteDownload`: archive streamed byte for byte into a private 0600 file, nothing left on failure) | 5a done |
 | `acteble edge-audit` | none (`actserve audit` runs the same audit over ssh; the standalone command is missing) | 6 |
 | `acteble cdn-publish-geo`, `cdn-build-geo` (write to the CDN bucket) | none | 7 |

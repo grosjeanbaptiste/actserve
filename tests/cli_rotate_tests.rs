@@ -109,6 +109,8 @@ fn bad_arguments_exit_2_and_an_unknown_target_exits_1() {
         vec!["rotate", "acteble", "jwt", "extra", "--yes"],
         vec!["rotate", "acteble", "jwt", "--force"],
         vec!["rotate", "--yes", "jwt"],
+        vec!["rotate", "-x", "jwt"],
+        vec!["rotate", "acteble", "-x"],
     ] {
         let out = e.run(&args, &[]);
         assert_eq!(out.status.code(), Some(2), "{args:?} {out:?}");

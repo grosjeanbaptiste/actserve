@@ -11,7 +11,7 @@ pub fn base64(bytes: &[u8]) -> String {
             *chunk.get(1).unwrap_or(&0),
             *chunk.get(2).unwrap_or(&0),
         ];
-        let n = u32::from(b[0]) << 16 | u32::from(b[1]) << 8 | u32::from(b[2]);
+        let n = u32::from_be_bytes([0, b[0], b[1], b[2]]);
         for i in 0..4 {
             if i <= chunk.len() {
                 out.push(char::from(ALPHABET[(n >> (18 - 6 * i) & 63) as usize]));
