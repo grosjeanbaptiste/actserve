@@ -197,7 +197,7 @@ fn fake_ssh(dir: &std::path::Path, body: &str) -> PathBuf {
 async fn the_adapter_runs_edge_audit_with_sudo_after_ending_the_options() {
     let ssh = fake_ssh(
         &scratch("args"),
-        r#"case "$*" in *"BatchMode=yes"*" -- t cd '/opt/acteble/edge' && sudo -n ./edge audit") echo conforming;; *) echo "bad args: $*" >&2; exit 9;; esac"#,
+        r#"case "$*" in *"BatchMode=yes"*" -- t cd '/opt/acteble/edge' && sudo -n ./edge audit --runtime podman") echo conforming;; *) echo "bad args: $*" >&2; exit 9;; esac"#,
     );
     let got = SshEdgeAudit::new(ssh).audit("t").await.unwrap();
     assert_eq!(got, report(AuditVerdict::Conforming, "conforming\n"));

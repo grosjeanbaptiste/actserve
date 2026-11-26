@@ -46,6 +46,6 @@ fn edge_status_reads_the_edge_with_its_env_file() {
     assert_eq!(EDGE_ENV_PATH, "/dev/shm/acteble-edge.env");
     assert_eq!(
         edge_status_command(),
-        "cd '/opt/acteble/edge' && ./edge status --env-file /dev/shm/acteble-edge.env"
+        "cd '/opt/acteble/edge' && ./edge status --runtime podman --env-file /dev/shm/acteble-edge.env"
     );
 }

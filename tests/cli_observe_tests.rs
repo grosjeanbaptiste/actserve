@@ -45,7 +45,7 @@ fn ps_prints_what_the_server_answers() {
     assert_eq!(text(&out.stdout), "service-line\n");
     assert_eq!(text(&out.stderr), "remote-warning\n");
     assert!(
-        calls(&ssh).contains("api.acteble cd '/opt/acteble/cdn' && docker compose ps"),
+        calls(&ssh).contains("api.acteble podman ps --filter name=systemd-acteble_cdn"),
         "{}",
         calls(&ssh)
     );
@@ -69,7 +69,7 @@ fn logs_stream_through_a_terminal_with_the_default_service() {
     let c = calls(&ssh);
     assert!(c.starts_with("-t "), "{c}");
     assert!(
-        c.contains("docker compose logs --follow --tail=100 'cdn_checkpoint'"),
+        c.contains("journalctl --user -u acteble_cdn-checkpoint.service -f -n 100"),
         "{c}"
     );
 }
@@ -79,7 +79,11 @@ fn logs_take_a_service_and_exit_with_the_ssh_code() {
     let (dir, ssh) = stage("logs-svc", &format!("RC=130\n{SSH}"));
     let out = run(&dir, &ssh, &["logs", "acteble", "api", "db"]);
     assert_eq!(out.status.code(), Some(130));
-    assert!(calls(&ssh).contains("'db'"), "{}", calls(&ssh));
+    assert!(
+        calls(&ssh).contains("acteble_api-db.service -f -n 100"),
+        "{}",
+        calls(&ssh)
+    );
 }
 
 #[test]
