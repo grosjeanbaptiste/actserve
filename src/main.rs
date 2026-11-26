@@ -1,6 +1,5 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
 
 use actserve::{
     adapters::{
@@ -101,10 +100,9 @@ async fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
         orchestrator_service,
         dns_service,
         registrar_service,
-    )
-    .layer(CorsLayer::permissive());
+    );
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
     println!("Actserve API for Bioxus UI listening on http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;

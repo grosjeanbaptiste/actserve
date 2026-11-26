@@ -1,5 +1,6 @@
 use axum::{
     Json, Router,
+    middleware,
     routing::{get, post, put},
 };
 use serde_json::{Value, json};
@@ -270,4 +271,7 @@ pub fn create_router_full(
             post(bind_server_domain_handler),
         )
         .with_state(state)
+        .layer(middleware::from_fn(
+            crate::adapters::inbound::http::local_door::local_door,
+        ))
 }
