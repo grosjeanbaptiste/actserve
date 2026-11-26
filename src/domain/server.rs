@@ -265,6 +265,9 @@ pub struct Server {
     id: ServerId,
     name: ServerName,
     host: HostAddress,
+    /// Never serialized: the API returns a `Server` and must not hand back
+    /// a password or a private key.
+    #[serde(skip_serializing)]
     credentials: SshCredentials,
     spec: Option<ServerSpec>,
     status: ServerStatus,

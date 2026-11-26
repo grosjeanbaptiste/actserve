@@ -2,6 +2,7 @@ pub mod catalog_handlers;
 pub mod dns_handlers;
 pub mod engine_handlers;
 pub mod error_response;
+pub mod local_door;
 pub mod orchestration_handlers;
 pub mod registrar_handlers;
 pub mod registry_handlers;
