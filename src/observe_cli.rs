@@ -70,6 +70,21 @@ pub async fn run_ps(args: &[String]) -> CliResult {
     finish(name, run)
 }
 
+const RESOURCES_USAGE: &str = "usage: actserve resources NAME";
+
+/// What the whole server is using: cpus, load, memory, disk, memory per container.
+pub async fn run_resources(args: &[String]) -> CliResult {
+    let [name] = args else {
+        eprintln!("{RESOURCES_USAGE}");
+        return Ok(ExitCode::from(2));
+    };
+    if !is_name(name) {
+        eprintln!("{RESOURCES_USAGE}");
+        return Ok(ExitCode::from(2));
+    }
+    finish(name, service()?.resources(name).await)
+}
+
 /// Follows the logs of a stack's service on the operator's terminal.
 pub async fn run_logs(args: &[String]) -> CliResult {
     let (name, stack, svc) = match args {

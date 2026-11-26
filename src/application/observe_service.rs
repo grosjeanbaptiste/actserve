@@ -4,7 +4,7 @@ use crate::application::{fleet_status_service::probe_status, item_runner::find_h
 use crate::domain::{
     errors::DomainError,
     fleet::HostStatus,
-    observe::{Stack, logs_command, ps_command},
+    observe::{Stack, logs_command, ps_command, resources_command},
 };
 use crate::ports::outbound::{
     hostname_probe::HostnameProbePort,
@@ -57,6 +57,20 @@ impl ObserveService {
         let out = self
             .shell
             .run(host.ssh_target(), &ps_command(stack), None)
+            .await?;
+        Ok(ObserveRun::Output(out))
+    }
+
+    /// What the whole server is using. Read-only, like `ps`.
+    pub async fn resources(&self, name: &str) -> Result<ObserveRun, DomainError> {
+        let host = find_host(&*self.inventory, name).await?;
+        let status = probe_status(&*self.probe, &host).await;
+        if status != HostStatus::Ok {
+            return Ok(ObserveRun::Refused(status));
+        }
+        let out = self
+            .shell
+            .run(host.ssh_target(), resources_command(), None)
             .await?;
         Ok(ObserveRun::Output(out))
     }

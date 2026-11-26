@@ -1,5 +1,22 @@
 //! What `actserve ps` and `actserve logs` ask a server: stacks, services, commands.
-use actserve::domain::observe::{Stack, logs_command, ps_command, valid_service};
+use actserve::domain::observe::{
+    Stack, logs_command, ps_command, resources_command, valid_service,
+};
+
+#[test]
+fn resources_reads_cpu_memory_disk_and_the_memory_of_every_container() {
+    let c = resources_command();
+    for part in [
+        "nproc",
+        "free -m",
+        "df -h /",
+        "podman stats --no-stream",
+        "uptime",
+    ] {
+        assert!(c.contains(part), "{part}: {c}");
+    }
+    assert!(!c.contains("sudo"), "read-only: {c}");
+}
 
 #[test]
 fn the_known_stacks_are_api_and_cdn() {

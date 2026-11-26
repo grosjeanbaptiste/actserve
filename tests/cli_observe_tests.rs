@@ -134,3 +134,34 @@ fn an_unknown_stack_or_a_bad_service_exits_1_saying_why() {
     assert!(text(&out.stderr).contains("invalid service"), "{out:?}");
     assert_eq!(calls(&ssh), "");
 }
+
+#[test]
+fn resources_prints_what_the_server_answers_and_changes_nothing() {
+    let (dir, ssh) = stage("resources", SSH);
+    let out = run(&dir, &ssh, &["resources", "acteble"]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert_eq!(text(&out.stdout), "service-line\n");
+    let seen = calls(&ssh);
+    assert!(
+        seen.contains("api.acteble ") && seen.contains("free -m"),
+        "{seen}"
+    );
+    assert!(!seen.contains("sudo"), "{seen}");
+}
+
+#[test]
+fn resources_usage_errors_exit_2() {
+    let (dir, ssh) = stage("resources-usage", SSH);
+    for args in [
+        &["resources"][..],
+        &["resources", "a", "b"],
+        &["resources", "-x"],
+    ] {
+        let out = run(&dir, &ssh, args);
+        assert_eq!(out.status.code(), Some(2), "{args:?} {out:?}");
+        assert!(
+            text(&out.stderr).contains("usage: actserve resources NAME"),
+            "{args:?}"
+        );
+    }
+}
