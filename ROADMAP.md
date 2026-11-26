@@ -92,3 +92,28 @@ Next slices, in order: `ps`/`logs` for `edge`; an `actif-deploy NAME COMMIT` ver
 unit, start, `/health` check; its unit file must move into the `Actif` repository first, and a Rust
 build on the VPS needs a memory check, since there is no swap); then the `prod`/`dev` instance argument for the API (VPS: 2 vCPU, 3.9 GiB RAM, no swap, 79 GB free;
 measure with `resources` after the first real API deploy).
+
+## Capacity target: one million simultaneous users (owner, 2026-11-26)
+
+The owner's requirement: the platform must carry one million users at the same time. The VPS
+measured on 2026-11-26 (`actserve resources acteble`) cannot: 2 vCPU, 3.9 GiB RAM (about 3 GiB
+available, no swap), 79 GB disk free. Memory is the first limit. This section holds the target and
+the plan; the numbers below are ASSUMPTIONS to be corrected by the owner, not measurements.
+
+**Target, to be confirmed.** "Simultaneous" is not defined yet. Working assumption until the owner
+says otherwise: 1 000 000 users connected at once, each sending one request every 30 s on average,
+which is about 33 000 requests per second at the API, plus long-lived connections (gRPC streams,
+LiveKit). Static files and published artifacts go through the CDN stack, not the API.
+
+**Plan, in order.**
+1. Owner fixes the target: connected at once, requests per second per user, share served by the CDN.
+2. Measure what ONE node holds. Load tools (open source, to be checked on their official pages
+   before use): `oha` for HTTP, `ghz` for gRPC. The measure runs against a release image (the dev
+   stack runs `cargo watch`, a debug build, which says nothing about production), on a machine with
+   known resources, with `actserve resources` read before and after.
+3. From the per-node figure, size the number of nodes and the split: stateless API nodes behind a
+   load balancer, a replicated database, the CDN in front for static content.
+4. Only then change the topology; the single-VPS layout of today stays until the figure is known.
+
+**Not done:** no load test has been run, no node count has been decided, nothing was changed on the
+VPS.
