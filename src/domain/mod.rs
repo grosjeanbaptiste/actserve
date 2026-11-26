@@ -1,3 +1,4 @@
+pub mod api_podman;
 pub mod backup;
 pub mod baseline;
 pub mod caddy;

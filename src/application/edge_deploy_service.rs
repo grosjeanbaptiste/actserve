@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::application::{
     fleet_status_service::probe_status,
     harden_service::HardenRun,
-    item_runner::{describe, failed, find_host, push},
+    item_runner::{describe, find_host, outcome, push},
     remote_env::with_remote_env_value,
 };
 use crate::domain::{
@@ -20,11 +20,8 @@ use crate::domain::{
     secret::SecretValue,
 };
 use crate::ports::outbound::{
-    hostname_probe::HostnameProbePort,
-    remote_copy::RemoteCopyPort,
-    remote_shell::{RemoteOutput, RemoteShellPort},
-    secret_store::SecretStorePort,
-    server_inventory::ServerInventoryPort,
+    hostname_probe::HostnameProbePort, remote_copy::RemoteCopyPort, remote_shell::RemoteShellPort,
+    secret_store::SecretStorePort, server_inventory::ServerInventoryPort,
 };
 
 const STEP: &str = "edge-deploy";
@@ -38,14 +35,6 @@ pub struct EdgeDeployService {
     shell: Arc<dyn RemoteShellPort>,
     copy: Arc<dyn RemoteCopyPort>,
     secrets: Arc<dyn SecretStorePort>,
-}
-
-fn outcome(ran: Result<RemoteOutput, DomainError>) -> ItemOutcome {
-    match ran {
-        Ok(out) if out.code == Some(0) => ItemOutcome::Applied,
-        Ok(out) => ItemOutcome::Failed(failed(&out)),
-        Err(e) => ItemOutcome::Failed(describe(&e)),
-    }
 }
 
 impl EdgeDeployService {

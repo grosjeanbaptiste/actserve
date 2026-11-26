@@ -1,4 +1,6 @@
 //! `RotateService`: credential rotation of the API, with every port faked.
+mod common;
+
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -96,6 +98,9 @@ impl SecretStorePort for Store {
                 reason: format!("{n} locked"),
                 details: None,
             });
+        }
+        if n == "acteble-api-prod" {
+            return Ok(SecretValue::new(common::full_api_env()));
         }
         Ok(SecretValue::new(format!("value-of-{n}")))
     }
@@ -230,6 +235,7 @@ async fn a_dry_run_names_every_step_and_changes_nothing() {
             ("rotate", "database", ItemOutcome::WouldApply),
             ("rotate", "secret", ItemOutcome::WouldApply),
             ("rotate", "persist", ItemOutcome::WouldApply),
+            ("deploy", "prepare", ItemOutcome::WouldApply),
             ("deploy", "copy", ItemOutcome::WouldApply),
             ("deploy", "restart", ItemOutcome::WouldApply),
         ]
@@ -243,7 +249,7 @@ async fn a_dry_run_names_every_step_and_changes_nothing() {
 async fn a_dry_run_of_jwt_has_no_database_step() {
     let (run, _, _) = rotate(opts(), RotateTarget::Jwt, true).await;
     let names: Vec<_> = items(&run).iter().map(|(_, i, _)| *i).collect();
-    assert_eq!(names, ["secret", "persist", "copy", "restart"]);
+    assert_eq!(names, ["secret", "persist", "prepare", "copy", "restart"]);
 }
 
 #[tokio::test]
@@ -277,7 +283,7 @@ async fn an_unknown_server_is_not_found() {
 async fn a_missing_api_file_stops_everything_before_a_secret_is_read() {
     for dry in [false, true] {
         let (s, log, _) = service(Opts {
-            missing: vec!["/src/api/Caddyfile".into()],
+            missing: vec!["/src/api/server/quadlet/acteble_api.network".into()],
             ..opts()
         });
         let e = s
@@ -285,7 +291,7 @@ async fn a_missing_api_file_stops_everything_before_a_secret_is_read() {
             .await
             .unwrap_err();
         assert!(
-            matches!(&e, DomainError::ValidationError(m) if m.contains("Caddyfile")),
+            matches!(&e, DomainError::ValidationError(m) if m.contains("acteble_api.network")),
             "{e:?}"
         );
         assert!(log.all().is_empty(), "{:?}", log.all());
@@ -368,6 +374,7 @@ async fn a_postgres_rotation_changes_the_database_then_the_secret_then_persists_
             ("rotate", "database", ItemOutcome::Applied),
             ("rotate", "secret", ItemOutcome::Applied),
             ("rotate", "persist", ItemOutcome::Applied),
+            ("deploy", "prepare", ItemOutcome::Applied),
             ("deploy", "copy", ItemOutcome::Applied),
             ("deploy", "restart", ItemOutcome::Applied),
         ]
@@ -537,7 +544,7 @@ async fn a_failed_persist_is_reported_but_the_deploy_still_runs() {
 async fn a_failed_deploy_is_reported_after_the_rotation_was_made() {
     let (run, log, _) = rotate(
         Opts {
-            shell: vec![("docker login", 1)],
+            shell: vec![("podman login", 1)],
             ..opts()
         },
         RotateTarget::Jwt,
@@ -547,8 +554,8 @@ async fn a_failed_deploy_is_reported_after_the_rotation_was_made() {
     assert_eq!(exit_code(&run), 1);
     assert_eq!(log.count("set acteble-api-prod"), 1);
     let names: Vec<_> = items(&run).iter().map(|(_, i, _)| *i).collect();
-    assert_eq!(names, ["secret", "persist", "copy", "restart"]);
-    assert!(matches!(items(&run)[3].2, ItemOutcome::Failed(_)));
+    assert_eq!(names, ["secret", "persist", "prepare", "copy", "restart"]);
+    assert!(matches!(items(&run)[4].2, ItemOutcome::Failed(_)));
 }
 
 #[tokio::test]
