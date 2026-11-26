@@ -13,8 +13,8 @@ use crate::fleet_cli::inventory_and_ssh;
 
 type CliResult = Result<ExitCode, Box<dyn std::error::Error>>;
 
-const PS_USAGE: &str = "usage: actserve ps NAME api|cdn";
-const LOGS_USAGE: &str = "usage: actserve logs NAME api|cdn [SERVICE]";
+const PS_USAGE: &str = "usage: actserve ps NAME api|cdn|edge";
+const LOGS_USAGE: &str = "usage: actserve logs NAME api|cdn|edge [SERVICE]";
 
 fn service() -> Result<ObserveService, Box<dyn std::error::Error>> {
     let (inventory, ssh) = inventory_and_ssh()?;

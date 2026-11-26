@@ -1,6 +1,5 @@
 use axum::{
-    Json, Router,
-    middleware,
+    Json, Router, middleware,
     routing::{get, post, put},
 };
 use serde_json::{Value, json};
