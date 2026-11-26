@@ -1,7 +1,8 @@
-//! What a stack's containers are doing: the commands `ps` and `logs` run on the server.
+//! What a stack's containers are doing: the commands `ps` and `logs` run on the server
+//! (rootless Podman, Quadlet units in the user session).
 use crate::domain::errors::DomainError;
 
-/// A compose stack that lives under `/opt/acteble/` on a server.
+/// A Quadlet stack on a server: units `acteble_<stack>-<service>`, containers `systemd-acteble_<stack>-…`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stack {
     Api,
@@ -26,6 +27,13 @@ impl Stack {
         }
     }
 
+    fn name(self) -> &'static str {
+        match self {
+            Self::Api => "api",
+            Self::Cdn => "cdn",
+        }
+    }
+
     pub fn default_service(self) -> &'static str {
         match self {
             Self::Api => "api",
@@ -34,7 +42,7 @@ impl Stack {
     }
 }
 
-/// A compose service name: letters, digits, `_`, `-`, `.`; never leading `-`.
+/// A service name: letters, digits, `_`, `-`, `.`; never leading `-`.
 /// Anything else could break the single quotes it is placed in.
 pub fn valid_service(name: &str) -> bool {
     !name.is_empty()
@@ -45,7 +53,7 @@ pub fn valid_service(name: &str) -> bool {
 }
 
 pub fn ps_command(stack: Stack) -> String {
-    format!("cd '{}' && docker compose ps", stack.dir())
+    format!("podman ps --filter name=systemd-acteble_{}", stack.name())
 }
 
 pub fn logs_command(stack: Stack, service: &str) -> Result<String, DomainError> {
@@ -54,9 +62,11 @@ pub fn logs_command(stack: Stack, service: &str) -> Result<String, DomainError> 
             "invalid service name {service:?}"
         )));
     }
+    let name = stack.name();
+    let service = service.strip_prefix(&format!("{name}_")).unwrap_or(service);
+    let unit = service.replace('_', "-");
     Ok(format!(
-        "cd '{}' && docker compose logs --follow --tail=100 '{service}'",
-        stack.dir()
+        "journalctl --user -u acteble_{name}-{unit}.service -f -n 100"
     ))
 }
 
@@ -66,5 +76,5 @@ pub const EDGE_ENV_PATH: &str = "/dev/shm/acteble-edge.env";
 
 /// What the edge says about itself, read with its env file.
 pub fn edge_status_command() -> String {
-    format!("cd '{EDGE_DIR}' && ./edge status --env-file {EDGE_ENV_PATH}")
+    format!("cd '{EDGE_DIR}' && ./edge status --runtime podman --env-file {EDGE_ENV_PATH}")
 }

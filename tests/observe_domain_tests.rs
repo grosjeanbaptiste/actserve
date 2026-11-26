@@ -25,18 +25,30 @@ fn each_stack_has_its_directory_and_default_service() {
 }
 
 #[test]
-fn ps_runs_docker_compose_ps_in_the_stack_directory() {
+fn ps_lists_the_podman_containers_of_the_stack() {
     assert_eq!(
         ps_command(Stack::Cdn),
-        "cd '/opt/acteble/cdn' && docker compose ps"
+        "podman ps --filter name=systemd-acteble_cdn"
+    );
+    assert_eq!(
+        ps_command(Stack::Api),
+        "podman ps --filter name=systemd-acteble_api"
     );
 }
 
 #[test]
-fn logs_follow_the_last_hundred_lines_of_the_service() {
+fn logs_follow_the_last_hundred_lines_of_the_unit_of_the_service() {
     assert_eq!(
         logs_command(Stack::Api, "api").unwrap(),
-        "cd '/opt/acteble/api' && docker compose logs --follow --tail=100 'api'"
+        "journalctl --user -u acteble_api-api.service -f -n 100"
+    );
+    assert_eq!(
+        logs_command(Stack::Cdn, "cdn_checkpoint").unwrap(),
+        "journalctl --user -u acteble_cdn-checkpoint.service -f -n 100"
+    );
+    assert_eq!(
+        logs_command(Stack::Api, "pg_backup").unwrap(),
+        "journalctl --user -u acteble_api-pg-backup.service -f -n 100"
     );
 }
 
