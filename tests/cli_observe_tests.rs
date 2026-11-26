@@ -165,3 +165,27 @@ fn resources_usage_errors_exit_2() {
         );
     }
 }
+
+#[test]
+fn ps_edge_lists_the_caddy_container() {
+    let (dir, ssh) = stage("ps-edge", SSH);
+    let out = run(&dir, &ssh, &["ps", "acteble", "edge"]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(
+        calls(&ssh).contains("podman ps --filter name=systemd-acteble_edge"),
+        "{}",
+        calls(&ssh)
+    );
+}
+
+#[test]
+fn logs_edge_follow_the_caddy_unit_by_default() {
+    let (dir, ssh) = stage("logs-edge", SSH);
+    let out = run(&dir, &ssh, &["logs", "acteble", "edge"]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    let c = calls(&ssh);
+    assert!(
+        c.contains("journalctl --user -u acteble_edge-caddy.service -f -n 100"),
+        "{c}"
+    );
+}

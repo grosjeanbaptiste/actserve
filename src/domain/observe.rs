@@ -7,6 +7,7 @@ use crate::domain::errors::DomainError;
 pub enum Stack {
     Api,
     Cdn,
+    Edge,
 }
 
 impl Stack {
@@ -14,8 +15,9 @@ impl Stack {
         match name {
             "api" => Ok(Self::Api),
             "cdn" => Ok(Self::Cdn),
+            "edge" => Ok(Self::Edge),
             other => Err(DomainError::ValidationError(format!(
-                "unknown stack {other:?}: expected api or cdn"
+                "unknown stack {other:?}: expected api, cdn or edge"
             ))),
         }
     }
@@ -24,6 +26,7 @@ impl Stack {
         match self {
             Self::Api => "/opt/acteble/api",
             Self::Cdn => "/opt/acteble/cdn",
+            Self::Edge => EDGE_DIR,
         }
     }
 
@@ -31,6 +34,7 @@ impl Stack {
         match self {
             Self::Api => "api",
             Self::Cdn => "cdn",
+            Self::Edge => "edge",
         }
     }
 
@@ -38,6 +42,7 @@ impl Stack {
         match self {
             Self::Api => "api",
             Self::Cdn => "cdn_checkpoint",
+            Self::Edge => "caddy",
         }
     }
 }
