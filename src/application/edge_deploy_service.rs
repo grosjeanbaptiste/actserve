@@ -4,24 +4,24 @@ use std::sync::Arc;
 use crate::application::{
     fleet_status_service::probe_status,
     harden_service::HardenRun,
-    item_runner::{describe, failed, find_host, push},
+    item_runner::{describe, find_host, outcome, push},
     remote_env::with_remote_env_value,
 };
 use crate::domain::{
-    deploy::{GHCR_SECRET, ghcr_wrapped},
-    edge_deploy::{EDGE_FILES, EDGE_SECRET, binary_script, prepare_command, start_command},
+    deploy::GHCR_SECRET,
+    edge_deploy::{
+        EDGE_FILES, EDGE_SECRET, binary_script, prepare_command, start_command, units_command,
+    },
     errors::DomainError,
     fleet::HostStatus,
     harden::{ItemOutcome, ItemReport},
     observe::{EDGE_DIR, EDGE_ENV_PATH},
+    podman::ghcr_wrapped,
     secret::SecretValue,
 };
 use crate::ports::outbound::{
-    hostname_probe::HostnameProbePort,
-    remote_copy::RemoteCopyPort,
-    remote_shell::{RemoteOutput, RemoteShellPort},
-    secret_store::SecretStorePort,
-    server_inventory::ServerInventoryPort,
+    hostname_probe::HostnameProbePort, remote_copy::RemoteCopyPort, remote_shell::RemoteShellPort,
+    secret_store::SecretStorePort, server_inventory::ServerInventoryPort,
 };
 
 const STEP: &str = "edge-deploy";
@@ -35,14 +35,6 @@ pub struct EdgeDeployService {
     shell: Arc<dyn RemoteShellPort>,
     copy: Arc<dyn RemoteCopyPort>,
     secrets: Arc<dyn SecretStorePort>,
-}
-
-fn outcome(ran: Result<RemoteOutput, DomainError>) -> ItemOutcome {
-    match ran {
-        Ok(out) if out.code == Some(0) => ItemOutcome::Applied,
-        Ok(out) => ItemOutcome::Failed(failed(&out)),
-        Err(e) => ItemOutcome::Failed(describe(&e)),
-    }
 }
 
 impl EdgeDeployService {
@@ -98,7 +90,7 @@ impl EdgeDeployService {
         }
         let mut items = Vec::new();
         if dry_run {
-            for item in ["prepare", "copy", "binary", "start"] {
+            for item in ["prepare", "copy", "units", "binary", "start"] {
                 push(&mut items, STEP, item, ItemOutcome::WouldApply);
             }
             return Ok(items);
@@ -122,6 +114,10 @@ impl EdgeDeployService {
         }
         let copied = self.copy.copy(target, files, EDGE_DIR).await;
         if !push(items, STEP, "copy", outcome(copied)) {
+            return;
+        }
+        let installed = self.shell.run(target, &units_command(), None).await;
+        if !push(items, STEP, "units", outcome(installed)) {
             return;
         }
         let binary = ghcr_wrapped(&binary_script());

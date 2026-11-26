@@ -5,7 +5,7 @@ pub const API_SECRET: &str = "acteble-api-prod";
 pub const API_ENV_PATH: &str = "/dev/shm/acteble-api.env";
 pub const GHCR_SECRET: &str = "ghcr-read-packages";
 pub(crate) const GHCR_USER: &str = "grosjeanbaptiste";
-const IMAGE_REPO: &str = "ghcr.io/acteble/acteble_api";
+pub(crate) const IMAGE_REPO: &str = "ghcr.io/acteble/acteble_api";
 const COMPOSE_BASE: &str =
     "-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml";
 
@@ -23,14 +23,6 @@ pub fn ghcr_wrapped(script: &str) -> String {
     format!(
         "docker login ghcr.io -u '{GHCR_USER}' --password-stdin >/dev/null || exit 1\n\
          (\n{script}\n)\nrc=$?\ndocker logout ghcr.io >/dev/null 2>&1\nexit $rc"
-    )
-}
-
-/// The same, through Podman: the services are Quadlet units, so the pulls are Podman's.
-pub fn ghcr_podman_wrapped(script: &str) -> String {
-    format!(
-        "podman login ghcr.io -u '{GHCR_USER}' --password-stdin >/dev/null || exit 1\n\
-         (\n{script}\n)\nrc=$?\npodman logout ghcr.io >/dev/null 2>&1\nexit $rc"
     )
 }
 

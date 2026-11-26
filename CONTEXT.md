@@ -1,4 +1,4 @@
-# actserve — état au 2026-11-23
+# actserve — état au 2026-11-25
 
 ## Rôle
 
@@ -19,6 +19,14 @@ Orchestrateur Rust (Axum, architecture hexagonale) de l'administration de serveu
 - `cdn-build-geo` ne lance plus que `podman` : `podman login ghcr.io` (`domain/podman.rs::ghcr_wrapped`), secret `acteble_cdn_manifest_signing_key` créé depuis l'env sur tmpfs (valeur sur stdin), `podman pull`, `podman run -d --name acteble-geo-build` avec `--secret` pour les trois valeurs, puis `podman logs -f`, `podman wait`, `podman rm`. Mêmes limites que l'unité Quadlet `acteble_cdn-geo-builder.container` (réseau `acteble_cdn`, `--cap-drop ALL`, 2800 Mo, `nofile` 262144, volume `acteble_cdn_geo_work`).
 - Partage : `ps`, `logs`, `edge-status`, `edge-audit` sont sur la branche `feat/podman-ps-audit` de la session `remove-docker-from-vps`. Plan et ordre dans `ROADMAP.md`.
 - Preuve : suite 492 verts, clippy `-D warnings` et fmt propres, mutants 17 testés, 0 survivant. Rien lancé sur le VPS réel ni sur le magasin de secrets. Les scripts sont vérifiés par les tests de chaîne ; leur exécution réelle sous Podman n'est pas essayée.
+
+## Un seul wrapper ghcr Podman — 2026-11-25
+
+`domain/deploy.rs::ghcr_podman_wrapped` (PR #35) et `domain/podman.rs::ghcr_wrapped` (PR #34) faisaient le même travail. Il ne reste que `podman::ghcr_wrapped` ; `cdn_deploy_service` l'utilise, et son test d'égalité exacte est dans `tests/podman_domain_tests.rs`. Suite 498 verts, clippy et fmt propres. `deploy::ghcr_wrapped` (Docker) reste pour `deploy`, `rollback` et `edge-deploy` jusqu'à leur portage.
+
+## Podman : `edge-deploy` — 2026-11-25
+
+Cinq items : `prepare`, `copy` (`Caddyfile`, `sites/`, `quadlet/` de `ACTEBLE_EDGE_DIR`), `units` (copie dans `~/.config/containers/systemd`), `binary` (`podman pull/create/cp/rm` sous `podman::ghcr_wrapped`), `start` (`install -m 600` du `.env` tmpfs vers `/opt/acteble/edge/.env`, lu par `EnvironmentFile=` de l'unité, puis `./edge up --runtime podman`). Le binaire `edge` du VPS ne connaît `--runtime podman` qu'après la fusion de `acteble_edge` `feat/podman-runtime` et la reconstruction de son image : avant, `start` échoue bruyamment. Choix : actserve ne génère pas `sites-enabled` (responsabilité de `edge`). Non lancé sur le VPS (go du propriétaire requis).
 
 ## Podman : `edge-backup` — 2026-11-25
 
@@ -153,3 +161,12 @@ actserve doit reprendre toute l'administration du VPS et de son réseau que `dot
 ## Décisions
 
 - 2026-11-18 — renommage servai → actserve (commit 1b1339d).
+
+## Podman : `deploy`, `rollback`, `rotate` (api) — 2026-11-25
+
+- `actserve deploy NAME` : items `prepare` (`mkdir` de `/opt/acteble/api` et du dossier des unités de l'utilisateur), `copy` (les 10 fichiers de `server/quadlet` de `ACTEBLE_API_DIR` vers `~/.config/containers/systemd`), `restart` (sous `podman::ghcr_wrapped`, avec l'env prod sur le tmpfs : `podman tag` de `:latest` en `:previous`, `podman pull`, 16 secrets Podman par `podman secret create --replace` (valeur sur stdin), `api.env` des réglages en 0600, `daemon-reload`, `start` des unités postgres, redis, minio et pg-backup, `restart` de l'API). Un item `secrets` échoue avant tout appel serveur si l'env `acteble-api-prod` manque d'une clé requise (liste dans `domain/api_podman.rs`).
+- `actserve rollback NAME [TAG]` : `podman tag :TAG :latest` (après `podman pull` si TAG n'est pas `previous`), puis `restart` de l'API. Seul le jeton ghcr est lu.
+- `rotate` redéploie par `deploy` ; ses tests suivent.
+- Choix : le script lit l'env avec `sed`, jamais en le sourçant (une valeur comme `PLAY_INTEGRITY_SA_JSON` contient espaces, guillemets et `;`). Les 16 secrets sont tous requis, y compris ceux que Compose laissait optionnels (`REVENUECAT_SECRET_API_KEY`, `PLAY_INTEGRITY_SA_JSON`, `AGE_ATTESTATION_SIGNING_KEY`, `CDN_TOKEN_SECRET`) : les unités les référencent par `Secret=`, et un secret Podman vide n'est pas vérifié.
+- Non vérifié : les unités viennent de `acteble_api` `feat/podman-quadlet` (non fusionnée) ; leurs tests bats parlent de Podman « rootful », alors qu'actserve suppose l'utilisateur ssh sans sudo (`systemctl --user`). Rien lancé sur le VPS. Le helper `outcome` vit dans `item_runner.rs` (la copie d'`edge_deploy_service` est retirée ; `cdn_deploy_service` et `caddy_deploy_service` gardent la leur).
+- Preuve : suite 520 verts, clippy `-D warnings` et fmt propres, mutants 44 testés, 1 survivant (garde de guillemets de `value`) tué par `only_a_matching_pair_of_quotes_is_removed`.

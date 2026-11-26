@@ -16,10 +16,9 @@ impl Env {
         let dir = std::env::temp_dir().join(format!("actserve-edge-{}-{name}", std::process::id()));
         std::fs::create_dir_all(dir.join("edge")).unwrap();
         std::fs::write(dir.join("servers.txt"), "acteble|api.acteble|host-1\n").unwrap();
-        for f in ["Caddyfile", "compose.yml"] {
-            std::fs::write(dir.join("edge").join(f), "x").unwrap();
-        }
+        std::fs::write(dir.join("edge").join("Caddyfile"), "x").unwrap();
         std::fs::create_dir_all(dir.join("edge/sites")).unwrap();
+        std::fs::create_dir_all(dir.join("edge/quadlet")).unwrap();
         script(&dir.join("ssh"), SSH);
         script(
             &dir.join("scp"),
@@ -59,13 +58,13 @@ fn text(b: &[u8]) -> String {
 }
 
 #[test]
-fn a_deploy_runs_the_four_steps_and_prints_them() {
+fn a_deploy_runs_the_five_steps_and_prints_them() {
     let e = Env::new("ok");
     let out = e.run(&["edge-deploy", "acteble"], &[]);
     assert_eq!(out.status.code(), Some(0), "{out:?}");
     assert_eq!(
         text(&out.stdout),
-        "edge-deploy prepare   applied\nedge-deploy copy      applied\nedge-deploy binary    applied\nedge-deploy start     applied\n"
+        "edge-deploy prepare   applied\nedge-deploy copy      applied\nedge-deploy units     applied\nedge-deploy binary    applied\nedge-deploy start     applied\n"
     );
     let l = e.log();
     assert!(l.contains("api.acteble:/opt/acteble/edge/"), "{l}");

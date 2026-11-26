@@ -84,3 +84,13 @@ pub async fn find_host(
             id: name.to_string(),
         })
 }
+
+/// The outcome of one remote command: exit 0 is applied; anything else is a failure that
+/// names the exit code and stderr (or the error).
+pub fn outcome(ran: Result<RemoteOutput, DomainError>) -> ItemOutcome {
+    match ran {
+        Ok(out) if out.code == Some(0) => ItemOutcome::Applied,
+        Ok(out) => ItemOutcome::Failed(failed(&out)),
+        Err(e) => ItemOutcome::Failed(describe(&e)),
+    }
+}

@@ -12,9 +12,9 @@ use crate::ports::outbound::edge_audit::EdgeAuditPort;
 
 /// Where the edge binary lives on a server.
 // ponytail: one fixed path, per-server stacks move it into servers/<name>/.
-const EDGE_AUDIT: &str = "cd '/opt/acteble/edge' && sudo -n ./edge audit";
+const EDGE_AUDIT: &str = "cd '/opt/acteble/edge' && sudo -n ./edge audit --runtime podman";
 
-/// Runs `ssh -o BatchMode=yes -- <target> "cd … && sudo -n ./edge audit"`:
+/// Runs `ssh -o BatchMode=yes -- <target> "cd … && sudo -n ./edge audit --runtime podman"`:
 /// exit 0 is conforming, 1 a deviation, any other status is unreadable.
 pub struct SshEdgeAudit {
     ssh: PathBuf,

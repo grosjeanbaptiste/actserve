@@ -1,7 +1,7 @@
 //! The commands of the API deploy and rollback, and the ghcr login that wraps them.
 use actserve::domain::deploy::{
-    API_COMPOSE_FILES, API_ENV_PATH, API_SECRET, GHCR_SECRET, deploy_script, ghcr_podman_wrapped,
-    ghcr_wrapped, rollback_script, valid_image_tag,
+    API_COMPOSE_FILES, API_ENV_PATH, API_SECRET, GHCR_SECRET, deploy_script, ghcr_wrapped,
+    rollback_script, valid_image_tag,
 };
 use actserve::domain::secret::{valid_secret_name, valid_tmpfs_path};
 
@@ -34,15 +34,6 @@ fn ghcr_login_wraps_a_script_and_always_logs_out() {
         ghcr_wrapped("echo hi"),
         "docker login ghcr.io -u 'grosjeanbaptiste' --password-stdin >/dev/null || exit 1\n\
          (\necho hi\n)\nrc=$?\ndocker logout ghcr.io >/dev/null 2>&1\nexit $rc"
-    );
-}
-
-#[test]
-fn ghcr_login_through_podman_wraps_a_script_and_always_logs_out() {
-    assert_eq!(
-        ghcr_podman_wrapped("echo hi"),
-        "podman login ghcr.io -u 'grosjeanbaptiste' --password-stdin >/dev/null || exit 1\n\
-         (\necho hi\n)\nrc=$?\npodman logout ghcr.io >/dev/null 2>&1\nexit $rc"
     );
 }
 

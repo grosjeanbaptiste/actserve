@@ -12,11 +12,12 @@ use crate::domain::{
         CDN_ENV_PATH, CDN_HEALTH_SCRIPT, CDN_SECRET, CDN_UNIT_DIR, CDN_UNIT_FILES, geo_script,
         network_command, prepare_command, start_script,
     },
-    deploy::{GHCR_SECRET, ghcr_podman_wrapped},
+    deploy::GHCR_SECRET,
     errors::DomainError,
     fleet::HostStatus,
     harden::{ItemOutcome, ItemReport},
     observe::Stack,
+    podman::ghcr_wrapped,
     secret::SecretValue,
 };
 use crate::ports::outbound::{
@@ -143,7 +144,7 @@ impl CdnDeployService {
         if !push(items, STEP, "network", outcome(network)) {
             return;
         }
-        let start = ghcr_podman_wrapped(&start_script());
+        let start = ghcr_wrapped(&start_script());
         let started = self
             .with_env(target, &env, &start, Some(ghcr.expose()))
             .await;
