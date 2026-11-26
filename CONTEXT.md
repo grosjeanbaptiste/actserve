@@ -1,4 +1,10 @@
-# actserve — état au 2026-11-25
+# actserve — état au 2026-11-26
+
+## Correctifs de sécurité de l'API — 2026-11-26 (PR #44, mergée)
+
+- La porte HTTP écoute en loopback (`127.0.0.1`), n'a plus de CORS permissif et refuse toute requête portant `Origin` ou un `Host` non loopback. Source : `src/adapters/inbound/http/local_door.rs`, test `tests/api_local_door_tests.rs`.
+- Un `Server` n'est plus sérialisé avec son mot de passe ou sa clé SSH (`register`, `get`, `list`). Source : `src/domain/server.rs`, test `tests/api_credentials_not_returned_tests.rs`.
+- Les deux tests ont été écrits avant le code ; leur exécution complète est attendue de la CI (non vérifiée ici).
 
 ## Rôle
 
