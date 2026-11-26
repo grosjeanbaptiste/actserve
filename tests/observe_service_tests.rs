@@ -161,3 +161,23 @@ async fn an_unreachable_host_is_refused_with_its_reason() {
         "a: unreachable (cannot reach: timeout)\n"
     );
 }
+
+#[tokio::test]
+async fn resources_runs_the_read_only_probe_on_the_expected_host() {
+    let (s, calls) = service(Probe(Ok("h1")), Some(0), None);
+    let run = s.resources("a").await.unwrap();
+    let seen = calls.0.lock().unwrap().clone();
+    assert_eq!(seen.len(), 1, "{seen:?}");
+    assert!(seen[0].starts_with("shell ta "), "{seen:?}");
+    assert!(seen[0].contains("free -m"), "{seen:?}");
+    assert_eq!(exit_code(&run), 0);
+    assert_eq!(render("a", &run), "NAME\napi\n");
+}
+
+#[tokio::test]
+async fn resources_on_the_wrong_host_runs_nothing() {
+    let (s, calls) = service(Probe(Ok("other")), Some(0), None);
+    let run = s.resources("a").await.unwrap();
+    assert_eq!(exit_code(&run), 3);
+    assert!(calls.0.lock().unwrap().is_empty());
+}

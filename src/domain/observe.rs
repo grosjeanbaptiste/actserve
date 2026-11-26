@@ -56,6 +56,13 @@ pub fn ps_command(stack: Stack) -> String {
     format!("podman ps --filter name=systemd-acteble_{}", stack.name())
 }
 
+/// What the whole server is using: cpus, load, memory, disk, and what each
+/// container holds. Read-only: nothing here changes the server.
+pub fn resources_command() -> &'static str {
+    "echo cpus; nproc; echo load; uptime; echo memory; free -m; echo disk; df -h /; \
+     echo containers; podman stats --no-stream --format '{{.Name}} {{.MemUsage}}'"
+}
+
 pub fn logs_command(stack: Stack, service: &str) -> Result<String, DomainError> {
     if !valid_service(service) {
         return Err(DomainError::ValidationError(format!(

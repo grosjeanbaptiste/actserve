@@ -73,3 +73,22 @@ One PR per command; `domain/deploy.rs` keeps the Docker scripts until the last u
 | Delegation from dotfiles (slice 8) | only for commands already ported and valid |
 
 **Known limit before the first real API deploy (2026-11-26).** Behind rootless Podman 5.7.0 (Ubuntu 26.04, passt 0.0~git20260120) a published port on a bridge network goes through `rootlessport`, which rewrites the client address to `10.89.0.x`: Caddy has no `trusted_proxies` and the API's rate limiter keys on the first `X-Forwarded-For` hop, so every client would share one quota. `rootless_port_forwarder="pasta"` (Podman PR #28478, May 2026) keeps the real address, but Podman 5.7 does not know the option and the host repositories carry nothing newer. Until Podman is newer, or the edge leaves the bridge (`Network=pasta` plus upstreams published on `127.0.0.1`, an `acteble_edge` redesign), the API stays undeployed (`stacks.txt` `api|held`).
+
+## Goal: actserve controls the whole VPS (owner, 2026-11-26)
+
+Everything that runs on the VPS is deployed, observed and rolled back through an actserve verb; no
+hand-run `ssh` for a reading. Measured gaps on 2026-11-26 (read-only, `podman ps` and `free -m`):
+
+| On the VPS | Verb today | Gap |
+|---|---|---|
+| `acteble_cdn-minio`, `acteble_cdn-checkpoint` | `cdn-deploy`, `ps cdn`, `logs cdn` | none |
+| `acteble_edge-caddy`, network `acteble_edge` | `edge-deploy`, `edge-status`, `edge-backup` | `ps` and `logs` take only `api\|cdn`, not `edge` |
+| `acteble_api` stack (postgres, redis, minio, api) | `deploy`, `rollback`, `rotate`, `ps api`, `logs api` | not deployed yet on Podman; no `dev` instance |
+| `actif-api` (container up 42 h, 256 MiB, 1 cpu) | none | repository `Actif` (crate `actif-api`, worktree `Actif-wt-biorcrux`, `docs/deployment.md`). Deployed by hand: `git archive` into `/opt/acteble/actif/releases/<commit>`, image built on the host (`podman build`, tag = commit), unit `~/.config/containers/systemd/actif-api.container` written outside the repository, which still documents Docker Compose. No actserve verb |
+| CPU, memory, disk of the server | none (only `ssh_executor`, for the web API) | `actserve resources NAME`, slice 1, branch `feat/resources-verb` |
+| Host hardening, runtime | `harden`, `runtime`, `stacks` | none known |
+
+Next slices, in order: `ps`/`logs` for `edge`; an `actif-deploy NAME COMMIT` verb (export, build,
+unit, start, `/health` check; its unit file must move into the `Actif` repository first, and a Rust
+build on the VPS needs a memory check, since there is no swap); then the `prod`/`dev` instance argument for the API (VPS: 2 vCPU, 3.9 GiB RAM, no swap, 79 GB free;
+measure with `resources` after the first real API deploy).
