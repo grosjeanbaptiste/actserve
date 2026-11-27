@@ -1,6 +1,6 @@
 //! `actserve deploy NAME [--dry-run]` and `actserve rollback NAME [TAG] [--dry-run]`.
 //! The API files come from `$ACTEBLE_API_DIR` (default `~/Source/Acteble/acteble_api`),
-//! scp is `$DOTFILES_SCP` (default `scp`), secrets come from `$ACTSERVE_ACTESSKEY`
+//! scp is `$ACTSERVE_SCP` (default `scp`), secrets come from `$ACTSERVE_ACTESSKEY`
 //! (default `actesskey`).
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -24,7 +24,7 @@ const ROLLBACK_USAGE: &str = "usage: actserve rollback NAME [TAG] [--dry-run]";
 
 pub(crate) fn service() -> Result<DeployService, Box<dyn std::error::Error>> {
     let (inventory, ssh) = inventory_and_ssh()?;
-    let scp = std::env::var("DOTFILES_SCP").unwrap_or_else(|_| "scp".to_string());
+    let scp = crate::fleet_cli::program("ACTSERVE_SCP", "scp");
     let key = std::env::var("ACTSERVE_ACTESSKEY").unwrap_or_else(|_| "actesskey".to_string());
     Ok(DeployService::new(
         inventory,

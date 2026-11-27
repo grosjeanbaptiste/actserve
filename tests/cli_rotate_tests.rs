@@ -43,8 +43,8 @@ impl Env {
         let mut c = Command::new(env!("CARGO_BIN_EXE_actserve"));
         c.args(args)
             .env("ACTCONF_STATE_ROOT", &self.dir)
-            .env("DOTFILES_SSH", self.dir.join("ssh"))
-            .env("DOTFILES_SCP", self.dir.join("scp"))
+            .env("ACTSERVE_SSH", self.dir.join("ssh"))
+            .env("ACTSERVE_SCP", self.dir.join("scp"))
             .env("ACTSERVE_ACTESSKEY", self.dir.join("actesskey"))
             .env("ACTSERVE_MACHINE", self.dir.join("machine"))
             .env("ACTEBLE_API_DIR", self.dir.join("api"))

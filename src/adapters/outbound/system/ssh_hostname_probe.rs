@@ -8,7 +8,7 @@ use crate::domain::errors::DomainError;
 use crate::ports::outbound::hostname_probe::HostnameProbePort;
 
 /// Asks `<target> hostname` through actessh (which ends the options with `--`). The binary is injectable
-/// (the bash tool reads `DOTFILES_SSH`) so tests can stand in for ssh.
+/// (the bash tool reads `ACTSERVE_SSH`) so tests can stand in for ssh.
 pub struct SshHostnameProbe {
     ssh: Arc<Ssh>,
     bin: PathBuf,

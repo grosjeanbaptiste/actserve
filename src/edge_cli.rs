@@ -1,5 +1,5 @@
 //! `actserve edge-deploy NAME [--dry-run]`. The files come from `$ACTEBLE_EDGE_DIR`
-//! (default `~/Source/Acteble/acteble_edge`); scp is `$DOTFILES_SCP`, secrets `$ACTSERVE_ACTESSKEY`.
+//! (default `~/Source/Acteble/acteble_edge`); scp is `$ACTSERVE_SCP`, secrets `$ACTSERVE_ACTESSKEY`.
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -16,7 +16,7 @@ const USAGE: &str = "usage: actserve edge-deploy NAME [--dry-run]";
 
 pub(crate) fn service() -> Result<EdgeDeployService, Box<dyn std::error::Error>> {
     let (inventory, ssh) = inventory_and_ssh()?;
-    let scp = std::env::var("DOTFILES_SCP").unwrap_or_else(|_| "scp".to_string());
+    let scp = crate::fleet_cli::program("ACTSERVE_SCP", "scp");
     let key = std::env::var("ACTSERVE_ACTESSKEY").unwrap_or_else(|_| "actesskey".to_string());
     Ok(EdgeDeployService::new(
         inventory,
