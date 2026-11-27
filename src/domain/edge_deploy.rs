@@ -4,19 +4,26 @@ use crate::domain::observe::{EDGE_DIR, EDGE_ENV_PATH};
 pub use crate::domain::observe::EDGE_SECRET;
 
 /// What is copied from the edge repository to the server (`sites` and `quadlet` are directories).
-pub const EDGE_FILES: [&str; 3] = ["Caddyfile", "sites", "quadlet"];
+/// `Caddyfile.socket` is the one Caddy reads when systemd hands it the sockets.
+pub const EDGE_FILES: [&str; 4] = ["Caddyfile", "Caddyfile.socket", "sites", "quadlet"];
 pub const EDGE_IMAGE: &str = "ghcr.io/acteble/acteble_edge:latest";
 
 /// Where Quadlet reads the user units of the login user (rootless Podman).
 const UNIT_DIR: &str = "$HOME/.config/containers/systemd";
+/// Where the user's systemd reads plain units: the `.socket` is not a Quadlet unit.
+const SOCKET_DIR: &str = "$HOME/.config/systemd/user";
 
 pub fn prepare_command() -> String {
-    format!("mkdir -p '{EDGE_DIR}' \"{UNIT_DIR}\"")
+    format!("mkdir -p '{EDGE_DIR}' \"{UNIT_DIR}\" \"{SOCKET_DIR}\"")
 }
 
-/// Installs the copied Quadlet units where the user's systemd reads them.
+/// Installs the copied units: Quadlet ones where Quadlet reads them, the socket where
+/// systemd reads it. A missing kind makes `cp` fail, so the step fails loudly.
 pub fn units_command() -> String {
-    format!("cp '{EDGE_DIR}/quadlet'/* \"{UNIT_DIR}/\"")
+    let q = format!("'{EDGE_DIR}/quadlet'");
+    format!(
+        "cp {q}/*.container {q}/*.network {q}/*.volume \"{UNIT_DIR}/\" && cp {q}/*.socket \"{SOCKET_DIR}/\""
+    )
 }
 
 /// Takes the `/edge` binary out of the image; no socket is mounted. The

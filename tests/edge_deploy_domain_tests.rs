@@ -4,8 +4,11 @@ use actserve::domain::edge_deploy::{
 };
 
 #[test]
-fn the_edge_files_are_the_caddyfile_the_sites_and_the_quadlet_units() {
-    assert_eq!(EDGE_FILES, ["Caddyfile", "sites", "quadlet"]);
+fn the_edge_files_are_the_caddyfiles_the_sites_and_the_units() {
+    assert_eq!(
+        EDGE_FILES,
+        ["Caddyfile", "Caddyfile.socket", "sites", "quadlet"]
+    );
     assert_eq!(EDGE_IMAGE, "ghcr.io/acteble/acteble_edge:latest");
 }
 
@@ -13,15 +16,15 @@ fn the_edge_files_are_the_caddyfile_the_sites_and_the_quadlet_units() {
 fn the_directories_are_created_idempotently() {
     assert_eq!(
         prepare_command(),
-        "mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\""
+        "mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\" \"$HOME/.config/systemd/user\""
     );
 }
 
 #[test]
-fn the_units_are_installed_where_quadlet_reads_them() {
+fn the_quadlet_units_go_where_quadlet_reads_them_and_the_socket_to_the_systemd_user_dir() {
     assert_eq!(
         units_command(),
-        "cp '/opt/acteble/edge/quadlet'/* \"$HOME/.config/containers/systemd/\""
+        "cp '/opt/acteble/edge/quadlet'/*.container '/opt/acteble/edge/quadlet'/*.network '/opt/acteble/edge/quadlet'/*.volume \"$HOME/.config/containers/systemd/\" && cp '/opt/acteble/edge/quadlet'/*.socket \"$HOME/.config/systemd/user/\""
     );
 }
 
