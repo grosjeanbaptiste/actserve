@@ -10,12 +10,14 @@ pub const CDN_ENV_PATH: &str = "/dev/shm/acteble-cdn.env";
 /// The Quadlet files copied from the CDN repository into the user's unit directory (relative to
 /// the home of the server's user: `scp` resolves it there).
 pub const CDN_UNIT_DIR: &str = ".config/containers/systemd";
-pub const CDN_UNIT_FILES: [&str; 7] = [
+pub const CDN_UNIT_FILES: [&str; 9] = [
     "quadlet/acteble_cdn.network",
     "quadlet/acteble_cdn_minio.volume",
     "quadlet/acteble_cdn_geo_work.volume",
-    "quadlet/acteble_cdn-minio.container",
-    "quadlet/acteble_cdn-checkpoint.container",
+    "quadlet/acteble_cdn-minio.kube",
+    "quadlet/acteble_cdn-minio.yaml",
+    "quadlet/acteble_cdn-checkpoint.kube",
+    "quadlet/acteble_cdn-checkpoint.yaml",
     "quadlet/acteble_cdn-publisher.container",
     "quadlet/acteble_cdn-geo-builder.container",
 ];
@@ -32,20 +34,26 @@ pub fn prepare_command() -> String {
     )
 }
 
-/// Loads the copied units, then the network the edge and the CDN share: started (which creates
-/// it) only when absent.
+/// Drops the `.container` units that the `.kube` units replace (two files for one service name
+/// make Quadlet refuse both), loads the copied units, then the network the edge and the CDN
+/// share: started (which creates it) only when absent.
 pub fn network_command() -> String {
-    format!("systemctl --user daemon-reload && {{ {NETWORK_CHECK} || {NETWORK_APPLY}; }}")
+    format!(
+        "rm -f \"$HOME/{CDN_UNIT_DIR}/acteble_cdn-minio.container\" \"$HOME/{CDN_UNIT_DIR}/acteble_cdn-checkpoint.container\" && systemctl --user daemon-reload && {{ {NETWORK_CHECK} || {NETWORK_APPLY}; }}"
+    )
 }
 
 /// Pull the image, put the env file's values in Podman secrets (read by the units, never in a
-/// unit file), then restart the units. The env file is on the server's tmpfs.
+/// unit file; `acteble-cdn` is a Kubernetes `v1.Secret` for the `.kube` units, the others are
+/// plain values for the one-shot units), then restart the units. The env file is on the server's tmpfs.
 pub fn start_script() -> String {
     format!(
         "set -e\n\
          set -a && . {CDN_ENV_PATH} && set +a\n\
          podman pull {CDN_IMAGE}\n\
          secret() {{ printf %s \"$2\" | podman secret create --replace \"$1\" -; }}\n\
+         b64() {{ printf %s \"$1\" | base64 | tr -d '\\n'; }}\n\
+         printf 'apiVersion: v1\\nkind: Secret\\nmetadata:\\n  name: acteble-cdn\\ndata:\\n  minio_root_user: %s\\n  minio_root_password: %s\\n  token_secret: %s\\n  manifest_publisher_key_id: %s\\n' \"$(b64 \"$MINIO_ROOT_USER\")\" \"$(b64 \"$MINIO_ROOT_PASSWORD\")\" \"$(b64 \"$CDN_TOKEN_SECRET\")\" \"$(b64 \"$CDN_MANIFEST_PUBLISHER_KEY_ID\")\" | podman secret create --replace acteble-cdn -\n\
          secret acteble_cdn_minio_root_user \"$MINIO_ROOT_USER\"\n\
          secret acteble_cdn_minio_root_password \"$MINIO_ROOT_PASSWORD\"\n\
          secret acteble_cdn_token_secret \"$CDN_TOKEN_SECRET\"\n\

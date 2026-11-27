@@ -27,8 +27,10 @@ fn the_units_are_the_quadlet_files_of_the_cdn_repository_and_land_in_the_user_un
             "quadlet/acteble_cdn.network",
             "quadlet/acteble_cdn_minio.volume",
             "quadlet/acteble_cdn_geo_work.volume",
-            "quadlet/acteble_cdn-minio.container",
-            "quadlet/acteble_cdn-checkpoint.container",
+            "quadlet/acteble_cdn-minio.kube",
+            "quadlet/acteble_cdn-minio.yaml",
+            "quadlet/acteble_cdn-checkpoint.kube",
+            "quadlet/acteble_cdn-checkpoint.yaml",
             "quadlet/acteble_cdn-publisher.container",
             "quadlet/acteble_cdn-geo-builder.container",
         ]
@@ -40,7 +42,7 @@ fn the_units_are_the_quadlet_files_of_the_cdn_repository_and_land_in_the_user_un
 fn the_shared_network_is_started_only_when_absent_after_the_units_are_loaded() {
     assert_eq!(
         network_command(),
-        "systemctl --user daemon-reload && { podman network exists acteble_edge || systemctl --user start acteble_edge-network.service; }"
+        "rm -f \"$HOME/.config/containers/systemd/acteble_cdn-minio.container\" \"$HOME/.config/containers/systemd/acteble_cdn-checkpoint.container\" && systemctl --user daemon-reload && { podman network exists acteble_edge || systemctl --user start acteble_edge-network.service; }"
     );
 }
 
@@ -69,6 +71,12 @@ fn the_start_creates_the_podman_secrets_from_the_env_then_restarts_the_units() {
             "{secret}: {s}"
         );
     }
+    // The `.kube` units read one `v1.Secret`, values in base64 (any byte survives YAML).
+    assert!(s.contains("podman secret create --replace acteble-cdn -\n"), "{s}");
+    for key in ["minio_root_user", "minio_root_password", "token_secret", "manifest_publisher_key_id"] {
+        assert!(s.contains(&format!("  {key}: %s")), "{key}: {s}");
+    }
+    assert!(s.contains("kind: Secret"), "{s}");
     assert!(
         s.contains("[ -z \"$CDN_MANIFEST_SIGNING_KEY\" ] || secret acteble_cdn_manifest_signing_key \"$CDN_MANIFEST_SIGNING_KEY\"\n"),
         "{s}"

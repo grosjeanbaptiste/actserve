@@ -134,7 +134,7 @@ async fn the_cdn_is_started_by_the_cdn_deploy() {
     let l = log.all();
     assert!(
         l.iter()
-            .any(|c| c.contains("/src/cdn/quadlet/acteble_cdn-minio.container")),
+            .any(|c| c.contains("/src/cdn/quadlet/acteble_cdn-minio.kube")),
         "{l:?}"
     );
     assert!(!l.iter().any(|c| c.contains("/src/edge")));

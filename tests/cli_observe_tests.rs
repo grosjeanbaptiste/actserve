@@ -45,7 +45,7 @@ fn ps_prints_what_the_server_answers() {
     assert_eq!(text(&out.stdout), "service-line\n");
     assert_eq!(text(&out.stderr), "remote-warning\n");
     assert!(
-        calls(&ssh).contains("api.acteble podman ps --filter name=systemd-acteble_cdn"),
+        calls(&ssh).contains("api.acteble podman ps --filter name=acteble_cdn"),
         "{}",
         calls(&ssh)
     );
@@ -172,7 +172,7 @@ fn ps_edge_lists_the_caddy_container() {
     let out = run(&dir, &ssh, &["ps", "acteble", "edge"]);
     assert_eq!(out.status.code(), Some(0), "{out:?}");
     assert!(
-        calls(&ssh).contains("podman ps --filter name=systemd-acteble_edge"),
+        calls(&ssh).contains("podman ps --filter name=acteble_edge"),
         "{}",
         calls(&ssh)
     );
