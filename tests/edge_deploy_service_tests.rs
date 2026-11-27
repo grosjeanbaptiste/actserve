@@ -145,7 +145,7 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     assert_eq!(l[1], "secret acteble-edge-prod");
     assert_eq!(
         l[2],
-        "shell ta [-] mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\""
+        "shell ta [-] mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\" \"$HOME/.config/systemd/user\""
     );
     assert_eq!(
         l[3],
@@ -153,7 +153,7 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     );
     assert_eq!(
         l[4],
-        "shell ta [-] cp '/opt/acteble/edge/quadlet'/* \"$HOME/.config/containers/systemd/\""
+        "shell ta [-] for f in '/opt/acteble/edge/quadlet'/*; do case \"$f\" in *.socket) cp \"$f\" \"$HOME/.config/systemd/user/\";; *) cp \"$f\" \"$HOME/.config/containers/systemd/\";; esac; done"
     );
     assert!(
         l[5].starts_with("shell ta [value-of-ghcr-read-packages] podman login ghcr.io"),
