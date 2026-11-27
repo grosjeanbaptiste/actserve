@@ -5,7 +5,10 @@ use actserve::domain::edge_deploy::{
 
 #[test]
 fn the_edge_files_are_the_caddyfile_the_sites_and_the_quadlet_units() {
-    assert_eq!(EDGE_FILES, ["Caddyfile", "Caddyfile.socket", "sites", "quadlet"]);
+    assert_eq!(
+        EDGE_FILES,
+        ["Caddyfile", "Caddyfile.socket", "sites", "quadlet"]
+    );
     assert_eq!(EDGE_IMAGE, "ghcr.io/acteble/acteble_edge:latest");
 }
 
