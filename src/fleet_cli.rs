@@ -1,7 +1,7 @@
 //! The server commands of the binary: `actserve status [NAME]` and
 //! `actserve audit NAME` and
 //! `actserve harden NAME [--dry-run]`. The inventory is `$ACTCONF_STATE_ROOT/servers.txt`
-//! (default `~/machine`), ssh is `$DOTFILES_SSH` (default `ssh`).
+//! (default `~/machine`), ssh is `$ACTSERVE_SSH` (default `ssh`).
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -30,10 +30,15 @@ fn state_root() -> Result<PathBuf, Box<dyn std::error::Error>> {
     Ok(actconf::state_root(&|name| std::env::var_os(name))?)
 }
 
+/// The program named by `var`, or `default` found on PATH.
+pub(crate) fn program(var: &str, default: &str) -> String {
+    std::env::var(var).unwrap_or_else(|_| default.to_string())
+}
+
 pub(crate) fn inventory_and_ssh()
 -> Result<(Arc<FileServerInventory>, PathBuf), Box<dyn std::error::Error>> {
     let root = state_root()?;
-    let ssh = std::env::var("DOTFILES_SSH").unwrap_or_else(|_| "ssh".to_string());
+    let ssh = program("ACTSERVE_SSH", "ssh");
     Ok((
         Arc::new(FileServerInventory::new(root.join("servers.txt"))),
         PathBuf::from(ssh),

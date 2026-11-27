@@ -1,5 +1,5 @@
 //! `actserve cdn-build-geo NAME [--stage catalog|tree|publish|all] [--dry-run]`.
-//! Secrets come from `$ACTSERVE_ACTESSKEY`, ssh from `$DOTFILES_SSH`.
+//! Secrets come from `$ACTSERVE_ACTESSKEY`, ssh from `$ACTSERVE_SSH`.
 use std::process::ExitCode;
 use std::sync::Arc;
 

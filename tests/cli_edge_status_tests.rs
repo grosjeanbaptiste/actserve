@@ -22,7 +22,7 @@ fn run(dir: &Path, ssh: &Path, key: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_actserve"))
         .args(args)
         .env("ACTCONF_STATE_ROOT", dir)
-        .env("DOTFILES_SSH", ssh)
+        .env("ACTSERVE_SSH", ssh)
         .env("ACTSERVE_ACTESSKEY", key)
         .output()
         .unwrap()
