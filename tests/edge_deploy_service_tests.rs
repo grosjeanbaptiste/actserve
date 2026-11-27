@@ -262,7 +262,7 @@ async fn each_failing_step_stops_the_ones_after_it() {
         ),
         (
             Opts {
-                shell: vec![("cp '/opt", 1)],
+                shell: vec![("for f in", 1)],
                 ..opts()
             },
             "units",
