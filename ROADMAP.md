@@ -119,3 +119,20 @@ LiveKit). Static files and published artifacts go through the CDN stack, not the
 
 **Not done:** no load test has been run, no node count has been decided, nothing was changed on the
 VPS.
+
+## Decision: Podman, Quadlet and Kubernetes (owner, 2026-11-27)
+
+"Everything must be Podman, Quadlet and Kubernetes." Read as (owner chose "Quadlet `.kube` first"):
+
+1. Now, on the single VPS: workloads stay Podman rootless under Quadlet. New workloads are described
+   as Kubernetes YAML and started by Quadlet `.kube` units (`podman kube play`), so the same manifests
+   can move to a cluster later. Existing `.container` units are not rewritten until a slice asks for it.
+2. Later, when the capacity measure (section above) says more than one node is needed: a real
+   Kubernetes cluster. Which distribution, how many nodes and where the control plane runs are NOT
+   decided; a control plane on the current VPS (about 3 GiB available, no swap) has not been measured.
+3. Nothing is published openly (owner, 2026-11-27): any image registry used must be private, checked
+   before the first push (the `gh` token lacked `read:packages`, so GHCR package visibility was not read).
+
+Not done: no `.kube` unit exists yet in any repository; `deploy`, `edge-deploy` and `cdn-deploy` still
+install `.container` units. Open question for the slice that adds the first `.kube` unit: whether the
+verbs keep one code path per unit kind or take the manifest as input.
