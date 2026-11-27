@@ -149,7 +149,7 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     );
     assert_eq!(
         l[3],
-        "copy ta /src/edge/Caddyfile,/src/edge/sites,/src/edge/quadlet -> /opt/acteble/edge"
+        "copy ta /src/edge/Caddyfile,/src/edge/Caddyfile.socket,/src/edge/sites,/src/edge/quadlet -> /opt/acteble/edge"
     );
     assert_eq!(
         l[4],

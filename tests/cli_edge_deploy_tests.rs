@@ -17,6 +17,7 @@ impl Env {
         std::fs::create_dir_all(dir.join("edge")).unwrap();
         std::fs::write(dir.join("servers.txt"), "acteble|api.acteble|host-1\n").unwrap();
         std::fs::write(dir.join("edge").join("Caddyfile"), "x").unwrap();
+        std::fs::write(dir.join("edge").join("Caddyfile.socket"), "x").unwrap();
         std::fs::create_dir_all(dir.join("edge/sites")).unwrap();
         std::fs::create_dir_all(dir.join("edge/quadlet")).unwrap();
         script(&dir.join("ssh"), SSH);
