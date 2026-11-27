@@ -145,15 +145,15 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     assert_eq!(l[1], "secret acteble-edge-prod");
     assert_eq!(
         l[2],
-        "shell ta [-] mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\""
+        "shell ta [-] mkdir -p '/opt/acteble/edge' \"$HOME/.config/containers/systemd\" \"$HOME/.config/systemd/user\""
     );
     assert_eq!(
         l[3],
-        "copy ta /src/edge/Caddyfile,/src/edge/sites,/src/edge/quadlet -> /opt/acteble/edge"
+        "copy ta /src/edge/Caddyfile,/src/edge/Caddyfile.socket,/src/edge/sites,/src/edge/quadlet -> /opt/acteble/edge"
     );
     assert_eq!(
         l[4],
-        "shell ta [-] cp '/opt/acteble/edge/quadlet'/* \"$HOME/.config/containers/systemd/\""
+        "shell ta [-] for f in '/opt/acteble/edge/quadlet'/*; do case \"$f\" in *.socket) cp \"$f\" \"$HOME/.config/systemd/user/\";; *) cp \"$f\" \"$HOME/.config/containers/systemd/\";; esac; done"
     );
     assert!(
         l[5].starts_with("shell ta [value-of-ghcr-read-packages] podman login ghcr.io"),
@@ -262,7 +262,7 @@ async fn each_failing_step_stops_the_ones_after_it() {
         ),
         (
             Opts {
-                shell: vec![("cp '/opt", 1)],
+                shell: vec![("for f in", 1)],
                 ..opts()
             },
             "units",
