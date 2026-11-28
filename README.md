@@ -91,12 +91,12 @@ flowchart LR
 
 ### 3. Réutilisation Maximale de Dépôts Existants
 - **Registre Multi-Sources** : Catalogue indexant nativement [Ansible Galaxy](https://galaxy.ansible.com), [LinuxServer.io](https://fleet.linuxserver.io) et les collections GitHub Sysadmin de référence.
-- **Résolution Automatique de Dépendances** : Lorsqu'un service est sélectionné (ex: un conteneur LinuxServer ou un proxy Traefik), Actserve installe automatiquement ses prérequis (ex: moteur Docker, configuration du pare-feu UFW) dans le bon ordre.
+- **Résolution Automatique de Dépendances** : Lorsqu'un service est sélectionné (ex: un conteneur LinuxServer ou un proxy Traefik), Actserve installe automatiquement ses prérequis (ex: Podman rootless, configuration du pare-feu UFW) dans le bon ordre.
 - **Profils de Serveur Prédéfinis (Presets)** :
   - `secure-web-baseline` : Hardening Linux CIS + UFW/Fail2ban + Caddy auto-HTTPS.
-  - `docker-application-host` : Hardening Linux + Pare-feu + Docker Engine + Traefik v3.
+  - `podman-application-host` : Hardening Linux + Pare-feu + Podman rootless + Traefik v3.
   - `observability-node` : Prometheus Node Exporter + Netdata temps réel + Grafana.
-  - `homelab-private-cloud` : Hardening + Docker + WireGuard VPN + Nextcloud + Vaultwarden.
+  - `homelab-private-cloud` : Hardening + Podman + WireGuard VPN + Nextcloud + Vaultwarden.
 - **Multi-Repo Stacks** : Combinaison de dépôts hétérogènes dans un pipeline unifié avec étapes compensatoires de rollback inversé en cas d'erreur.
 
 ### 4. Moteur d'Orchestration Complet (Workflows, Flottes & Réconciliation)
@@ -280,7 +280,7 @@ curl -X POST http://localhost:8080/api/v1/domains \
   }'
 ```
 
-**3. Déployer un profil complet multi-dépôts (Hardening + Docker + WireGuard + Proxy) :**
+**3. Déployer un profil complet multi-dépôts (Hardening + Podman + WireGuard + Proxy) :**
 ```bash
 curl -X POST http://localhost:8080/api/v1/servers/550e8400-e29b-41d4-a716-446655440000/presets/homelab-private-cloud/apply
 ```

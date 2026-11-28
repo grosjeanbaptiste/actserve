@@ -42,7 +42,7 @@ pub enum GitRef {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RepoKind {
     Playbook,
-    DockerCompose,
+    PodmanKube,
     ShellManifest,
     RawConfig,
     OpenTofu,
@@ -89,7 +89,7 @@ impl DriftReport {
 pub enum DetectedAdminType {
     AnsiblePlaybook,
     AnsibleRole,
-    DockerCompose,
+    PodmanKube,
     ShellProvisioner,
     SystemdUnits,
     RawConfiguration,
@@ -150,7 +150,7 @@ impl RepoAdminManifest {
     }
 
     pub fn is_container_oriented(&self) -> bool {
-        matches!(self.admin_type, DetectedAdminType::DockerCompose)
+        matches!(self.admin_type, DetectedAdminType::PodmanKube)
     }
 }
 

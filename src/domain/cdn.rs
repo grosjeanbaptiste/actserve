@@ -1,5 +1,5 @@
 //! The CDN stack deploy: names and the commands run on the server. The stack
-//! is made of rootless Podman Quadlet units of the user session, not Compose.
+//! is made of rootless Podman Quadlet units of the user session.
 use crate::domain::{
     observe::Stack,
     stacks::{NETWORK_APPLY, NETWORK_CHECK},

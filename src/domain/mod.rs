@@ -1,7 +1,6 @@
 pub mod api_podman;
 pub mod backup;
 pub mod baseline;
-pub mod caddy;
 pub mod catalog;
 pub mod cdn;
 pub mod deploy;

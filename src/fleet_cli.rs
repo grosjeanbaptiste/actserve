@@ -137,7 +137,7 @@ pub async fn run_harden(args: &[String]) -> CliResult {
     finish(name, service.run(name, dry_run).await)
 }
 
-/// Docker, logs and stack directories of one server (`actserve runtime NAME [--dry-run]`).
+/// Podman, logs and stack directories of one server (`actserve runtime NAME [--dry-run]`).
 pub async fn run_runtime(args: &[String]) -> CliResult {
     let Some((name, dry_run)) = name_and_flag(args) else {
         eprintln!("{RUNTIME_USAGE}");

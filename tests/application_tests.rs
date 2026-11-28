@@ -123,7 +123,7 @@ async fn test_orchestration_service_happy_path() {
             name: "nginx-deployments".to_string(),
             url: "https://github.com/org/nginx-deployments.git".to_string(),
             target_ref: GitRef::Branch("main".to_string()),
-            kind: RepoKind::DockerCompose,
+            kind: RepoKind::PodmanKube,
         })
         .await
         .unwrap();
@@ -518,10 +518,10 @@ async fn test_orchestration_service_multi_repo_stack_execution() {
         .await
         .unwrap();
 
-    let repo_docker = orchestrator
+    let repo_podman = orchestrator
         .register_repo(RegisterRepoCommand {
-            name: "admin-docker".to_string(),
-            url: "https://github.com/geerlingguy/ansible-role-docker.git".to_string(),
+            name: "admin-podman".to_string(),
+            url: "https://github.com/example/ansible-role-podman.git".to_string(),
             target_ref: GitRef::Branch("master".to_string()),
             kind: RepoKind::Playbook,
         })
@@ -532,7 +532,7 @@ async fn test_orchestration_service_multi_repo_stack_execution() {
     let stack = orchestrator
         .create_stack(
             "production-baseline-stack".to_string(),
-            "Chains OS hardening and Docker runtime deployment".to_string(),
+            "Chains OS hardening and Podman runtime deployment".to_string(),
             vec![
                 StackRepoEntry {
                     repo_id: repo_sec.id(),
@@ -543,10 +543,10 @@ async fn test_orchestration_service_multi_repo_stack_execution() {
                     overrides: HashMap::new(),
                 },
                 StackRepoEntry {
-                    repo_id: repo_docker.id(),
+                    repo_id: repo_podman.id(),
                     order: 2,
-                    step_name: "install-docker".to_string(),
-                    command: "ansible-playbook docker.yml".to_string(),
+                    step_name: "install-podman".to_string(),
+                    command: "ansible-playbook podman.yml".to_string(),
                     rollback_command: None,
                     overrides: HashMap::new(),
                 },
@@ -564,7 +564,7 @@ async fn test_orchestration_service_multi_repo_stack_execution() {
     assert_eq!(job.status(), ExecutionStatus::Succeeded);
     assert_eq!(job.steps().len(), 2);
     assert_eq!(job.steps()[0].step.name, "apply-hardening");
-    assert_eq!(job.steps()[1].step.name, "install-docker");
+    assert_eq!(job.steps()[1].step.name, "install-podman");
 }
 
 #[tokio::test]
@@ -588,7 +588,7 @@ async fn test_orchestration_service_search_registry_and_dependency_resolution() 
 
     let packages = orchestrator.search_registry(query).await.unwrap();
     assert!(!packages.is_empty());
-    assert!(packages.iter().any(|p| p.id() == "geerlingguy-docker"));
+    assert!(packages.iter().any(|p| p.id() == "containers-podman"));
 
     // List server profile presets
     let presets = orchestrator.list_profile_presets().await.unwrap();
@@ -625,7 +625,7 @@ async fn test_orchestration_service_install_package_with_auto_dependencies() {
         .unwrap();
     server_service.health_check(&server.id()).await.unwrap();
 
-    // "linuxserver-wireguard" depends on "geerlingguy-docker"
+    // "linuxserver-wireguard" depends on "containers-podman"
     // Orchestrator must resolve and execute both in dependency order!
     let job = orchestrator
         .install_package_with_dependencies(&server.id(), "linuxserver-wireguard", HashMap::new())
@@ -634,7 +634,7 @@ async fn test_orchestration_service_install_package_with_auto_dependencies() {
 
     assert_eq!(job.status(), ExecutionStatus::Succeeded);
     assert_eq!(job.steps().len(), 2);
-    assert_eq!(job.steps()[0].step.name, "install-geerlingguy-docker");
+    assert_eq!(job.steps()[0].step.name, "install-containers-podman");
     assert_eq!(job.steps()[1].step.name, "install-linuxserver-wireguard");
 }
 

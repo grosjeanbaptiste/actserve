@@ -117,13 +117,8 @@ fn a_bad_user_is_refused_by_both_builders() {
 #[test]
 fn the_command_runs_psql_in_the_postgres_container_and_stops_on_a_sql_error() {
     let cmd = alter_user_command("acteble_prod").unwrap();
-    assert!(
-        cmd.starts_with("cd '/opt/acteble/api' && docker compose "),
-        "{cmd}"
-    );
-    assert!(cmd.contains("--env-file /dev/shm/acteble-api.env"), "{cmd}");
-    assert!(
-        cmd.contains("exec -T postgres psql -U 'acteble_prod' -v ON_ERROR_STOP=1 -q"),
-        "{cmd}"
+    assert_eq!(
+        cmd,
+        "podman exec -i systemd-acteble_api-postgres psql -U 'acteble_prod' -v ON_ERROR_STOP=1 -q"
     );
 }

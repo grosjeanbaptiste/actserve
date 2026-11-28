@@ -246,7 +246,7 @@ async fn test_declarative_desired_state_reconciliation() {
         server_id: s1,
         required_packages: vec![
             "dev-sec-hardening".to_string(),
-            "geerlingguy-docker".to_string(),
+            "containers-podman".to_string(),
         ],
         bound_domain: Some("app.bioxus.cloud".to_string()),
         wireguard_enabled: true,
@@ -255,7 +255,7 @@ async fn test_declarative_desired_state_reconciliation() {
     let recon_result = orchestrator.reconcile_server_state(desired).await.unwrap();
     assert_eq!(recon_result.server_id, s1);
     assert!(recon_result.drift_detected);
-    assert_eq!(recon_result.remediation_jobs.len(), 4); // Hardening + Docker + Domain + WireGuard
+    assert_eq!(recon_result.remediation_jobs.len(), 4); // Hardening + Podman + Domain + WireGuard
     assert!(
         recon_result
             .remediation_jobs
