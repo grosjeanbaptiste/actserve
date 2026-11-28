@@ -1,4 +1,4 @@
-//! `actserve cdn-deploy NAME [--dry-run]`. The compose file comes from `$ACTEBLE_CDN_DIR`
+//! `actserve cdn-deploy NAME [--dry-run]`. The Quadlet units come from `$ACTEBLE_CDN_DIR`
 //! (default `~/Source/Acteble/acteble_cdn`); scp is `$ACTSERVE_SCP`, secrets `$ACTSERVE_ACTESSKEY`.
 use std::path::PathBuf;
 use std::process::ExitCode;

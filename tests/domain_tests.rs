@@ -137,7 +137,7 @@ fn test_managed_repository_creation_and_sync_policy() {
             "invalid".to_string(),
             "not_a_valid_url".to_string(),
             GitRef::Branch("main".to_string()),
-            RepoKind::DockerCompose
+            RepoKind::PodmanKube
         ),
         Err(DomainError::ValidationError(_))
     ));

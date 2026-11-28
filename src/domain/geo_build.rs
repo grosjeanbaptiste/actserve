@@ -60,7 +60,7 @@ fn secret_flags() -> String {
     .join(" ")
 }
 
-/// Rootless Podman, no Docker. The env file (on the server tmpfs) holds the signing key,
+/// Rootless Podman. The env file (on the server tmpfs) holds the signing key,
 /// which becomes a podman secret; the image is pulled, the build starts detached (it
 /// keeps running if the link drops). No value is ever an argument.
 pub fn build_script(stage: GeoStage) -> String {

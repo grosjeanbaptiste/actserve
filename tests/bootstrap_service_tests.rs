@@ -275,7 +275,6 @@ async fn a_dry_run_applies_nothing_and_does_not_audit() {
     let rules = vec![
         ("id -u", 0),
         ("cmp -s", 1),
-        ("compose version", 1),
         ("network exists", 1),
         ("acteble_cdn", 1),
     ];

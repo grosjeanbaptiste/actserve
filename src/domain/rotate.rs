@@ -1,10 +1,8 @@
 //! The credential rotation of the API: which keys change, how their values are
 //! made, and the command that changes the database password on the server.
 use crate::domain::{
-    deploy::compose,
     encoding::{base64, hex},
     errors::DomainError,
-    observe::Stack,
 };
 
 pub const DEFAULT_DB_USER: &str = "acteble_prod";
@@ -125,15 +123,14 @@ pub fn alter_user_sql(user: &str, password: &str) -> Result<String, DomainError>
     Ok(format!("ALTER USER {user} WITH PASSWORD '{password}';\n"))
 }
 
+/// The container Quadlet names after `acteble_api-postgres.container` (`systemd-%N`).
+const POSTGRES_CONTAINER: &str = "systemd-acteble_api-postgres";
+
 /// Runs psql in the postgres container; reads the statement on stdin and exits
 /// non-zero when it fails (`ON_ERROR_STOP`), so a refused change is never a success.
 pub fn alter_user_command(user: &str) -> Result<String, DomainError> {
     refuse_user(user)?;
     Ok(format!(
-        "cd '{dir}' && {psql}",
-        dir = Stack::Api.dir(),
-        psql = compose(&format!(
-            "exec -T postgres psql -U '{user}' -v ON_ERROR_STOP=1 -q"
-        )),
+        "podman exec -i {POSTGRES_CONTAINER} psql -U '{user}' -v ON_ERROR_STOP=1 -q"
     ))
 }

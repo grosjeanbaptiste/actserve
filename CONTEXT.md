@@ -177,3 +177,7 @@ actserve doit reprendre toute l'administration du VPS et de son réseau que `dot
 - Choix : le script lit l'env avec `sed`, jamais en le sourçant (une valeur comme `PLAY_INTEGRITY_SA_JSON` contient espaces, guillemets et `;`). Les 16 secrets sont tous requis, y compris ceux que Compose laissait optionnels (`REVENUECAT_SECRET_API_KEY`, `PLAY_INTEGRITY_SA_JSON`, `AGE_ATTESTATION_SIGNING_KEY`, `CDN_TOKEN_SECRET`) : les unités les référencent par `Secret=`, et un secret Podman vide n'est pas vérifié.
 - Non vérifié : les unités viennent de `acteble_api` `feat/podman-quadlet` (non fusionnée) ; leurs tests bats parlent de Podman « rootful », alors qu'actserve suppose l'utilisateur ssh sans sudo (`systemctl --user`). Rien lancé sur le VPS. Le helper `outcome` vit dans `item_runner.rs` (la copie d'`edge_deploy_service` est retirée ; `cdn_deploy_service` et `caddy_deploy_service` gardent la leur).
 - Preuve : suite 520 verts, clippy `-D warnings` et fmt propres, mutants 44 testés, 1 survivant (garde de guillemets de `value`) tué par `only_a_matching_pair_of_quotes_is_removed`.
+
+## 2026-11-28 — plus de Docker
+
+`deploy-caddy` est supprimé (le Caddy est celui d'`acteble_edge`, servi par `edge-deploy`). Les dépôts d'administration `compose` deviennent `podman-kube` (`podman kube play --replace pod.yaml`). `rotate` passe par `podman exec` sur `systemd-acteble_api-postgres`. Plus aucune référence Docker hors URL tierces `linuxserver/docker-*` et tests de garde.

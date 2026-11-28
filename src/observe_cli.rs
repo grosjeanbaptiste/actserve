@@ -53,7 +53,7 @@ fn is_name(s: &str) -> bool {
     !s.starts_with('-')
 }
 
-/// The state of a stack's containers (`docker compose ps`).
+/// The state of a stack's containers (`podman ps`).
 pub async fn run_ps(args: &[String]) -> CliResult {
     let [name, stack] = args else {
         eprintln!("{PS_USAGE}");

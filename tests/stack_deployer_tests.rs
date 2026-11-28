@@ -163,7 +163,7 @@ async fn a_locked_secret_is_reported_as_unavailable() {
 
 #[tokio::test]
 async fn a_missing_local_file_is_reported_as_unavailable_with_the_variable_to_set() {
-    let (d, log) = deployer(vec![], vec!["/src/cdn/compose.yml".into()], false);
+    let (d, log) = deployer(vec![], vec!["/src/cdn/Containerfile".into()], false);
     match d.start("ta", "cdn").await.unwrap() {
         DeployOutcome::Unavailable(m) => assert!(m.contains("ACTEBLE_CDN_DIR"), "{m}"),
         DeployOutcome::Started => panic!("started without its files"),

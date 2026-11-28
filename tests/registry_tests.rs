@@ -9,14 +9,14 @@ use actserve::domain::{
 #[test]
 fn test_admin_package_creation_and_dependency_resolution() {
     let pkg = AdminPackage::new(
-        AdminPackageSpec { id: "traefik-edge-router".into(), name: "Traefik v3 Reverse Proxy".into(), description: "Automated edge router with Let's Encrypt certificates".into(), source: RegistrySource::LinuxServerIo, repo_url: "https://github.com/traefik/traefik.git".into(), target_ref: "master".into(), category: AdminCategory::Networking, dependencies: vec!["docker-engine".to_string()], supported_os: // depends on docker
+        AdminPackageSpec { id: "traefik-edge-router".into(), name: "Traefik v3 Reverse Proxy".into(), description: "Automated edge router with Let's Encrypt certificates".into(), source: RegistrySource::LinuxServerIo, repo_url: "https://github.com/traefik/traefik.git".into(), target_ref: "master".into(), category: AdminCategory::Networking, dependencies: vec!["podman-engine".to_string()], supported_os: // depends on docker
         vec!["Ubuntu".to_string(), "Debian".to_string()], stars: 15000, },
     )
     .expect("valid package");
 
     assert_eq!(pkg.id(), "traefik-edge-router");
     assert_eq!(pkg.source(), RegistrySource::LinuxServerIo);
-    assert_eq!(pkg.dependencies(), &["docker-engine"]);
+    assert_eq!(pkg.dependencies(), &["podman-engine"]);
     assert_eq!(pkg.stars(), 15000);
 
     let spec = ServerSpec {
@@ -80,11 +80,11 @@ fn test_server_profile_preset_composition() {
     let preset = ServerProfilePreset::new(
         "hardened-web-server",
         "Production Hardened Web Server",
-        "Combines OS hardening, firewall, Docker engine and Caddy HTTPS reverse proxy",
+        "Combines OS hardening, firewall, Podman and Caddy HTTPS reverse proxy",
         vec![
             "dev-sec-hardening".to_string(),
             "ufw-fail2ban".to_string(),
-            "docker-engine".to_string(),
+            "podman-engine".to_string(),
             "caddy-proxy".to_string(),
         ],
     )
@@ -101,10 +101,10 @@ fn test_gibs_developer_node_preset_composition() {
     let preset = ServerProfilePreset::new(
         "gibs-developer-node",
         "GIBS Developer Node",
-        "Hardened server + Docker + Dotfiles (Stow) + System Status (ss) sensor + WireGuard VPN",
+        "Hardened server + Podman + Dotfiles (Stow) + System Status (ss) sensor + WireGuard VPN",
         vec![
             "dev-sec-hardening".to_string(),
-            "geerlingguy-docker".to_string(),
+            "containers-podman".to_string(),
             "dotfiles-stow".to_string(),
             "ss-sensor".to_string(),
             "linuxserver-wireguard".to_string(),

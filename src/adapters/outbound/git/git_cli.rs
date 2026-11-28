@@ -121,13 +121,10 @@ impl GitProviderPort for GitCliProvider {
                 ),
                 OrchestrationStep::new("ansible_apply", "ansible-playbook -i inventory site.yml"),
             ]),
-            RepoKind::DockerCompose => Ok(vec![
-                OrchestrationStep::new("docker_compose_pull", "docker compose pull"),
-                OrchestrationStep::new(
-                    "docker_compose_up",
-                    "docker compose up -d --remove-orphans",
-                ),
-            ]),
+            RepoKind::PodmanKube => Ok(vec![OrchestrationStep::new(
+                "podman_kube_play",
+                "podman kube play --replace pod.yaml",
+            )]),
             RepoKind::ShellManifest => Ok(vec![OrchestrationStep::new(
                 "run_manifest",
                 "bash deploy.sh",

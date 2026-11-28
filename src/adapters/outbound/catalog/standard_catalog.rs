@@ -18,8 +18,8 @@ impl Default for StandardServerAdminCatalog {
                     ConfigVariable::new("ssh_port", "Custom SSH port", Some("22".to_string()), false),
                     ConfigVariable::new("allow_root_ssh", "Permit root login over SSH", Some("no".to_string()), false),
                 ], }).unwrap(),
-            CatalogItem::new(CatalogItemSpec { id: "docker-engine-compose".into(), name: "Docker Engine & Docker Compose".into(), description: "Production-ready Docker engine installation with daemon configuration, log rotation, and Compose plugin.".into(), category: AdminCategory::Containers, upstream_url: "https://github.com/geerlingguy/ansible-role-docker.git".into(), target_ref: GitRef::Branch("master".to_string()), kind: RepoKind::Playbook, supported_os: vec!["Ubuntu".to_string(), "Debian".to_string(), "RHEL".to_string(), "Alpine".to_string()], required_variables: vec![
-                    ConfigVariable::new("docker_storage_driver", "Storage driver (overlay2)", Some("overlay2".to_string()), false),
+            CatalogItem::new(CatalogItemSpec { id: "podman-rootless".into(), name: "Podman (rootless)".into(), description: "Production-ready rootless Podman installation with daemon configuration, log rotation, and Quadlet support.".into(), category: AdminCategory::Containers, upstream_url: "https://github.com/containers/ansible-podman-collections.git".into(), target_ref: GitRef::Branch("master".to_string()), kind: RepoKind::Playbook, supported_os: vec!["Ubuntu".to_string(), "Debian".to_string(), "RHEL".to_string(), "Alpine".to_string()], required_variables: vec![
+                    ConfigVariable::new("podman_storage_driver", "Storage driver (overlay)", Some("overlay2".to_string()), false),
                 ], }).unwrap(),
             CatalogItem::new(CatalogItemSpec { id: "prometheus-node-exporter".into(), name: "Prometheus Node Exporter & Monitoring".into(), description: "Prometheus host metrics collector exposing hardware and OS metrics (CPU, memory, disk, network).".into(), category: AdminCategory::Monitoring, upstream_url: "https://github.com/prometheus-community/ansible-node-exporter.git".into(), target_ref: GitRef::Branch("main".to_string()), kind: RepoKind::Playbook, supported_os: vec!["Ubuntu".to_string(), "Debian".to_string(), "RHEL".to_string()], required_variables: vec![
                     ConfigVariable::new("exporter_port", "HTTP metrics port", Some("9100".to_string()), false),
@@ -28,7 +28,7 @@ impl Default for StandardServerAdminCatalog {
                     ConfigVariable::new("ban_time", "Ban duration in seconds", Some("3600".to_string()), false),
                     ConfigVariable::new("max_retry", "Maximum login retries before ban", Some("5".to_string()), false),
                 ], }).unwrap(),
-            CatalogItem::new(CatalogItemSpec { id: "traefik-proxy".into(), name: "Traefik v3 Edge Router & Reverse Proxy".into(), description: "High-performance cloud-native edge router with automated Let's Encrypt SSL/TLS certificates.".into(), category: AdminCategory::Networking, upstream_url: "https://github.com/traefik/traefik.git".into(), target_ref: GitRef::Branch("master".to_string()), kind: RepoKind::DockerCompose, supported_os: vec![], required_variables: vec![
+            CatalogItem::new(CatalogItemSpec { id: "traefik-proxy".into(), name: "Traefik v3 Edge Router & Reverse Proxy".into(), description: "High-performance cloud-native edge router with automated Let's Encrypt SSL/TLS certificates.".into(), category: AdminCategory::Networking, upstream_url: "https://github.com/traefik/traefik.git".into(), target_ref: GitRef::Branch("master".to_string()), kind: RepoKind::PodmanKube, supported_os: vec![], required_variables: vec![
                     ConfigVariable::new("acme_email", "Email for Let's Encrypt certificates", None, false),
                     ConfigVariable::new("domain", "Primary server domain name", None, false),
                 ], }).unwrap(),

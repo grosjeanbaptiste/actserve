@@ -637,14 +637,14 @@ async fn test_bioxus_api_catalog_and_recipe_application() {
             Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/v1/servers/{}/recipes/docker-engine-compose/apply",
+                    "/api/v1/servers/{}/recipes/podman-rootless/apply",
                     server_id
                 ))
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
                         "parameters": {
-                            "docker_storage_driver": "overlay2"
+                            "podman_storage_driver": "overlay2"
                         }
                     })
                     .to_string(),
@@ -698,8 +698,8 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "name": "r2-docker",
-                        "url": "https://github.com/geerlingguy/ansible-role-docker.git",
+                        "name": "r2-podman",
+                        "url": "https://github.com/example/ansible-role-podman.git",
                         "target_ref": { "Branch": "master" },
                         "kind": "Playbook"
                     })
@@ -724,7 +724,7 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
                 .body(Body::from(
                     json!({
                         "name": "bioxus-web-stack",
-                        "description": "Hardening + Docker stack",
+                        "description": "Hardening + Podman stack",
                         "entries": [
                             {
                                 "repo_id": r1_id,
@@ -845,13 +845,13 @@ async fn test_bioxus_api_multi_repo_stack_endpoints() {
 async fn test_bioxus_api_registry_search_and_preset_installation() {
     let app = setup_test_app();
 
-    // 1. GET /api/v1/registry/search?keyword=docker
+    // 1. GET /api/v1/registry/search?keyword=podman
     let search_res = app
         .clone()
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/api/v1/registry/search?keyword=docker")
+                .uri("/api/v1/registry/search?keyword=podman")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -863,7 +863,7 @@ async fn test_bioxus_api_registry_search_and_preset_installation() {
         serde_json::from_slice(&search_res.into_body().collect().await.unwrap().to_bytes())
             .unwrap();
     assert!(!pkgs.is_empty());
-    assert!(pkgs.iter().any(|p| p["id"] == "geerlingguy-docker"));
+    assert!(pkgs.iter().any(|p| p["id"] == "containers-podman"));
 
     // 2. GET /api/v1/registry/presets
     let presets_res = app

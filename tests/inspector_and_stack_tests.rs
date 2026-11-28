@@ -8,19 +8,16 @@ use std::collections::HashMap;
 #[test]
 fn test_repo_admin_manifest_detection_types() {
     let manifest = RepoAdminManifest::new(
-        DetectedAdminType::DockerCompose,
+        DetectedAdminType::PodmanKube,
+        vec!["pod.yaml".to_string(), "pod.prod.yaml".to_string()],
         vec![
-            "docker-compose.yml".to_string(),
-            "docker-compose.prod.yml".to_string(),
-        ],
-        vec![
-            DiscoveredVariable::new("COMPOSE_PROJECT_NAME", Some("actserve-app".to_string())),
+            DiscoveredVariable::new("POD_NAME", Some("actserve-app".to_string())),
             DiscoveredVariable::new("PORT", Some("8080".to_string())),
         ],
     )
     .expect("valid manifest");
 
-    assert_eq!(manifest.admin_type(), DetectedAdminType::DockerCompose);
+    assert_eq!(manifest.admin_type(), DetectedAdminType::PodmanKube);
     assert_eq!(manifest.entrypoints().len(), 2);
     assert_eq!(manifest.discovered_variables().len(), 2);
     assert!(manifest.is_container_oriented());
@@ -50,8 +47,8 @@ fn test_multi_repo_stack_creation_and_step_generation() {
             repo_id: repo_2,
             order: 2,
             step_name: "monitoring-agent".to_string(),
-            command: "docker compose up -d".to_string(),
-            rollback_command: Some("docker compose down".to_string()),
+            command: "podman kube play --replace pod.yaml".to_string(),
+            rollback_command: Some("podman kube down pod.yaml".to_string()),
             overrides: HashMap::new(),
         },
     ];
@@ -77,7 +74,7 @@ fn test_multi_repo_stack_creation_and_step_generation() {
     assert_eq!(steps[1].name, "monitoring-agent");
     assert_eq!(
         steps[1].rollback_command.as_deref(),
-        Some("docker compose down")
+        Some("podman kube down pod.yaml")
     );
 }
 

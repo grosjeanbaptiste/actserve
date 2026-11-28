@@ -1,4 +1,4 @@
-//! Podman commands shared by the services ported off Docker (rootless, the ssh login user).
+//! Podman commands shared by the services (rootless, the ssh login user).
 use crate::domain::deploy::GHCR_USER;
 
 /// Runs `script` logged in to ghcr.io (the token arrives on stdin) and logs

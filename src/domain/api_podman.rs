@@ -1,4 +1,4 @@
-//! The API stack deploy: rootless Podman Quadlet units of the ssh user, not Compose. Names, files
+//! The API stack deploy: rootless Podman Quadlet units of the ssh user, . Names, files
 //! and the commands run on the server.
 use crate::domain::{
     deploy::{API_ENV_PATH, IMAGE_REPO, valid_image_tag},
