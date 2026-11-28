@@ -133,6 +133,12 @@ VPS.
 3. Nothing is published openly (owner, 2026-11-27): any image registry used must be private, checked
    before the first push (the `gh` token lacked `read:packages`, so GHCR package visibility was not read).
 
-Not done: no `.kube` unit exists yet in any repository; `deploy`, `edge-deploy` and `cdn-deploy` still
-install `.container` units. Open question for the slice that adds the first `.kube` unit: whether the
-verbs keep one code path per unit kind or take the manifest as input.
+State on 2026-11-28 (corrects the first version of this note, which said no `.kube` unit existed: it
+had only looked at this repository). `acteble_cdn` already runs MinIO and the checkpoint as Kubernetes
+manifests started by Quadlet `.kube` units (`quadlet/acteble_cdn-minio.kube` and `-checkpoint.kube`,
+acteble_cdn#5), and `cdn-deploy` (`src/domain/cdn.rs`, `CDN_FILES`) copies those `.kube` and `.yaml`
+files and drops the `.container` units they replace. The publisher and geo-builder CDN units are still
+`.container`. `deploy` (API), `edge-deploy` and `actif-api` still install `.container` units; the Docker
+paths were removed from `acteble_edge` (acteble_edge#5), `acteble_cdn` (acteble_cdn#6) and the API
+build workflow (acteble_api#39). Not checked: that `podman kube play` units run for real on the VPS
+(Podman 5.7.0) after `cdn-deploy`.
