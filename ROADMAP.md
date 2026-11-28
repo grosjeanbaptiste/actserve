@@ -14,7 +14,7 @@ compared with the bash behaviour, then `dotfiles` calls actserve.
 | `servers status` (ssh hostname, ok/unreachable/wrong-host) | `actserve status [NAME]` (`FleetStatusService`, `SshHostnameProbe`) | 1 done |
 | `servers audit` (hostname check, then `edge audit` over ssh with sudo; exit 0/1/3, 2 unknown) | `actserve audit NAME` (`FleetAuditService`, `SshEdgeAudit`) | 2 done (`acteble edge-audit` still dotfiles) |
 | `servers bootstrap` / `apply` (reach, harden, runtime, edge, stacks, audit) | 3a done: `actserve harden NAME [--dry-run]` (sshd drop-in with rollback, ufw, fail2ban, unattended-upgrades; `HardenService`). 3b done: `actserve runtime NAME [--dry-run]` (Podman, stack directories from `dirs.txt`; no Docker, no `daemon.json`; PR #33). 3c done: `actserve edge NAME` and `actserve stacks NAME` (network, Caddy, cdn checks; starting them waits for slice 4, the deploy, and fails saying so). 3d done: `actserve bootstrap NAME [--dry-run]` and `apply` (all six steps, every declared file validated first, audit last decides the exit status). Starting Caddy/cdn: see 4d-4 | 3 done |
-| `acteble deploy-caddy`, `cdn-deploy`, `edge-deploy` (+ `--dry-run`) | 4d-1 done: `actserve deploy-caddy NAME [--dry-run]` (Caddyfile of `origin/main`, backup, write aside then move, reload, restore on refusal; `CaddyDeployService`, `GitCaddyfileSource`). 4d-2 done: `actserve cdn-deploy NAME [--dry-run]` (`CdnDeployService`: mkdir, copy the Quadlet units and `minio-health.sh`, `daemon-reload`, `acteble_edge` network unit, `podman login`/`pull` and Podman secrets from the tmpfs env, `systemctl --user restart` of MinIO and the checkpoint, geo prefix opened; PR #35). 4d-3 done: `actserve edge-deploy NAME [--dry-run]` (`EdgeDeployService`; ported to Podman, see "Podman, no Docker" below; `ScpRemoteCopy` passes `-r`). The real `StackDeployPort` is done (4d-4, below) | 4d done |
+| `cdn-deploy`, `edge-deploy` (+ `--dry-run`) | 4d-1 removed (#56, 2026-11-28): `deploy-caddy` is gone, the Caddy is the one of `acteble_edge`, deployed by `edge-deploy`. 4d-2 done: `actserve cdn-deploy NAME [--dry-run]` (`CdnDeployService`: mkdir, copy the Quadlet units and `minio-health.sh`, `daemon-reload`, `acteble_edge` network unit, `podman login`/`pull` and Podman secrets from the tmpfs env, `systemctl --user restart` of MinIO and the checkpoint, geo prefix opened; PR #35). 4d-3 done: `actserve edge-deploy NAME [--dry-run]` (`EdgeDeployService`; ported to Podman, see "Podman, no Docker" below; `ScpRemoteCopy` passes `-r`). The real `StackDeployPort` is done (4d-4, below) | 4d done |
 | `acteble status`, `logs`, `cdn-status`, `cdn-logs` | 4a done: `actserve ps NAME api\|cdn`, `actserve logs NAME api\|cdn [SERVICE]` (`ObserveService`, `SshTerminal`) | 4a done |
 | `acteble edge-status` | 4b done: `actserve edge-status NAME` (secret from actesskey on the server tmpfs, removed after; `SecretStorePort`, `with_remote_env`) | 4b done |
 | `acteble deploy`, `rollback` | 4c done: `actserve deploy NAME [--dry-run]`, `actserve rollback NAME [TAG] [--dry-run]` (`DeployService`, `ScpRemoteCopy`) | 4c done |
@@ -59,7 +59,7 @@ The VPS runs rootless Podman with Quadlet units only (Docker purged, `remove-doc
 Every actserve command that runs `docker` on it moves to `podman` and `systemctl --user`, over the
 plain ssh login user (no sudo, no XDG_RUNTIME_DIR; secrets by `podman secret create`, value on stdin).
 Names: unit `acteble_<stack>-<service>.service`, container `systemd-acteble_<stack>-<service>`.
-One PR per command; `domain/deploy.rs` keeps the Docker scripts until the last user is ported.
+One PR per command. Done: no Docker script is left in `src` (#56, 2026-11-28); only third-party `linuxserver/docker-*` URLs and the guard tests name it.
 
 | Command | State |
 |---|---|
@@ -133,6 +133,12 @@ VPS.
 3. Nothing is published openly (owner, 2026-11-27): any image registry used must be private, checked
    before the first push (the `gh` token lacked `read:packages`, so GHCR package visibility was not read).
 
-Not done: no `.kube` unit exists yet in any repository; `deploy`, `edge-deploy` and `cdn-deploy` still
-install `.container` units. Open question for the slice that adds the first `.kube` unit: whether the
-verbs keep one code path per unit kind or take the manifest as input.
+State on 2026-11-28 (corrects the first version of this note, which said no `.kube` unit existed: it
+had only looked at this repository). `acteble_cdn` already runs MinIO and the checkpoint as Kubernetes
+manifests started by Quadlet `.kube` units (`quadlet/acteble_cdn-minio.kube` and `-checkpoint.kube`,
+acteble_cdn#5), and `cdn-deploy` (`src/domain/cdn.rs`, `CDN_FILES`) copies those `.kube` and `.yaml`
+files and drops the `.container` units they replace. The publisher and geo-builder CDN units are still
+`.container`. `deploy` (API), `edge-deploy` and `actif-api` still install `.container` units; the Docker
+paths were removed from `acteble_edge` (acteble_edge#5), `acteble_cdn` (acteble_cdn#6) and the API
+build workflow (acteble_api#39). Not checked: that `podman kube play` units run for real on the VPS
+(Podman 5.7.0) after `cdn-deploy`.
