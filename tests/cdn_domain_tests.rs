@@ -72,8 +72,16 @@ fn the_start_creates_the_podman_secrets_from_the_env_then_restarts_the_units() {
         );
     }
     // The `.kube` units read one `v1.Secret`, values in base64 (any byte survives YAML).
-    assert!(s.contains("podman secret create --replace acteble-cdn -\n"), "{s}");
-    for key in ["minio_root_user", "minio_root_password", "token_secret", "manifest_publisher_key_id"] {
+    assert!(
+        s.contains("podman secret create --replace acteble-cdn -\n"),
+        "{s}"
+    );
+    for key in [
+        "minio_root_user",
+        "minio_root_password",
+        "token_secret",
+        "manifest_publisher_key_id",
+    ] {
         assert!(s.contains(&format!("  {key}: %s")), "{key}: {s}");
     }
     assert!(s.contains("kind: Secret"), "{s}");
