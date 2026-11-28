@@ -76,7 +76,7 @@ async fn ps_runs_podman_ps_and_returns_the_answer() {
     let run = s.ps("a", Stack::Cdn).await.unwrap();
     assert_eq!(
         calls.0.lock().unwrap().as_slice(),
-        ["shell ta podman ps --filter name=systemd-acteble_cdn"]
+        ["shell ta podman ps --filter name=acteble_cdn"]
     );
     assert_eq!(exit_code(&run), 0);
     assert_eq!(render("a", &run), "NAME\napi\n");

@@ -156,7 +156,7 @@ async fn a_deploy_runs_every_step_in_order_and_cleans_the_env_file() {
     );
     assert_eq!(
         l[3],
-        "copy ta /src/cdn/quadlet/acteble_cdn.network,/src/cdn/quadlet/acteble_cdn_minio.volume,/src/cdn/quadlet/acteble_cdn_geo_work.volume,/src/cdn/quadlet/acteble_cdn-minio.container,/src/cdn/quadlet/acteble_cdn-checkpoint.container,/src/cdn/quadlet/acteble_cdn-publisher.container,/src/cdn/quadlet/acteble_cdn-geo-builder.container -> .config/containers/systemd"
+        "copy ta /src/cdn/quadlet/acteble_cdn.network,/src/cdn/quadlet/acteble_cdn_minio.volume,/src/cdn/quadlet/acteble_cdn_geo_work.volume,/src/cdn/quadlet/acteble_cdn-minio.kube,/src/cdn/quadlet/acteble_cdn-minio.yaml,/src/cdn/quadlet/acteble_cdn-checkpoint.kube,/src/cdn/quadlet/acteble_cdn-checkpoint.yaml,/src/cdn/quadlet/acteble_cdn-publisher.container,/src/cdn/quadlet/acteble_cdn-geo-builder.container -> .config/containers/systemd"
     );
     assert_eq!(
         l[4],

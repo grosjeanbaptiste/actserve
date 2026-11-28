@@ -53,15 +53,15 @@ fn the_edge_dir_is_the_one_edge_status_already_uses() {
 fn ps_lists_the_podman_containers_of_the_stack() {
     assert_eq!(
         ps_command(Stack::Cdn),
-        "podman ps --filter name=systemd-acteble_cdn"
+        "podman ps --filter name=acteble_cdn"
     );
     assert_eq!(
         ps_command(Stack::Api),
-        "podman ps --filter name=systemd-acteble_api"
+        "podman ps --filter name=acteble_api"
     );
     assert_eq!(
         ps_command(Stack::Edge),
-        "podman ps --filter name=systemd-acteble_edge"
+        "podman ps --filter name=acteble_edge"
     );
 }
 

@@ -2,7 +2,7 @@
 //! (rootless Podman, Quadlet units in the user session).
 use crate::domain::errors::DomainError;
 
-/// A Quadlet stack on a server: units `acteble_<stack>-<service>`, containers `systemd-acteble_<stack>-…`.
+/// A Quadlet stack on a server: units `acteble_<stack>-<service>`, containers `systemd-acteble_<stack>-…` (`.container`) or `acteble_<stack>-…-…` (`.kube` pods).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stack {
     Api,
@@ -58,7 +58,7 @@ pub fn valid_service(name: &str) -> bool {
 }
 
 pub fn ps_command(stack: Stack) -> String {
-    format!("podman ps --filter name=systemd-acteble_{}", stack.name())
+    format!("podman ps --filter name=acteble_{}", stack.name())
 }
 
 /// What the whole server is using: cpus, load, memory, disk, and what each
